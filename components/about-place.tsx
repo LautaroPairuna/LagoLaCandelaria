@@ -234,7 +234,7 @@ export function AboutPlace() {
           preload="auto"
           aria-hidden
         >
-          <source src="/ubicacion.mp4?v=3" type="video/mp4" />
+          <source src="/ubicacion.mp4?v=4" type="video/mp4" />
         </video>
         <div className="ubicacion-frame">
           <div className="ubicacion-layout">
