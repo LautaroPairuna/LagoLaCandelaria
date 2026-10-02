@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
+import { Foto } from "@/components/foto"
 import { OfferLines } from "@/components/offer-lines"
 import { getCategory, getStay } from "@/lib/categories"
 
@@ -57,11 +58,6 @@ function SideCard({ card }: { card: Card }) {
     const node = ref.current
     if (!node) return
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setShown(true)
-      return
-    }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
@@ -84,7 +80,7 @@ function SideCard({ card }: { card: Card }) {
       style={{ ["--pair" as string]: card.side === "right" ? 1 : 0 }}
     >
       <span className="offer-media">
-        <img src={card.image} alt="" className="offer-photo" />
+        <Foto src={card.image} alt="" sizes="(min-width: 768px) 50vw, 100vw" className="offer-photo" />
         <span className="offer-shade" />
       </span>
       <span className="offer-copy">
@@ -155,7 +151,7 @@ function Stage({
               style={{ ["--i" as string]: index }}
             >
               <span className="offer-media">
-                <img src={card.image} alt="" className="offer-photo" />
+                <Foto src={card.image} alt="" sizes="(min-width: 768px) 34vw, 100vw" className="offer-photo" />
                 <span className="offer-shade" />
               </span>
               <span className="offer-copy">

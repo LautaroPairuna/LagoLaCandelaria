@@ -4,23 +4,19 @@ import { AboutPlace } from "@/components/about-place"
 import { ActivityMosaic } from "@/components/activity-mosaic"
 import { ButtonLink } from "@/components/button-link"
 import { TextLink } from "@/components/text-link"
+import { VideoFondo } from "@/components/video-fondo"
 import { Wave } from "@/components/wave"
+import { fotoUrl } from "@/lib/fotos"
 
 export default function HomePage() {
   return (
     <main>
       <section className="hero-on-video sticky top-0 z-0 flex min-h-svh flex-col overflow-hidden text-cream">
-        <video
-          className="pointer-events-none absolute inset-0 size-full object-cover motion-reduce:hidden"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden
-        >
-          <source src="/hero.mp4" type="video/mp4" />
-        </video>
+        <VideoFondo
+          src="/hero.mp4"
+          poster={fotoUrl("/posters/hero.jpg", 1280)}
+          className="pointer-events-none absolute inset-0 size-full object-cover"
+        />
         <div aria-hidden className="hero-video-shade pointer-events-none absolute inset-0" />
         <div className="relative z-10 mx-auto flex w-full max-w-[1120px] flex-1 flex-col items-center justify-center px-5 pt-24 text-center md:px-8">
           <div className="rise">
@@ -50,17 +46,12 @@ export default function HomePage() {
         <ActivityMosaic />
 
       <section id="como-reservar" data-nav="como-reservar" className="section-snap audience-water relative flex items-center overflow-hidden bg-[#0c4e58] text-cream">
-        <video
-          className="pointer-events-none absolute inset-0 size-full object-cover motion-reduce:hidden"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden
-        >
-          <source src="/para-quien.mp4" type="video/mp4" />
-        </video>
+        <VideoFondo
+          src="/para-quien.mp4"
+          poster={fotoUrl("/posters/para-quien.jpg", 1280)}
+          className="pointer-events-none absolute inset-0 size-full object-cover"
+          diferido
+        />
         <div aria-hidden className="audience-water-shade pointer-events-none absolute inset-0" />
         <div className="relative z-10 mx-auto w-full max-w-[1120px] px-5 py-10 md:px-8">
           <h2 className="font-display max-w-3xl text-4xl leading-[1.02] tracking-tight text-cream md:text-6xl">

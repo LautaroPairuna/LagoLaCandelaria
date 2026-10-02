@@ -138,7 +138,7 @@ export function AsistenteReserva({ sugerencia }: { sugerencia?: SugerenciaReserv
   const [indice, setIndice] = useState(0)
   const [errores, setErrores] = useState<Errores>({})
   const [ocupados, setOcupados] = useState<string[]>([])
-  const [disponibilidad, setDisponibilidad] = useState<"lista" | "cargando" | "ciega">("lista")
+  const [consulta, setConsulta] = useState<{ clave: string; estado: "lista" | "ciega" } | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [formError, setFormError] = useState("")
   const [ticket, setTicket] = useState<{ id: string; solicitud: SolicitudGuardada; qr?: string } | null>(null)
@@ -160,15 +160,21 @@ export function AsistenteReserva({ sugerencia }: { sugerencia?: SugerenciaReserv
     return compilar(prepararBorrador(borrador), "PREVIA")
   }, [borrador])
 
+  const clave =
+    (paso.id === "lugar" || paso.id === "mesa") && esFecha(desde) && esFecha(hasta)
+      ? `${paso.id}|${desde}|${hasta}`
+      : null
+  const disponibilidad = !clave ? "lista" : consulta?.clave === clave ? consulta.estado : "cargando"
+
   useEffect(() => {
-    if ((paso.id !== "lugar" && paso.id !== "mesa") || !esFecha(desde) || !esFecha(hasta)) return
+    if (!clave) return
+    const [, inicio, fin] = clave.split("|")
     const controlador = new AbortController()
-    setDisponibilidad("cargando")
-    fetch(`/api/disponibilidad?desde=${desde}&hasta=${hasta}`, { signal: controlador.signal })
+    fetch(`/api/disponibilidad?desde=${inicio}&hasta=${fin}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((datos: { ok?: boolean; ocupados?: string[] }) => {
         const lista = datos.ok ? (datos.ocupados ?? []) : []
-        setDisponibilidad(datos.ok ? "lista" : "ciega")
+        setConsulta({ clave, estado: datos.ok ? "lista" : "ciega" })
         setOcupados(lista)
         setBorrador((actual) => {
           const lugares = actual.lugares.filter((id) => !lista.includes(id))
@@ -186,10 +192,10 @@ export function AsistenteReserva({ sugerencia }: { sugerencia?: SugerenciaReserv
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return
-        setDisponibilidad("ciega")
+        setConsulta({ clave, estado: "ciega" })
       })
     return () => controlador.abort()
-  }, [paso.id, desde, hasta])
+  }, [clave])
 
   function ir(siguiente: number) {
     setErrores({})

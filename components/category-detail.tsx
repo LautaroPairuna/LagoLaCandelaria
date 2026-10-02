@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Clock, Layers, Shield, UserRound, Users, type LucideIcon } from "lucide-react"
 
 import { ButtonLink } from "@/components/button-link"
+import { Foto } from "@/components/foto"
 import { GroundsPlan } from "@/components/grounds-plan"
 import { OfferLines } from "@/components/offer-lines"
 import { PhotoCarousel } from "@/components/photo-carousel"
@@ -144,9 +145,10 @@ export function CategoryDetail({
   return (
     <article className="bg-foam text-ink">
       <header className="relative flex min-h-[78svh] items-end overflow-hidden text-cream">
-        <img
+        <Foto
           src={category.banner.src}
           alt={category.banner.alt}
+          prioridad
           className="absolute inset-0 size-full object-cover"
           style={{ objectPosition: category.banner.position ?? "center" }}
         />
@@ -284,9 +286,10 @@ function InformativeDetail({
   return (
     <article className="bg-foam text-ink">
       <header className="relative flex min-h-[440px] items-end overflow-hidden text-cream md:min-h-[min(62svh,640px)]">
-        <img
+        <Foto
           src={category.banner.src}
           alt={category.banner.alt}
+          prioridad
           className="absolute inset-0 size-full object-cover"
           style={{ objectPosition: category.banner.position ?? "center" }}
         />
@@ -455,10 +458,11 @@ function SubactivityBlock({
       </div>
       <div className={`grid gap-3 ${index % 2 === 1 ? "md:order-1" : ""}`}>
         {item.photos.map((photo, photoIndex) => (
-          <img
+          <Foto
             key={`${item.slug}-${photoIndex}`}
             src={photo.src}
             alt={photo.alt}
+            sizes="(min-width: 768px) 45vw, 100vw"
             className="aspect-[4/3] w-full rounded-[1.15rem] object-cover"
             style={{ objectPosition: photo.position ?? "center" }}
           />

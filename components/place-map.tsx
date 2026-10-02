@@ -5,6 +5,7 @@ import type { Map as LeafletMap } from "leaflet"
 
 import "leaflet/dist/leaflet.css"
 
+import { fotoUrl } from "@/lib/fotos"
 import { mapPoint, mapUrl } from "@/lib/site"
 
 export function PlaceMap() {
@@ -46,7 +47,7 @@ export function PlaceMap() {
 
       const icon = L.divIcon({
         className: "logo-pin",
-        html: '<img src="/logo.png" alt="" /><i></i>',
+        html: `<img src="${fotoUrl("/logo.png", 136)}" alt="" /><i></i>`,
         iconSize: [72, 86],
         iconAnchor: [36, 82],
       })

@@ -4,16 +4,20 @@ import { notFound } from "next/navigation"
 import { TicketPublico } from "@/components/reserva/ticket-publico"
 import { mensajePorId } from "@/lib/almacen-reservas"
 import { leerSolicitud } from "@/lib/solicitud"
+import { urlSitio } from "@/lib/url-sitio"
 
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Ticket de reserva",
   description: "Solicitud de reserva de Lago La Candelaria, con el código QR del ingreso.",
+  robots: { index: false, follow: false },
 }
 
-export default async function TicketPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TicketPage({ params }: PageProps<"/reserva/t/[id]">) {
   const { id } = await params
+  if (!/^[a-z0-9]{20,40}$/i.test(id)) notFound()
+
   let mensaje = ""
   try {
     mensaje = (await mensajePorId(id)) ?? ""
@@ -39,7 +43,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
   return (
     <main className="bg-foam px-5 pt-28 pb-16 text-ink md:px-8 md:pt-32">
       <div className="mx-auto max-w-3xl">
-        <TicketPublico solicitud={solicitud} />
+        <TicketPublico solicitud={solicitud} enlace={`${urlSitio}/reserva/t/${id}`} />
       </div>
     </main>
   )

@@ -221,23 +221,6 @@ export function relatedActivities(activity: Activity) {
   return activitiesIn(activity.realm).filter((item) => item.slug !== activity.slug)
 }
 
-export const interestChoices = [
-  ...activities.map((activity) => ({
-    id: activity.slug,
-    label: activity.name,
-    group: realms[activity.realm].label,
-  })),
-  { id: "bungalows", label: "Bungalows", group: "Estadía y mesa" },
-  { id: "campamentos", label: "Campamentos", group: "Estadía y mesa" },
-  { id: "restaurante", label: "Restaurante", group: "Estadía y mesa" },
-]
-
-const interestIds = new Set(interestChoices.map((choice) => choice.id))
-
-export function isInterest(value: string | undefined): value is string {
-  return !!value && interestIds.has(value)
-}
-
 export const moreLinks = [
   { href: "/categorias/parque-aereo", label: "el parque aéreo" },
   { href: "/categorias/canchas", label: "las canchas" },

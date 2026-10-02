@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
 import { stays } from "@/lib/categories"
 
@@ -25,9 +26,10 @@ export default function EstadiaPage() {
                 href={`/estadia/${stay.slug}`}
                 className="group grid overflow-hidden rounded-[1.15rem] bg-cream md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
               >
-                <img
+                <Foto
                   src={stay.banner.src}
                   alt=""
+                  sizes="(min-width: 768px) 460px, 100vw"
                   className="h-52 w-full object-cover md:h-full md:min-h-56"
                   style={{ objectPosition: stay.banner.position ?? "center" }}
                 />

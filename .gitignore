@@ -44,6 +44,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# solicitudes locales cuando MariaDB no está en marcha
-/data/reservas.json
-/data/reservas.json.lock
+
+# fotos optimizadas por scripts/optimizar-fotos.mjs
+/public/img
+/lib/fotos.generadas.json

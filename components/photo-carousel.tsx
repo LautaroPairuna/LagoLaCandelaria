@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { Foto } from "@/components/foto"
 import type { Photo } from "@/lib/categories"
 
 const INTERVAL_MS = 4500
@@ -10,12 +11,7 @@ const INTERVAL_MS = 4500
 export function PhotoCarousel({ photos }: { photos: Photo[] }) {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
-  const signature = photos.map((photo) => photo.src).join("|")
   const count = photos.length
-
-  useEffect(() => {
-    setIndex(0)
-  }, [signature])
 
   useEffect(() => {
     if (count < 2 || paused) return
@@ -27,7 +23,7 @@ export function PhotoCarousel({ photos }: { photos: Photo[] }) {
     }, INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [count, paused, signature, index])
+  }, [count, paused, index])
 
   const current = photos[index] ?? photos[0]
   if (!current) return null
@@ -63,10 +59,11 @@ export function PhotoCarousel({ photos }: { photos: Photo[] }) {
       }}
     >
       {photos.map((photo, photoIndex) => (
-        <img
+        <Foto
           key={`${photo.src}-${photoIndex}`}
           src={photo.src}
           alt={photoIndex === index ? photo.alt : ""}
+          sizes="(min-width: 768px) 55vw, 100vw"
           className={`absolute inset-0 size-full object-cover transition-opacity duration-700 ${
             photoIndex === index ? "opacity-100" : "opacity-0"
           }`}

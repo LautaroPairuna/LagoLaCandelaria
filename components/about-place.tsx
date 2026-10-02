@@ -1,5 +1,8 @@
+import { Foto } from "@/components/foto"
 import { GoogleReviews } from "@/components/google-reviews"
 import { PlaceMap } from "@/components/place-map"
+import { VideoFondo } from "@/components/video-fondo"
+import { fotoUrl } from "@/lib/fotos"
 import { channels } from "@/lib/site"
 
 type Channel = (typeof channels)[number]
@@ -195,8 +198,9 @@ export function AboutPlace() {
             </p>
           </div>
           <figure className="team-print">
-            <img
+            <Foto
               src="/equipo.jpg"
+              sizes="(min-width: 768px) 50vw, 100vw"
               alt="Equipo de Lago La Candelaria con cascos, reunido en el parque aéreo del predio."
               className="team-print-photo"
             />
@@ -225,17 +229,12 @@ export function AboutPlace() {
       </section>
 
       <section id="ubicacion" aria-labelledby="ubicacion-titulo" className="ubicacion-section section-snap">
-        <video
-          className="ubicacion-video motion-reduce:hidden"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden
-        >
-          <source src="/ubicacion.mp4?v=4" type="video/mp4" />
-        </video>
+        <VideoFondo
+          src="/ubicacion.mp4?v=5"
+          poster={fotoUrl("/posters/ubicacion.jpg", 1280)}
+          className="ubicacion-video"
+          diferido
+        />
         <div className="ubicacion-frame">
           <div className="ubicacion-layout">
             <div className="ubicacion-col">

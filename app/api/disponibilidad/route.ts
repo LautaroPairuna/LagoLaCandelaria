@@ -1,16 +1,24 @@
 import { NextResponse } from "next/server"
 
 import { mensajesEntre } from "@/lib/almacen-reservas"
+import { ipDe, superaLimite } from "@/lib/limite"
 import { reservaMessages } from "@/lib/reserva"
-import { esFecha, ocupadosEnMensajes, sumarDias } from "@/lib/solicitud"
+import { MAX_NOCHES, diasDelRango, esFecha, ocupadosEnMensajes, sumarDias } from "@/lib/solicitud"
 
 export const dynamic = "force-dynamic"
 
+const CONSULTAS_POR_IP = 60
+const VENTANA_MS = 60 * 1000
+
 export async function GET(request: Request) {
+  if (superaLimite(`disponibilidad:${ipDe(request)}`, CONSULTAS_POR_IP, VENTANA_MS)) {
+    return NextResponse.json({ ok: false, ocupados: [], message: reservaMessages.tooMany }, { status: 429 })
+  }
+
   const url = new URL(request.url)
   const desde = url.searchParams.get("desde") ?? ""
   const hasta = url.searchParams.get("hasta") ?? desde
-  if (!esFecha(desde) || !esFecha(hasta) || hasta < desde) {
+  if (!esFecha(desde) || !esFecha(hasta) || hasta < desde || diasDelRango(desde, hasta).length > MAX_NOCHES + 1) {
     return NextResponse.json({ ok: false, ocupados: [] }, { status: 400 })
   }
 

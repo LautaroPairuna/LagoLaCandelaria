@@ -2,9 +2,7 @@ import {
   horas,
   infoLugar,
   mesaDe,
-  mesas,
   unidadDe,
-  unidades,
   unidadesDe,
   type Mesa,
   type Unidad,
@@ -151,11 +149,10 @@ export function borradorInicial(): Borrador {
   }
 }
 
+const fechaDelPredio = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" })
+
 export function hoyIso() {
-  const ahora = new Date()
-  const mes = String(ahora.getMonth() + 1).padStart(2, "0")
-  const dia = String(ahora.getDate()).padStart(2, "0")
-  return `${ahora.getFullYear()}-${mes}-${dia}`
+  return fechaDelPredio.format(new Date())
 }
 
 export function sumarDias(iso: string, dias: number) {
@@ -756,10 +753,6 @@ export function ocupadosEnMensajes(mensajes: string[], desde: string, hasta: str
     for (const id of unidadesDeSolicitud(solicitud)) ocupados.add(id)
   }
   return ocupados
-}
-
-export function idsConocidos() {
-  return new Set([...unidades.map((unidad) => unidad.id), ...mesas.map((mesa) => mesa.id)])
 }
 
 export function crearCodigo() {

@@ -13,9 +13,10 @@ model ReservationInquiry {
   contact   String    @db.VarChar(255)
   groupType String    @db.VarChar(120)
   date      DateTime? @db.Date
-  message   String    @db.Text
+  message   String    @db.MediumText
   createdAt DateTime  @default(now())
 
   @@index([contact, groupType, date])
+  @@index([date])
   @@map("reservation_inquiries")
 }

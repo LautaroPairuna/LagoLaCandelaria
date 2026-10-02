@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { Foto } from "@/components/foto"
 import { PredioMap } from "@/components/predio-map"
 import type { Grounds } from "@/lib/categories"
 import type { ZoneId } from "@/lib/offers"
@@ -49,9 +50,10 @@ export function GroundsPlan({ grounds }: { grounds: Grounds }) {
         <div className="mt-8 grid items-start gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <PredioMap primary={grounds.primary} context={grounds.context} label={label} />
           <figure className="overflow-hidden rounded-[1.25rem] bg-cream">
-            <img
+            <Foto
               src={grounds.photo.src}
               alt={grounds.photo.alt}
+              sizes="(min-width: 1024px) 40vw, 100vw"
               className="aspect-[4/3] w-full object-cover"
               style={{ objectPosition: grounds.photo.position ?? "center" }}
             />
