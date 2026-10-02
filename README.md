@@ -8,16 +8,42 @@ Hace falta MySQL 8 o MariaDB en local, con la base `lago_la_candelaria`. Copiá 
 
 ```bash
 npm install
-npx prisma migrate deploy
+npm run db:preparar
 npm run dev
 ```
+
+`db:preparar` aplica las migraciones y carga las unidades del predio y los feriados (`prisma/seed.mts`). Se puede correr las veces que haga falta: si cambia el inventario en `lib/predio/inventario.ts`, se vuelve a correr y actualiza la tabla `unidades`.
 
 La app queda en [http://127.0.0.1:4721](http://127.0.0.1:4721).
 
 ```bash
 npm run lint
+npm test
 npm run build
 ```
+
+## Base de datos
+
+| Tabla | Qué guarda |
+| --- | --- |
+| `reservas` | Una fila por reserva. El `id` es el número de reserva de las planillas; el `token` va en el link del ticket. |
+| `clientes` | Quien reserva, identificado por DNI. Permite ver si es cliente nuevo. |
+| `reserva_personas` | Cada integrante de un grupo familiar con su edad (para el tablero por rango etario). |
+| `unidades` | Parrillas, quinchos, gazebos, palapas, bungalows y mesas. Se cargan desde `lib/predio/inventario.ts`. |
+| `ocupaciones` | Qué unidad está tomada qué día. Su índice único impide que dos reservas tomen el mismo lugar. |
+| `pagos` | Señas y cuotas. |
+| `dias_especiales` | Feriados, días no laborables y cierres o aperturas puntuales. |
+
+Las reglas del predio (tarifas, calendario de apertura, asignación de parrillas y playa, regla de bungalows, teléfono) están en `lib/predio/`, con sus tests.
+
+### Pasar a producción
+
+```bash
+npm run db:preparar
+npm run db:migrar-legado
+```
+
+`db:migrar-legado` copia las solicitudes de la tabla vieja `reservation_inquiries` a las tablas nuevas, con el mismo link de ticket. Se puede correr más de una vez: saltea lo que ya pasó. La tabla vieja queda hasta confirmar que está todo; después se borra con una migración.
 
 ## Páginas
 

@@ -1,5 +1,3 @@
-import { tarifas } from "@/lib/tarifas"
-
 export type TipoLugar = "parrilla" | "gazebo" | "quincho" | "palapa" | "bungalow"
 export type ZonaMesa = "restaurante" | "bar"
 
@@ -26,7 +24,6 @@ export type TipoLugarInfo = {
   explica: string
   genero: "f" | "m"
   capacidad: number
-  precio: number
   por: "día" | "noche"
   soloHospedaje: boolean
 }
@@ -40,7 +37,6 @@ export const tiposLugar: TipoLugarInfo[] = [
     explica: "Puesto de fuego del día. Cada parrilla alcanza para 6 personas.",
     genero: "f",
     capacidad: 6,
-    precio: tarifas.lugar.parrilla,
     por: "día",
     soloHospedaje: false,
   },
@@ -52,7 +48,6 @@ export const tiposLugar: TipoLugarInfo[] = [
     explica: "Techo en el campo, con sombra y mesa. Cada gazebo es para 8 personas.",
     genero: "m",
     capacidad: 8,
-    precio: tarifas.lugar.gazebo,
     por: "día",
     soloHospedaje: false,
   },
@@ -64,7 +59,6 @@ export const tiposLugar: TipoLugarInfo[] = [
     explica: "Techo con cocina para el grupo. El quincho es para 20 personas.",
     genero: "m",
     capacidad: 20,
-    precio: tarifas.lugar.quincho,
     por: "día",
     soloHospedaje: false,
   },
@@ -76,7 +70,6 @@ export const tiposLugar: TipoLugarInfo[] = [
     explica: "La sombrilla de la playa artificial. Cada palapa es para 6 personas.",
     genero: "f",
     capacidad: 6,
-    precio: tarifas.lugar.palapa,
     por: "día",
     soloHospedaje: false,
   },
@@ -88,7 +81,6 @@ export const tiposLugar: TipoLugarInfo[] = [
     explica: "Casa para 4 personas, con baño privado, parrilla propia y vista al lago. Se reserva por noche.",
     genero: "m",
     capacidad: 4,
-    precio: tarifas.lugar.bungalow,
     por: "noche",
     soloHospedaje: true,
   },

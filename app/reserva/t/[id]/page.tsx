@@ -2,8 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { TicketPublico } from "@/components/reserva/ticket-publico"
-import { mensajePorId } from "@/lib/almacen-reservas"
-import { leerSolicitud } from "@/lib/solicitud"
+import { reservaPorToken } from "@/lib/reservas"
 import { urlSitio } from "@/lib/url-sitio"
 
 export const dynamic = "force-dynamic"
@@ -18,9 +17,9 @@ export default async function TicketPage({ params }: PageProps<"/reserva/t/[id]"
   const { id } = await params
   if (!/^[a-z0-9]{20,40}$/i.test(id)) notFound()
 
-  let mensaje = ""
+  let reserva: Awaited<ReturnType<typeof reservaPorToken>> = null
   try {
-    mensaje = (await mensajePorId(id)) ?? ""
+    reserva = await reservaPorToken(id)
   } catch {
     return (
       <main className="bg-foam px-5 py-32 text-ink md:px-8">
@@ -35,15 +34,17 @@ export default async function TicketPage({ params }: PageProps<"/reserva/t/[id]"
     )
   }
 
-  if (!mensaje) notFound()
-
-  const solicitud = leerSolicitud(mensaje)
-  if (!solicitud) notFound()
+  if (!reserva) notFound()
 
   return (
     <main className="bg-foam px-5 pt-28 pb-16 text-ink md:px-8 md:pt-32">
       <div className="mx-auto max-w-3xl">
-        <TicketPublico solicitud={solicitud} enlace={`${urlSitio}/reserva/t/${id}`} />
+        {reserva.estado === "CANCELADA" ? (
+          <p className="mb-6 rounded-2xl bg-destructive/10 px-5 py-4 font-semibold text-destructive" role="status">
+            Esta reserva está cancelada. Si es un error, llamá al predio.
+          </p>
+        ) : null}
+        <TicketPublico solicitud={reserva.solicitud} enlace={`${urlSitio}/reserva/t/${id}`} />
       </div>
     </main>
   )

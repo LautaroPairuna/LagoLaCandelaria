@@ -7,9 +7,17 @@ import {
   type Mesa,
   type Unidad,
 } from "@/lib/inventario"
-import { tarifas } from "@/lib/tarifas"
+import {
+  EDAD_MAXIMA_MENOR,
+  EDAD_MINIMA_CON_CARGO,
+  bandaDeEdad,
+  conDescuentoEfectivo,
+  pesos,
+  precioBungalowPorNoche,
+  repartirEnBungalows,
+  tarifas,
+} from "@/lib/predio/tarifas"
 
-export const MARCA_SOLICITUD = "---SOLICITUD---"
 export const MAX_NOCHES = 14
 
 export type TipoGrupo = "familiar" | "estudiantil"
@@ -102,7 +110,14 @@ export type SolicitudGuardada = {
   lugares: Unidad[]
   mesas: Mesa[]
   personas: number
-  cotizacion: { total: number; lineas: LineaPrecio[] }
+  cotizacion: Cotizacion
+}
+
+export type Cotizacion = {
+  total: number
+  totalEfectivo?: number
+  aConfirmar?: boolean
+  lineas: LineaPrecio[]
 }
 
 export type Errores = Record<string, string>
@@ -578,81 +593,83 @@ export function compilar(borrador: Borrador, codigo: string): SolicitudGuardada 
   return solicitud
 }
 
-function banda(edad: number, cud: boolean) {
-  if (cud || edad < 3) return "sin-cargo" as const
-  if (edad <= 12) return "menor" as const
-  return "adulto" as const
+export function textoDelTotal(cotizacion: Cotizacion) {
+  return cotizacion.aConfirmar ? "A confirmar" : pesos(cotizacion.total)
 }
 
-export function cotizar(solicitud: SolicitudGuardada): { total: number; lineas: LineaPrecio[] } {
+export function textoDelEfectivo(cotizacion: Cotizacion) {
+  if (cotizacion.aConfirmar || !cotizacion.totalEfectivo || cotizacion.totalEfectivo === cotizacion.total) return null
+  return `Pagando en efectivo: ${pesos(cotizacion.totalEfectivo)} (${tarifas.descuentoEfectivo * 100} % menos).`
+}
+
+function veces(cantidad: number, uno: string, varios: string) {
+  return `${cantidad} ${cantidad === 1 ? uno : varios}`
+}
+
+export function cotizar(solicitud: SolicitudGuardada): Cotizacion {
+  if (solicitud.tipo === "estudiantil") {
+    return {
+      total: 0,
+      aConfirmar: true,
+      lineas: [
+        {
+          concepto: "Presupuesto del grupo",
+          detalle: "Lo arma el predio según la propuesta (aventura, carpa o dormis), la cantidad y las bonificaciones.",
+          importe: 0,
+        },
+      ],
+    }
+  }
+
   const lineas: LineaPrecio[] = []
   const dias = Math.max(solicitud.dias.length, 1)
+  const todas = solicitud.familias.flatMap((familia) => [familia.responsable, ...familia.integrantes])
+  const bandas = todas.map((persona) => bandaDeEdad(persona.edad, persona.cud))
+  const adultos = bandas.filter((banda) => banda === "adulto").length
+  const menores = bandas.filter((banda) => banda === "menor").length
+  const sinCargo = bandas.filter((banda) => banda === "sin-cargo").length
+  const bungalows = solicitud.lugares.filter((lugar) => lugar.tipo === "bungalow")
 
-  if (solicitud.tipo === "estudiantil" && solicitud.institucion) {
-    const grupo = solicitud.institucion
-    const estudiantesPago = Math.max(grupo.estudiantes - grupo.cud, 0)
-    if (estudiantesPago > 0) {
+  if (bungalows.length > 0) {
+    const noches = Math.max(solicitud.noches, 1)
+    const reparto = repartirEnBungalows(todas.length, bungalows.length)
+    bungalows.forEach((bungalow, indice) => {
       lineas.push({
-        concepto: "Ingreso estudiantes",
-        detalle: `${estudiantesPago} × ${dias} ${dias === 1 ? "día" : "días"}, tarifa menor`,
-        importe: estudiantesPago * dias * tarifas.menor,
+        concepto: capitalizar(bungalow.nombre),
+        detalle: `${veces(reparto[indice], "persona", "personas")} × ${veces(noches, "noche", "noches")} · incluye la entrada`,
+        importe: precioBungalowPorNoche(reparto[indice]) * noches,
       })
-    }
-    if (grupo.adultos > 0) {
-      lineas.push({
-        concepto: "Ingreso adultos a cargo",
-        detalle: `${grupo.adultos} × ${dias} ${dias === 1 ? "día" : "días"}`,
-        importe: grupo.adultos * dias * tarifas.adulto,
-      })
-    }
-    if (grupo.cud > 0) {
-      lineas.push({
-        concepto: "Certificado CUD",
-        detalle: `${grupo.cud} ${grupo.cud === 1 ? "estudiante no abona" : "estudiantes no abonan"} el ingreso`,
-        importe: 0,
-      })
-    }
+    })
   } else {
-    const todas = solicitud.familias.flatMap((familia) => [familia.responsable, ...familia.integrantes])
-    const adultos = todas.filter((persona) => banda(persona.edad, persona.cud) === "adulto").length
-    const menores = todas.filter((persona) => banda(persona.edad, persona.cud) === "menor").length
-    const sinCargo = todas.filter((persona) => banda(persona.edad, persona.cud) === "sin-cargo").length
     if (adultos > 0) {
       lineas.push({
         concepto: "Ingreso adultos",
-        detalle: `${adultos} × ${dias} ${dias === 1 ? "día" : "días"} · 13 años o más`,
+        detalle: `${adultos} × ${veces(dias, "día", "días")} · más de ${EDAD_MAXIMA_MENOR} años`,
         importe: adultos * dias * tarifas.adulto,
       })
     }
     if (menores > 0) {
       lineas.push({
         concepto: "Ingreso menores",
-        detalle: `${menores} × ${dias} ${dias === 1 ? "día" : "días"} · de 3 a 12 años`,
+        detalle: `${menores} × ${veces(dias, "día", "días")} · de ${EDAD_MINIMA_CON_CARGO} a ${EDAD_MAXIMA_MENOR} años`,
         importe: menores * dias * tarifas.menor,
       })
     }
     if (sinCargo > 0) {
       lineas.push({
         concepto: "Sin cargo",
-        detalle: "Menores de 3 años o certificado CUD",
+        detalle: `Menores de ${EDAD_MINIMA_CON_CARGO} años o certificado CUD`,
         importe: 0,
       })
     }
   }
 
-  const porTipo = new Map<Unidad["tipo"], Unidad[]>()
-  for (const lugar of solicitud.lugares) {
-    const lista = porTipo.get(lugar.tipo) ?? []
-    lista.push(lugar)
-    porTipo.set(lugar.tipo, lista)
-  }
-  for (const [tipo, lista] of porTipo) {
-    const info = infoLugar(tipo)
-    const veces = info.por === "noche" ? solicitud.noches : dias
+  const delDia = solicitud.lugares.filter((lugar) => lugar.tipo !== "bungalow")
+  if (delDia.length > 0) {
     lineas.push({
-      concepto: lista.map((lugar) => capitalizar(lugar.nombre)).join(", "),
-      detalle: `${lista.length} × ${veces} ${info.por === "noche" ? (veces === 1 ? "noche" : "noches") : veces === 1 ? "día" : "días"}`,
-      importe: lista.length * veces * info.precio,
+      concepto: delDia.map((lugar) => capitalizar(lugar.nombre)).join(", "),
+      detalle: "El lugar no suma: está incluido en la entrada.",
+      importe: 0,
     })
   }
 
@@ -665,94 +682,15 @@ export function cotizar(solicitud: SolicitudGuardada): { total: number; lineas: 
   }
 
   const total = lineas.reduce((suma, linea) => suma + linea.importe, 0)
-  return { total, lineas }
+  return { total, totalEfectivo: conDescuentoEfectivo(total), lineas }
 }
 
 function capitalizar(texto: string) {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
-export function resumenHumano(solicitud: SolicitudGuardada) {
-  const lineas = [
-    `Solicitud ${solicitud.codigo}`,
-    `Grupo: ${solicitud.tipo === "familiar" ? "familiar" : "estudiantil"}`,
-    `Contacto: ${solicitud.contacto.nombre} ${solicitud.contacto.apellido}`,
-    `Correo: ${solicitud.contacto.email}`,
-    `Teléfono: ${solicitud.contacto.telefono}`,
-    `Estadía: ${solicitud.estadia === "dia" ? "pasar el día" : `${solicitud.noches} ${solicitud.noches === 1 ? "noche" : "noches"}`}`,
-    `Desde: ${solicitud.desde}`,
-    `Hasta: ${solicitud.hasta}`,
-    `Ingreso: ${solicitud.ingreso}`,
-    `Salida: ${solicitud.salida}`,
-    `Personas: ${solicitud.personas}`,
-  ]
-  if (solicitud.institucion) {
-    lineas.push(
-      `Institución: ${solicitud.institucion.nombre}`,
-      `Estudiantes: ${solicitud.institucion.estudiantes}`,
-      `Adultos: ${solicitud.institucion.adultos}`,
-      `Edades: ${solicitud.institucion.edades}`,
-    )
-  }
-  for (const familia of solicitud.familias) {
-    const gente = [familia.responsable, ...familia.integrantes]
-    lineas.push(
-      gente
-        .map((persona) => {
-          const nota = persona.notas ? ` (${persona.notas})` : ""
-          const cud = persona.cud ? " CUD" : ""
-          return `${persona.nombre} ${persona.apellido}, DNI ${persona.dni}, ${persona.edad} años${cud}${nota}`
-        })
-        .join("; "),
-    )
-  }
-  if (solicitud.lugares.length) {
-    lineas.push(`Lugares: ${solicitud.lugares.map((lugar) => capitalizar(lugar.nombre)).join(", ")}`)
-  }
-  if (solicitud.mesas.length) {
-    lineas.push(
-      `Mesas: ${solicitud.mesas
-        .map((mesa) => `${mesa.zona === "restaurante" ? "Restaurante" : "Bar"} ${mesa.nombre}`)
-        .join(", ")}`,
-    )
-  }
-  lineas.push(`Total: ${solicitud.cotizacion.total}`)
-  return lineas.join("\n")
-}
-
-export function empaquetar(solicitud: SolicitudGuardada) {
-  return `${resumenHumano(solicitud)}\n${MARCA_SOLICITUD}\n${JSON.stringify(solicitud)}`
-}
-
-export function leerSolicitud(mensaje: string): SolicitudGuardada | null {
-  const indice = mensaje.indexOf(MARCA_SOLICITUD)
-  if (indice < 0) return null
-  try {
-    const datos = JSON.parse(mensaje.slice(indice + MARCA_SOLICITUD.length).trim()) as SolicitudGuardada
-    if (!datos || datos.version !== 1 || typeof datos.codigo !== "string") return null
-    return datos
-  } catch {
-    return null
-  }
-}
-
-export function rangosSeCruzan(desdeA: string, hastaA: string, desdeB: string, hastaB: string) {
-  return desdeA <= hastaB && desdeB <= hastaA
-}
-
 export function unidadesDeSolicitud(solicitud: SolicitudGuardada) {
   return [...solicitud.lugares.map((lugar) => lugar.id), ...solicitud.mesas.map((mesa) => mesa.id)]
-}
-
-export function ocupadosEnMensajes(mensajes: string[], desde: string, hasta: string) {
-  const ocupados = new Set<string>()
-  for (const mensaje of mensajes) {
-    const solicitud = leerSolicitud(mensaje)
-    if (!solicitud) continue
-    if (!rangosSeCruzan(desde, hasta, solicitud.desde, solicitud.hasta)) continue
-    for (const id of unidadesDeSolicitud(solicitud)) ocupados.add(id)
-  }
-  return ocupados
 }
 
 export function crearCodigo() {

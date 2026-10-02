@@ -1,5 +1,5 @@
-import { pesos } from "@/lib/tarifas"
-import { fechaLarga, type SolicitudGuardada } from "@/lib/solicitud"
+import { pesos } from "@/lib/predio/tarifas"
+import { fechaLarga, textoDelEfectivo, textoDelTotal, type SolicitudGuardada } from "@/lib/solicitud"
 
 function escapar(valor: string) {
   return valor
@@ -106,7 +106,8 @@ export function htmlDelTicket(solicitud: SolicitudGuardada, qrDataUrl: string, e
   ${fila("Mesas", mesas)}
   <h2>Total de la solicitud</h2>
   ${lineas}
-  <div class="fila"><dt>Total</dt><dd><strong>${escapar(pesos(solicitud.cotizacion.total))}</strong></dd></div>
+  <div class="fila"><dt>Total</dt><dd><strong>${escapar(textoDelTotal(solicitud.cotizacion))}</strong></dd></div>
+  ${textoDelEfectivo(solicitud.cotizacion) ? `<p>${escapar(textoDelEfectivo(solicitud.cotizacion) ?? "")}</p>` : ""}
   <h2>Contacto</h2>
   ${fila("Nombre", `${solicitud.contacto.nombre} ${solicitud.contacto.apellido}`)}
   ${fila("Correo", solicitud.contacto.email)}

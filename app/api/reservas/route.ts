@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server"
 
-import { baseCaida, guardarConsulta, mensajesEntre } from "@/lib/almacen-reservas"
 import { leerBorrador, leerJsonAcotado } from "@/lib/borrador-entrada"
 import { ipDe, superaLimite } from "@/lib/limite"
 import { reservaMessages } from "@/lib/reserva"
+import { baseCaida, guardarReserva, ocupadosEntre } from "@/lib/reservas"
 import {
   compilar,
   crearCodigo,
-  empaquetar,
-  ocupadosEnMensajes,
   prepararBorrador,
-  sumarDias,
   unidadesDeSolicitud,
   validarPaso,
   type Borrador,
@@ -33,11 +30,6 @@ function respuestaDeFallo(error: unknown) {
     return NextResponse.json({ ok: false, message: reservaMessages.unavailable }, { status: 503 })
   }
   return NextResponse.json({ ok: false, message: reservaMessages.saveFailed }, { status: 500 })
-}
-
-async function ocupadosEntre(desde: string, hasta: string) {
-  const mensajes = await mensajesEntre(sumarDias(desde, -40), hasta)
-  return ocupadosEnMensajes(mensajes, desde, hasta)
 }
 
 export async function POST(request: Request) {
@@ -93,27 +85,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const guardada = await guardarConsulta(
-      {
-        name: `${solicitud.contacto.nombre} ${solicitud.contacto.apellido}`,
-        contact: `${solicitud.contacto.email} · ${solicitud.contacto.telefono}`,
-        groupType: solicitud.tipo === "familiar" ? "Grupo familiar" : "Grupo estudiantil",
-        date: solicitud.desde,
-        message: empaquetar(solicitud),
-        desde: sumarDias(solicitud.desde, -40),
-        hasta: solicitud.hasta,
-      },
-      (mensajes) => {
-        const cruzados = ocupadosEnMensajes(mensajes, solicitud.desde, solicitud.hasta)
-        return unidadesDeSolicitud(solicitud).filter((id) => cruzados.has(id))
-      },
-    )
-
+    const guardada = await guardarReserva(solicitud)
     if ("conflicto" in guardada) {
       return NextResponse.json({ ok: false, message: lugarTomado, ocupados: guardada.conflicto }, { status: 409 })
     }
-
-    return NextResponse.json({ ok: true, id: guardada.id, solicitud })
+    return NextResponse.json({ ok: true, id: guardada.token, solicitud: { ...solicitud, codigo: guardada.codigo } })
   } catch (error) {
     return respuestaDeFallo(error)
   }

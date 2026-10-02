@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 
-import { mensajesEntre } from "@/lib/almacen-reservas"
 import { ipDe, superaLimite } from "@/lib/limite"
 import { reservaMessages } from "@/lib/reserva"
-import { MAX_NOCHES, diasDelRango, esFecha, ocupadosEnMensajes, sumarDias } from "@/lib/solicitud"
+import { ocupadosEntre } from "@/lib/reservas"
+import { MAX_NOCHES, diasDelRango, esFecha } from "@/lib/solicitud"
 
 export const dynamic = "force-dynamic"
 
@@ -23,8 +23,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const mensajes = await mensajesEntre(sumarDias(desde, -40), hasta)
-    return NextResponse.json({ ok: true, ocupados: [...ocupadosEnMensajes(mensajes, desde, hasta)] })
+    return NextResponse.json({ ok: true, ocupados: [...(await ocupadosEntre(desde, hasta))] })
   } catch (error) {
     console.error("Disponibilidad no leída", error instanceof Error ? error.name : "unknown")
     return NextResponse.json(

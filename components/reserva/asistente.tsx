@@ -13,7 +13,7 @@ import { TicketVista } from "@/components/reserva/ticket-vista"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { horas, mesaDe, mesasDe, tiposLugar, unidadDe, unidadesDe } from "@/lib/inventario"
-import { pesos } from "@/lib/tarifas"
+import { pesos, precioBungalowPorNoche } from "@/lib/predio/tarifas"
 import { reservaMessages, visitorMessage } from "@/lib/reserva"
 import {
   advertenciaCapacidad,
@@ -28,6 +28,8 @@ import {
   pasosDe,
   prepararBorrador,
   primerError,
+  textoDelEfectivo,
+  textoDelTotal,
   validarPaso,
   type Borrador,
   type Errores,
@@ -703,7 +705,11 @@ function PasoLugar({
             key={tipo.id}
             tipo={tipo.id}
             titulo={tipo.nombre}
-            explica={`${tipo.explica} ${pesos(tipo.precio)} por ${tipo.por}.`}
+            explica={
+              tipo.id === "bungalow"
+                ? `${tipo.explica} Desde ${pesos(precioBungalowPorNoche(2))} por noche según cuántos duermen, con la entrada incluida.`
+                : `${tipo.explica} Está incluido en la entrada.`
+            }
             ayuda={
               bloqueado
                 ? undefined
@@ -1016,7 +1022,10 @@ function PanelReserva({
         <p className="text-xs font-bold tracking-[0.16em] uppercase">Total</p>
         {previa ? (
           <>
-            <p className="font-display mt-1 text-4xl tracking-tight">{pesos(previa.cotizacion.total)}</p>
+            <p className="font-display mt-1 text-4xl tracking-tight">{textoDelTotal(previa.cotizacion)}</p>
+            {textoDelEfectivo(previa.cotizacion) ? (
+              <p className="mt-1 text-sm font-semibold text-white/90">{textoDelEfectivo(previa.cotizacion)}</p>
+            ) : null}
             <ul className="mt-3 space-y-1.5">
               {previa.cotizacion.lineas.map((linea) => (
                 <li key={`${linea.concepto}-${linea.detalle}`} className="flex items-baseline justify-between gap-3 text-sm text-white/90">

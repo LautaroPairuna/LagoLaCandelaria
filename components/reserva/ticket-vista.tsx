@@ -1,6 +1,6 @@
 import { LogoMark } from "@/components/logo-mark"
-import { pesos } from "@/lib/tarifas"
-import { fechaLarga, type SolicitudGuardada } from "@/lib/solicitud"
+import { pesos } from "@/lib/predio/tarifas"
+import { fechaLarga, textoDelEfectivo, textoDelTotal, type SolicitudGuardada } from "@/lib/solicitud"
 import { phones } from "@/lib/site"
 
 function Fila({ termino, detalle }: { termino: string; detalle: string }) {
@@ -166,9 +166,12 @@ export function TicketVista({
             <Fila key={`${linea.concepto}-${linea.detalle}`} termino={linea.concepto} detalle={`${linea.detalle} · ${pesos(linea.importe)}`} />
           ))}
         </dl>
-        <p className="font-display mt-4 text-4xl tracking-tight">{pesos(solicitud.cotizacion.total)}</p>
+        <p className="font-display mt-4 text-4xl tracking-tight">{textoDelTotal(solicitud.cotizacion)}</p>
+        {textoDelEfectivo(solicitud.cotizacion) ? (
+          <p className="mt-1 font-semibold">{textoDelEfectivo(solicitud.cotizacion)}</p>
+        ) : null}
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/65">
-          Es el total estimado con la tarifa de referencia cargada en el sitio. No se cobra en esta pantalla: el predio confirma el importe al aceptar la solicitud.
+          No se cobra en esta pantalla. El predio confirma el importe y la forma de pago al aceptar la solicitud.
         </p>
 
         <h3 className="font-display mt-8 text-2xl tracking-tight">Quién hizo la reserva</h3>
