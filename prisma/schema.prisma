@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model ReservationInquiry {
+  id        String    @id @default(cuid())
+  name      String    @db.VarChar(160)
+  contact   String    @db.VarChar(255)
+  groupType String    @db.VarChar(120)
+  date      DateTime? @db.Date
+  message   String    @db.Text
+  createdAt DateTime  @default(now())
+
+  @@index([contact, groupType, date])
+  @@map("reservation_inquiries")
+}
