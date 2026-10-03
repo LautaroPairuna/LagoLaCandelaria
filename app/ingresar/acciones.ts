@@ -1,11 +1,10 @@
 "use server"
 
-import { APIError } from "better-auth/api"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
-import { auth } from "@/lib/auth"
+import { auth, errorDeAuth } from "@/lib/auth"
 
 const credenciales = z.object({
   email: z.string().trim().toLowerCase().email().max(120),
@@ -21,10 +20,11 @@ export async function ingresar(_previo: EstadoIngreso, datos: FormData): Promise
   try {
     await auth().api.signInEmail({ body: entrada.data, headers: await headers() })
   } catch (error) {
-    if (error instanceof APIError) {
-      return { error: error.status === "TOO_MANY_REQUESTS" ? "Demasiados intentos. Esperá un minuto." : "El correo o la contraseña no coinciden." }
-    }
-    throw error
+    const fallo = errorDeAuth(error)
+    if (!fallo) throw error
+    if (fallo.status === "TOO_MANY_REQUESTS") return { error: "Demasiados intentos. Esperá un minuto." }
+    if (/banned/i.test(fallo.message)) return { error: "Tu usuario está deshabilitado. Hablá con la administración." }
+    return { error: "El correo o la contraseña no coinciden." }
   }
   redirect("/panel")
 }

@@ -3,7 +3,7 @@ export const paneles = [
   { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: true },
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: false },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: false },
-  { id: "general", nombre: "General", href: "/panel/general", listo: false },
+  { id: "general", nombre: "General", href: "/panel/general", listo: true },
 ] as const
 
 export type PanelId = (typeof paneles)[number]["id"]

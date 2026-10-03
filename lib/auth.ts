@@ -44,3 +44,12 @@ export function auth() {
   globalParaAuth.auth ??= crearAuth()
   return globalParaAuth.auth
 }
+
+// El APIError que tira Better Auth puede venir de otra copia del módulo, así que
+// `instanceof` no siempre lo reconoce: se identifica por el nombre.
+export function errorDeAuth(error: unknown): { status: string; message: string } | null {
+  if (error instanceof Error && error.name === "APIError" && "status" in error) {
+    return { status: String(error.status), message: error.message }
+  }
+  return null
+}
