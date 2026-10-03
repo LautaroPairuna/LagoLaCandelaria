@@ -2,9 +2,6 @@ import type { Metadata, Viewport } from "next"
 import { Fraunces, Outfit } from "next/font/google"
 
 import { AppToaster } from "@/components/app-toaster"
-import { DatosEstructurados } from "@/components/datos-estructurados"
-import { SiteFooter } from "@/components/site-footer"
-import { SiteHeader } from "@/components/site-header"
 import { urlSitio } from "@/lib/url-sitio"
 
 import "./globals.css"
@@ -55,10 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <DatosEstructurados />
-        <SiteHeader />
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        {children}
         <AppToaster />
       </body>
     </html>

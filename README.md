@@ -4,7 +4,7 @@ Sitio comercial del predio recreativo Lago La Candelaria: canotaje, tirolesa, re
 
 ## Cómo correrlo
 
-Hace falta MySQL 8 o MariaDB en local, con la base `lago_la_candelaria`. Copiá `.env.example` a `.env` y completá `DATABASE_URL` y `SITE_URL` (la URL pública: la usan el sitemap, Open Graph y el QR del ticket; en Dokploy tiene que estar también en el build).
+Hace falta MySQL 8 o MariaDB en local, con la base `lago_la_candelaria`. Copiá `.env.example` a `.env` y completá `DATABASE_URL`, `BETTER_AUTH_SECRET` y `SITE_URL` (la URL pública: la usan el sitemap, Open Graph y el QR del ticket; en Dokploy tiene que estar también en el build).
 
 ```bash
 npm install
@@ -36,12 +36,27 @@ npm run build
 
 Las reglas del predio (tarifas, calendario de apertura, asignación de parrillas y playa, regla de bungalows, teléfono) están en `lib/predio/`, con sus tests.
 
+## Panel del predio
+
+El equipo entra por `/ingresar`. No hay registro abierto: cada usuario se crea con un rol, y cada rol ve solo su panel (la administración ve todos).
+
+```bash
+npm run usuario:crear -- correo@dominio.com "Nombre Apellido" reservas
+```
+
+Roles: `admin`, `reservas`, `puerta`, `bar`, `restaurante`. Se pueden combinar separados por coma (`reservas,puerta`). El comando imprime una contraseña inicial.
+
+Paneles (según la presentación del proyecto): Reservas ya funciona (calendario del mes por propuesta, a confirmar, confirmadas, detalle con confirmar, cancelar y aviso por WhatsApp). Puerta, Bar, Restaurante y General aparecen como "Pronto".
+
 ### Pasar a producción
 
 ```bash
 npm run db:preparar
 npm run db:migrar-legado
+npm run usuario:crear -- correo@dominio.com "Nombre" admin
 ```
+
+En Dokploy tienen que estar `DATABASE_URL`, `SITE_URL` (también en el build) y `BETTER_AUTH_SECRET` (`openssl rand -base64 32`).
 
 `db:migrar-legado` copia las solicitudes de la tabla vieja `reservation_inquiries` a las tablas nuevas, con el mismo link de ticket. Se puede correr más de una vez: saltea lo que ya pasó. La tabla vieja queda hasta confirmar que está todo; después se borra con una migración.
 
