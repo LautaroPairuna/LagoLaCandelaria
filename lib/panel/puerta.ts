@@ -2,7 +2,7 @@ import { saldoDe } from "@/lib/panel/cobros"
 import { nombreDeUnidad } from "@/lib/panel/reservas"
 import { aFechaDb } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
-import type { SolicitudGuardada } from "@/lib/solicitud"
+import { detalleDe } from "@/lib/reservas"
 
 export async function llegadasDelDia(dia: string, busqueda = "") {
   const filas = await db().reserva.findMany({
@@ -33,7 +33,7 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
   return filas
     .map((fila) => {
       const titular = fila.institucion ?? `${fila.cliente.nombre} ${fila.cliente.apellido}`
-      const aConfirmar = Boolean((fila.detalle as unknown as SolicitudGuardada).cotizacion?.aConfirmar)
+      const aConfirmar = Boolean(detalleDe(fila.detalle).cotizacion?.aConfirmar)
       return {
         id: fila.id,
         codigo: fila.codigo,

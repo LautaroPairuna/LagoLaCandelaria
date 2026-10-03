@@ -1,21 +1,8 @@
 import "dotenv/config"
 
+import { leerSolicitudLegado, reservaDesdeLegado, unidadesLegado } from "@/lib/legado"
 import { db } from "@/lib/prisma"
-import { guardarReserva, ocupadosEntre } from "@/lib/reservas"
-import { unidadesDeSolicitud, type SolicitudGuardada } from "@/lib/solicitud"
-
-const MARCA = "---SOLICITUD---"
-
-function leerSolicitud(mensaje: string) {
-  const indice = mensaje.indexOf(MARCA)
-  if (indice < 0) return null
-  try {
-    const datos = JSON.parse(mensaje.slice(indice + MARCA.length).trim()) as SolicitudGuardada
-    return datos?.version === 1 && typeof datos.codigo === "string" ? datos : null
-  } catch {
-    return null
-  }
-}
+import { crearReserva, ocupadosEntre } from "@/lib/reservas"
 
 const prisma = db()
 const filas = await prisma.reservationInquiry.findMany({ orderBy: { createdAt: "asc" } })
@@ -32,7 +19,7 @@ for (const fila of filas) {
     resumen.yaEstaban += 1
     continue
   }
-  const solicitud = leerSolicitud(fila.message)
+  const solicitud = leerSolicitudLegado(fila.message)
   if (!solicitud) {
     resumen.sinSolicitud.push(fila.id)
     continue
@@ -40,15 +27,16 @@ for (const fila of filas) {
   // Dos solicitudes viejas con el mismo lugar el mismo día (la web anterior lo permitía):
   // la segunda se migra sin ocupar el lugar para que el predio decida a mano. Se mira
   // antes de insertar para no gastar números de reserva en intentos rechazados.
-  const pedidos = unidadesDeSolicitud(solicitud)
+  const pedidos = unidadesLegado(solicitud)
   const tomados = pedidos.length ? [...(await ocupadosEntre(solicitud.desde, solicitud.hasta, pedidos))] : []
-  const guardada = await guardarReserva(solicitud, {
+  const creada = await crearReserva({
+    ...reservaDesdeLegado(solicitud),
     origen: "LEGADO",
     token: fila.id,
     creadaEn: fila.createdAt,
-    ocupar: tomados.length === 0,
+    asignar: () => (tomados.length ? [] : pedidos),
   })
-  if ("conflicto" in guardada) throw new Error(`No se pudo migrar ${solicitud.codigo}: ${guardada.conflicto.join(", ")}`)
+  if ("sinLugar" in creada) throw new Error(`No se pudo migrar ${solicitud.codigo}`)
   if (tomados.length) resumen.superpuestas.push(`${solicitud.codigo} (${tomados.join(", ")})`)
   resumen.migradas += 1
 }

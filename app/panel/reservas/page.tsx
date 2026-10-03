@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { estadoDelDia, mapaDeEspeciales, type TipoDia } from "@/lib/predio/calendario"
-import { aFechaDb, deFechaDb, diaDeLaSemana, fechasEntre, sumarDiasIso } from "@/lib/predio/fechas"
+import { aFechaDb, deFechaDb, diaDeLaSemana, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { fechaLargaPanel, nombreDelMes, rangoPanel } from "@/lib/panel/formato"
 import {
   esLinea,
@@ -17,7 +17,6 @@ import {
 } from "@/lib/panel/reservas"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { db } from "@/lib/prisma"
-import { hoyIso } from "@/lib/solicitud"
 import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Reservas" }
@@ -40,7 +39,7 @@ function primero(valor: string | string[] | undefined) {
 export default async function PanelReservas({ searchParams }: PageProps<"/panel/reservas">) {
   await exigirPanel("reservas")
   const params = await searchParams
-  const hoy = hoyIso()
+  const hoy = hoyEnElPredio()
   const mesPedido = primero(params.mes)
   const mes = esMes(mesPedido) ? mesPedido : hoy.slice(0, 7)
   const lineaPedida = primero(params.linea)

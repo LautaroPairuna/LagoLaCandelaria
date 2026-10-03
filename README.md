@@ -82,4 +82,4 @@ ffmpeg -i original.mp4 -an -vf "scale=1280:-2,fps=25" -c:v libx264 -preset slow 
 ffmpeg -i public/hero.mp4 -frames:v 1 -q:v 2 fotos/posters/hero.jpg
 ```
 
-La reserva valida la solicitud con Zod y con las reglas de `lib/solicitud.ts`, la guarda en MySQL con Prisma y confirma la fecha por teléfono. No hay pago en la web. Si la base no responde, la API devuelve 503: no hay respaldo en archivos.
+La reserva (`/reserva`) se organiza en las tres propuestas de la presentación: finde en familia (parrilla o playa por día, bungalow por noche), propuesta estudiantil y actividad de aventura. Familia muestra el calendario en verde y rojo (`/api/calendario`), asigna el lugar automáticamente y calcula el precio; estudiantil y aventura mandan un pedido de servicio con el presupuesto a confirmar. Todo se valida con Zod en Server Actions (`app/(sitio)/reserva/acciones.ts`). No hay pago en la web: queda un ticket con QR y el predio confirma por WhatsApp.

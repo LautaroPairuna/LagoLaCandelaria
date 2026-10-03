@@ -5,9 +5,9 @@ import { z } from "zod"
 
 import { cobroDelSaldo, saldoDe } from "@/lib/panel/cobros"
 import { permisoParaAccion } from "@/lib/panel/sesion"
-import { aFechaDb } from "@/lib/predio/fechas"
+import { aFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
-import { hoyIso, type SolicitudGuardada } from "@/lib/solicitud"
+import { detalleDe } from "@/lib/reservas"
 
 const idDeReserva = z.number().int().positive()
 
@@ -52,7 +52,7 @@ export async function cobrar(pedido: z.input<typeof pedidoDeCobro>): Promise<Res
     })
     if (!reserva || reserva.estado === "CANCELADA") return { ok: false as const, error: "La reserva no está activa." }
 
-    const aConfirmar = Boolean((reserva.detalle as unknown as SolicitudGuardada).cotizacion?.aConfirmar)
+    const aConfirmar = Boolean(detalleDe(reserva.detalle).cotizacion?.aConfirmar)
     let cobro: { importe: number; descuento: number }
     if (importe) {
       cobro = { importe, descuento: 0 }
@@ -65,7 +65,7 @@ export async function cobrar(pedido: z.input<typeof pedidoDeCobro>): Promise<Res
     await tx.pago.create({
       data: {
         reservaId: id,
-        fecha: aFechaDb(hoyIso()),
+        fecha: aFechaDb(hoyEnElPredio()),
         forma,
         ...cobro,
         detalle: importe ? "Cobro en puerta" : "Saldo en puerta",

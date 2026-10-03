@@ -25,3 +25,16 @@ export function ipDe(request: Request) {
   const cadena = request.headers.get("x-forwarded-for")?.split(",") ?? []
   return cadena.at(-1)?.trim() || "desconocida"
 }
+
+export function limiteAlcanzado(clave: string, maximo: number, ventanaMs: number) {
+  const ahora = Date.now()
+  return (marcas.get(clave)?.tiempos ?? []).filter((tiempo) => ahora - tiempo < ventanaMs).length >= maximo
+}
+
+export function registrarUso(clave: string, ventanaMs: number) {
+  const ahora = Date.now()
+  if (marcas.size > MAX_CLAVES) podar(ahora)
+  const tiempos = (marcas.get(clave)?.tiempos ?? []).filter((tiempo) => ahora - tiempo < ventanaMs)
+  tiempos.push(ahora)
+  marcas.set(clave, { ventanaMs, tiempos })
+}

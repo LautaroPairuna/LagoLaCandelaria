@@ -33,3 +33,23 @@ export function aFechaDb(iso: string) {
 export function deFechaDb(fecha: Date) {
   return fecha.toISOString().slice(0, 10)
 }
+
+const fechaDelPredio = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" })
+
+export function hoyEnElPredio() {
+  return fechaDelPredio.format(new Date())
+}
+
+const fechaLargaEs = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+})
+
+export function fechaLarga(iso: string) {
+  if (!esFechaIso(iso)) return iso
+  const texto = fechaLargaEs.format(aUtc(iso)).replace(",", "")
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}

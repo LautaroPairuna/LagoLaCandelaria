@@ -8,11 +8,12 @@ import { AccionesReserva } from "@/components/panel/acciones-reserva"
 import { saldoDe } from "@/lib/panel/cobros"
 import { normalizarTelefono } from "@/lib/predio/contacto"
 import { deFechaDb } from "@/lib/predio/fechas"
+import { textoDelEfectivo, textoDelTotal } from "@/lib/predio/cotizacion"
 import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
 import { exigirPanel } from "@/lib/panel/sesion"
-import { textoDelEfectivo, textoDelTotal, type SolicitudGuardada } from "@/lib/solicitud"
+import { detalleDe } from "@/lib/reservas"
 import { urlSitio } from "@/lib/url-sitio"
 import { cn } from "cn"
 
@@ -32,7 +33,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const reserva = await reservaParaPanel(numero)
   if (!reserva) notFound()
 
-  const solicitud = reserva.detalle as unknown as SolicitudGuardada
+  const detalle = detalleDe(reserva.detalle)
   const desde = deFechaDb(reserva.desde)
   const hasta = deFechaDb(reserva.hasta)
   const telefono = normalizarTelefono(reserva.cliente.telefono ?? "")
@@ -41,7 +42,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
     reserva.estado === "CONFIRMADA"
       ? `¡Hola ${reserva.cliente.nombre}! Tu reserva ${reserva.codigo} en Lago La Candelaria para el ${fechaLargaPanel(desde).toLowerCase()} quedó confirmada. Tu ticket con el QR del ingreso: ${enlaceTicket}`
       : `¡Hola ${reserva.cliente.nombre}! Te escribimos de Lago La Candelaria por tu solicitud de reserva ${reserva.codigo}.`
-  const sinOcupar = solicitud.lugares.filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
+  const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
   const estado = etiquetaDeEstado[reserva.estado]
 
   return (
@@ -147,8 +148,8 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
               Pidió {sinOcupar.map((lugar) => lugar.nombre).join(", ")}, pero ya estaba tomado por otra reserva. Hay que reasignarlo.
             </p>
           ) : null}
-          <Dato termino="Total">{textoDelTotal(solicitud.cotizacion)}</Dato>
-          {textoDelEfectivo(solicitud.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(solicitud.cotizacion)}</Dato> : null}
+          <Dato termino="Total">{textoDelTotal(detalle.cotizacion)}</Dato>
+          {textoDelEfectivo(detalle.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(detalle.cotizacion)}</Dato> : null}
           {reserva.pagos.length ? (
             <Dato termino="Pagos">
               {reserva.pagos
@@ -156,7 +157,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
                 .join(" · ")}
             </Dato>
           ) : null}
-          {!solicitud.cotizacion.aConfirmar ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}
+          {!detalle.cotizacion.aConfirmar ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}
           {reserva.notas ? <Dato termino="Notas">{reserva.notas}</Dato> : null}
           <p className="pt-3 text-sm">
             <a href={enlaceTicket} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">

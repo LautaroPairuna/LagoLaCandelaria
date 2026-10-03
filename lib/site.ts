@@ -87,3 +87,9 @@ export const visitTypes = [
 ] as const
 
 export type VisitType = (typeof visitTypes)[number]["value"]
+
+export const WHATSAPP_DEL_PREDIO = "5491130091020"
+
+export function enlaceWhatsappDelPredio(mensaje: string) {
+  return `https://wa.me/${WHATSAPP_DEL_PREDIO}?text=${encodeURIComponent(mensaje)}`
+}

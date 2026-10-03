@@ -4,9 +4,9 @@ import { useEffect, useState } from "react"
 
 import { TicketAcciones } from "@/components/reserva/ticket-acciones"
 import { TicketVista } from "@/components/reserva/ticket-vista"
-import type { SolicitudGuardada } from "@/lib/solicitud"
+import type { TicketDatos } from "@/lib/reservas"
 
-export function TicketPublico({ solicitud, enlace }: { solicitud: SolicitudGuardada; enlace: string }) {
+export function TicketPublico({ ticket, enlace }: { ticket: TicketDatos; enlace: string }) {
   const [qr, setQr] = useState("")
 
   useEffect(() => {
@@ -26,8 +26,8 @@ export function TicketPublico({ solicitud, enlace }: { solicitud: SolicitudGuard
 
   return (
     <div className="space-y-6">
-      <TicketVista solicitud={solicitud} qrDataUrl={qr || undefined} enlace={enlace} />
-      <TicketAcciones solicitud={solicitud} qrDataUrl={qr || undefined} enlace={enlace} />
+      <TicketVista ticket={ticket} qrDataUrl={qr || undefined} enlace={enlace} />
+      <TicketAcciones ticket={ticket} qrDataUrl={qr || undefined} enlace={enlace} />
     </div>
   )
 }

@@ -1,11 +1,16 @@
-import { Prisma, type EstadoReserva, type Modulo, type OrigenReserva } from "@/generated/prisma/client"
-import { dniValido, limpiarDni, normalizarTelefono } from "@/lib/predio/contacto"
-import { aFechaDb, fechasEntre } from "@/lib/predio/fechas"
-import { bandaDeEdad } from "@/lib/predio/tarifas"
+import {
+  Prisma,
+  type EstadoReserva,
+  type FormaPago,
+  type Modulo,
+  type OrigenReserva,
+} from "@/generated/prisma/client"
+import type { Cotizacion, Grupo } from "@/lib/predio/cotizacion"
+import { aFechaDb, deFechaDb, fechasEntre, sumarDiasIso } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
-import { crearCodigo, unidadesDeSolicitud, type SolicitudGuardada } from "@/lib/solicitud"
 
 const INTENTOS = 3
+const MARGEN_DE_DIAS = 8
 
 export function baseCaida(error: unknown) {
   if (
@@ -24,6 +29,28 @@ function duplicado(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
 }
 
+export function crearCodigo() {
+  const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  const bytes = new Uint8Array(6)
+  crypto.getRandomValues(bytes)
+  let codigo = ""
+  for (const byte of bytes) codigo += alfabeto[byte % alfabeto.length]
+  return `LC-${codigo}`
+}
+
+/// Lo que se guarda en `reservas.detalle`. Las reservas de la web anterior traen además
+/// la solicitud completa (versión 1); de todas se lee solo lo que está acá.
+export type DetalleReserva = {
+  version: 1 | 2
+  cotizacion: Cotizacion
+  lugares?: { id: string; nombre: string }[]
+  extra?: Record<string, unknown>
+}
+
+export function detalleDe(valor: Prisma.JsonValue) {
+  return valor as unknown as DetalleReserva
+}
+
 export async function ocupadosEntre(desde: string, hasta: string, unidades?: string[]) {
   const filas = await db().ocupacion.findMany({
     where: {
@@ -36,138 +63,183 @@ export async function ocupadosEntre(desde: string, hasta: string, unidades?: str
   return new Set(filas.map((fila) => fila.unidadId))
 }
 
-export async function reservaPorToken(token: string) {
-  const reserva = await db().reserva.findUnique({
-    where: { token },
-    select: { estado: true, detalle: true },
+export async function ocupacionPorUnidad(desde: string, hasta: string) {
+  const filas = await db().ocupacion.findMany({
+    where: { fecha: { gte: aFechaDb(desde), lte: aFechaDb(hasta) } },
+    select: { unidadId: true, fecha: true },
   })
-  if (!reserva) return null
-  return { estado: reserva.estado, solicitud: reserva.detalle as unknown as SolicitudGuardada }
-}
-
-export function moduloDe(solicitud: SolicitudGuardada): Modulo {
-  if (solicitud.tipo === "estudiantil") return "CAMPAMENTO"
-  return solicitud.lugares.some((lugar) => lugar.tipo === "bungalow") ? "BUNGALOW" : "FINDE_FAMILIA"
-}
-
-function cantidades(solicitud: SolicitudGuardada) {
-  if (solicitud.institucion) {
-    const { estudiantes, adultos, cud } = solicitud.institucion
-    return { adultos, menores: Math.max(estudiantes - cud, 0), sinCargo: cud }
+  const mapa = new Map<string, Set<string>>()
+  for (const fila of filas) {
+    const fechas = mapa.get(fila.unidadId) ?? new Set<string>()
+    fechas.add(deFechaDb(fila.fecha))
+    mapa.set(fila.unidadId, fechas)
   }
-  const bandas = solicitud.familias
-    .flatMap((familia) => [familia.responsable, ...familia.integrantes])
-    .map((persona) => bandaDeEdad(persona.edad, persona.cud))
-  return {
-    adultos: bandas.filter((banda) => banda === "adulto").length,
-    menores: bandas.filter((banda) => banda === "menor").length,
-    sinCargo: bandas.filter((banda) => banda === "sin-cargo").length,
-  }
+  return mapa
 }
 
-function clienteDe(solicitud: SolicitudGuardada) {
-  const { nombre, apellido, email, telefono } = solicitud.contacto
-  const mismo = (persona: { nombre: string; apellido: string }) =>
-    persona.nombre.toLowerCase() === nombre.toLowerCase() && persona.apellido.toLowerCase() === apellido.toLowerCase()
-  const candidatos = solicitud.institucion
-    ? [solicitud.institucion.responsable]
-    : solicitud.familias.flatMap((familia) => [familia.responsable, ...familia.integrantes])
-  const dni = limpiarDni(candidatos.find(mismo)?.dni ?? "")
-  return {
-    dni: dniValido(dni) ? dni : null,
-    nombre: nombre.slice(0, 80),
-    apellido: apellido.slice(0, 80),
-    email: email.slice(0, 120) || null,
-    telefono: (normalizarTelefono(telefono)?.e164 ?? telefono).slice(0, 40) || null,
-  }
+export type PersonaNueva = {
+  familia: number
+  responsable: boolean
+  nombre: string
+  apellido: string
+  dni: string | null
+  edad: number
+  cud: boolean
+  notas: string | null
 }
 
-export type OpcionesDeGuardado = {
+export type NuevaReserva = {
+  modulo: Modulo
+  desde: string
+  hasta: string
+  ingreso: string
+  salida: string
+  cliente: { nombre: string; apellido: string; dni: string | null; email: string | null; telefono: string | null }
+  grupo: Grupo
+  cotizacion: Cotizacion
+  institucion?: string | null
+  cargo?: string | null
+  edadesGrupo?: string | null
+  propuesta?: string | null
+  notas?: string | null
+  formaPago?: FormaPago | null
+  personas?: PersonaNueva[]
+  extra?: Record<string, unknown>
+  detalle?: Record<string, unknown>
   origen?: OrigenReserva
   estado?: EstadoReserva
   token?: string
+  codigo?: string
   creadaEn?: Date
-  ocupar?: boolean
+  /// Recibe qué unidades están tomadas en las fechas de la reserva (y unos días antes y
+  /// después, para la regla de bungalows) y devuelve las que hay que ocupar, o null si
+  /// no hay lugar. Se vuelve a llamar si otra reserva ganó el lugar mientras tanto.
+  asignar?: (ocupacion: Map<string, Set<string>>) => string[] | null
 }
 
-function datosDeReserva(solicitud: SolicitudGuardada, clienteId: number, opciones: OpcionesDeGuardado) {
-  const fechas = fechasEntre(solicitud.desde, solicitud.hasta)
-  const ocupaciones = (opciones.ocupar ?? true)
-    ? unidadesDeSolicitud(solicitud).flatMap((unidadId) => fechas.map((fecha) => ({ unidadId, fecha: aFechaDb(fecha) })))
-    : []
+export type ReservaCreada = { id: number; token: string; codigo: string; unidades: string[] }
 
-  return {
-    token: opciones.token,
-    codigo: solicitud.codigo,
-    modulo: moduloDe(solicitud),
-    estado: opciones.estado,
-    origen: opciones.origen,
-    creadaEn: opciones.creadaEn,
-    desde: aFechaDb(solicitud.desde),
-    hasta: aFechaDb(solicitud.hasta),
-    ingreso: solicitud.ingreso,
-    salida: solicitud.salida,
-    clienteId,
-    institucion: solicitud.institucion?.nombre || null,
-    cargo: solicitud.institucion?.cargo || null,
-    edadesGrupo: solicitud.institucion?.edades || null,
-    notas: solicitud.institucion?.notas || null,
-    ...cantidades(solicitud),
-    total: solicitud.cotizacion.total,
-    detalle: solicitud as unknown as Prisma.InputJsonValue,
-    personas: {
-      create: solicitud.familias.flatMap((familia, indice) =>
-        [familia.responsable, ...familia.integrantes].map((persona, posicion) => ({
-          familia: indice + 1,
-          responsable: posicion === 0,
-          nombre: persona.nombre.slice(0, 80),
-          apellido: persona.apellido.slice(0, 80),
-          dni: dniValido(persona.dni) ? persona.dni : null,
-          edad: persona.edad,
-          cud: persona.cud,
-          notas: persona.notas.slice(0, 400) || null,
-        })),
-      ),
-    },
-    ocupaciones: { createMany: { data: ocupaciones } },
-  } satisfies Prisma.ReservaUncheckedCreateInput
-}
+async function crearUnaVez(nueva: NuevaReserva, codigo: string, unidades: string[]) {
+  const fechas = fechasEntre(nueva.desde, nueva.hasta)
+  const detalle = {
+    version: 2,
+    cotizacion: nueva.cotizacion,
+    ...(nueva.extra ? { extra: nueva.extra } : {}),
+    ...nueva.detalle,
+  }
 
-async function crearUnaVez(solicitud: SolicitudGuardada, opciones: OpcionesDeGuardado) {
   return db().$transaction(async (tx) => {
-    const datos = clienteDe(solicitud)
-    const cliente = datos.dni
+    const { cliente } = nueva
+    const { id: clienteId } = cliente.dni
       ? await tx.cliente.upsert({
-          where: { dni: datos.dni },
-          create: datos,
-          update: { nombre: datos.nombre, apellido: datos.apellido, email: datos.email, telefono: datos.telefono },
+          where: { dni: cliente.dni },
+          create: cliente,
+          update: { nombre: cliente.nombre, apellido: cliente.apellido, email: cliente.email, telefono: cliente.telefono },
           select: { id: true },
         })
-      : await tx.cliente.create({ data: datos, select: { id: true } })
+      : await tx.cliente.create({ data: cliente, select: { id: true } })
 
     return tx.reserva.create({
-      data: datosDeReserva(solicitud, cliente.id, opciones),
+      data: {
+        token: nueva.token,
+        codigo,
+        modulo: nueva.modulo,
+        estado: nueva.estado,
+        origen: nueva.origen,
+        creadaEn: nueva.creadaEn,
+        desde: aFechaDb(nueva.desde),
+        hasta: aFechaDb(nueva.hasta),
+        ingreso: nueva.ingreso,
+        salida: nueva.salida,
+        clienteId,
+        institucion: nueva.institucion || null,
+        cargo: nueva.cargo || null,
+        edadesGrupo: nueva.edadesGrupo || null,
+        propuesta: nueva.propuesta || null,
+        notas: nueva.notas || null,
+        formaPago: nueva.formaPago ?? null,
+        ...nueva.grupo,
+        total: nueva.cotizacion.total,
+        detalle: detalle as Prisma.InputJsonValue,
+        personas: { create: nueva.personas ?? [] },
+        ocupaciones: {
+          createMany: { data: unidades.flatMap((unidadId) => fechas.map((fecha) => ({ unidadId, fecha: aFechaDb(fecha) }))) },
+        },
+      },
       select: { id: true, token: true, codigo: true },
     })
   })
 }
 
-// El índice único de ocupaciones rechaza el lugar tomado por otra reserva. Un P2002 sin
-// lugares tomados es un choque de código o de cliente creado en paralelo: se reintenta.
-export async function guardarReserva(
-  solicitud: SolicitudGuardada,
-  opciones: OpcionesDeGuardado = {},
-): Promise<{ id: number; token: string; codigo: string } | { conflicto: string[] }> {
-  let actual = solicitud
+// El índice único de ocupaciones frena a la segunda reserva que pide el mismo lugar el
+// mismo día. En ese caso se vuelve a leer la ocupación y se asigna de nuevo.
+export async function crearReserva(nueva: NuevaReserva): Promise<ReservaCreada | { sinLugar: true }> {
+  let codigo = nueva.codigo ?? crearCodigo()
   for (let intento = 1; ; intento += 1) {
+    let unidades: string[] = []
+    if (nueva.asignar) {
+      const ocupacion = await ocupacionPorUnidad(sumarDiasIso(nueva.desde, -MARGEN_DE_DIAS), sumarDiasIso(nueva.hasta, MARGEN_DE_DIAS))
+      const asignadas = nueva.asignar(ocupacion)
+      if (!asignadas) return { sinLugar: true }
+      unidades = asignadas
+    }
     try {
-      return await crearUnaVez(actual, opciones)
+      return { ...(await crearUnaVez(nueva, codigo, unidades)), unidades }
     } catch (error) {
       if (!duplicado(error) || intento >= INTENTOS) throw error
-      const pedidos = unidadesDeSolicitud(actual)
-      const tomados = pedidos.length ? await ocupadosEntre(actual.desde, actual.hasta, pedidos) : new Set<string>()
-      if (tomados.size > 0) return { conflicto: [...tomados] }
-      if (!opciones.token) actual = { ...actual, codigo: crearCodigo() }
+      if (!nueva.codigo) codigo = crearCodigo()
     }
   }
 }
+
+export function libreEn(ocupacion: Map<string, Set<string>>, desde: string, hasta: string) {
+  const fechas = fechasEntre(desde, hasta)
+  return (unidadId: string) => !fechas.some((fecha) => ocupacion.get(unidadId)?.has(fecha))
+}
+
+export async function ticketDeReserva(token: string) {
+  const reserva = await db().reserva.findUnique({
+    where: { token },
+    include: {
+      cliente: true,
+      personas: { orderBy: [{ familia: "asc" }, { id: "asc" }] },
+      ocupaciones: { distinct: ["unidadId"], select: { unidad: { select: { tipo: true, etiqueta: true, numero: true } } } },
+    },
+  })
+  if (!reserva) return null
+  return {
+    numero: reserva.id,
+    token: reserva.token,
+    codigo: reserva.codigo,
+    estado: reserva.estado,
+    modulo: reserva.modulo,
+    desde: deFechaDb(reserva.desde),
+    hasta: deFechaDb(reserva.hasta),
+    ingreso: reserva.ingreso,
+    salida: reserva.salida,
+    titular: { nombre: reserva.cliente.nombre, apellido: reserva.cliente.apellido, dni: reserva.cliente.dni },
+    contacto: { email: reserva.cliente.email, telefono: reserva.cliente.telefono },
+    institucion: reserva.institucion,
+    cargo: reserva.cargo,
+    propuesta: reserva.propuesta,
+    grupo: { adultos: reserva.adultos, menores: reserva.menores, sinCargo: reserva.sinCargo },
+    personas: reserva.personas.map(({ nombre, apellido, dni, edad, cud, notas, familia, responsable }) => ({
+      nombre,
+      apellido,
+      dni,
+      edad,
+      cud,
+      notas,
+      familia,
+      responsable,
+    })),
+    lugares: reserva.ocupaciones
+      .map((item) => item.unidad)
+      .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.numero - b.numero)
+      .map((unidad) => ({ tipo: unidad.tipo, etiqueta: unidad.etiqueta })),
+    formaPago: reserva.formaPago,
+    cotizacion: detalleDe(reserva.detalle).cotizacion,
+  }
+}
+
+export type TicketDatos = NonNullable<Awaited<ReturnType<typeof ticketDeReserva>>>

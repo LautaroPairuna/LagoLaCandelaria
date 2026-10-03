@@ -59,7 +59,7 @@ export default function RestaurantePage() {
               Para un grupo grande, conviene decirlo en la reserva: cuántos comen, si usan parrilla y si el restaurante entra en el día.
             </p>
             <div className="mt-6">
-              <ButtonLink href="/reserva?interes=restaurante">Pedir la mesa o un sector</ButtonLink>
+              <ButtonLink href="/reserva?propuesta=familia&opcion=restaurante">Pedir la mesa o un sector</ButtonLink>
             </div>
           </div>
         </div>

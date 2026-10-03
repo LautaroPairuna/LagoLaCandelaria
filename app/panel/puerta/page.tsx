@@ -8,8 +8,8 @@ import { fechaLargaPanel } from "@/lib/panel/formato"
 import { llegadasDelDia, pagosDelDia, type Llegada } from "@/lib/panel/puerta"
 import { nombreDelModulo } from "@/lib/panel/reservas"
 import { exigirPanel } from "@/lib/panel/sesion"
+import { hoyEnElPredio } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
-import { hoyIso } from "@/lib/solicitud"
 import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Puerta" }
@@ -20,7 +20,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   await exigirPanel("puerta")
   const { q } = await searchParams
   const busqueda = (Array.isArray(q) ? q[0] : q)?.slice(0, 60) ?? ""
-  const hoy = hoyIso()
+  const hoy = hoyEnElPredio()
   const [llegadas, todas, pagos] = await Promise.all([llegadasDelDia(hoy, busqueda), llegadasDelDia(hoy), pagosDelDia(hoy)])
 
   const esperadas = todas.reduce((suma, item) => suma + item.personas, 0)

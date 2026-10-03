@@ -4,14 +4,14 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { htmlDelTicket } from "@/lib/ticket-html"
-import type { SolicitudGuardada } from "@/lib/solicitud"
+import type { TicketDatos } from "@/lib/reservas"
 
 export function TicketAcciones({
-  solicitud,
+  ticket,
   qrDataUrl,
   enlace,
 }: {
-  solicitud: SolicitudGuardada
+  ticket: TicketDatos
   qrDataUrl?: string
   enlace: string
 }) {
@@ -25,11 +25,11 @@ export function TicketAcciones({
         const QRCode = (await import("qrcode")).default
         qr = await QRCode.toDataURL(enlace, { margin: 1, width: 280 })
       }
-      const archivo = new Blob([htmlDelTicket(solicitud, qr, enlace)], { type: "text/html;charset=utf-8" })
+      const archivo = new Blob([htmlDelTicket(ticket, qr, enlace)], { type: "text/html;charset=utf-8" })
       const url = URL.createObjectURL(archivo)
       const ancla = document.createElement("a")
       ancla.href = url
-      ancla.download = `${solicitud.codigo}.html`
+      ancla.download = `${ticket.codigo}.html`
       ancla.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -53,7 +53,7 @@ export function TicketAcciones({
         </p>
       ) : (
         <p className="mt-3 text-sm text-ink/60">
-          El archivo queda en tu teléfono o computadora. El QR abre esta misma solicitud.
+          El archivo queda en tu teléfono o computadora. El QR abre esta misma reserva.
         </p>
       )}
     </div>
