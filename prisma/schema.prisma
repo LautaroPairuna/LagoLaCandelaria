@@ -94,6 +94,8 @@ model Reserva {
   total         Int
   formaPago     FormaPago?
   notas         String?          @db.Text
+  ingresoEn     DateTime?
+  ingresoPor    String?          @db.VarChar(80)
   /// La solicitud tal como se emitió (personas, lugares, cotización): es el documento
   /// del ticket y no se recalcula si después cambian las tarifas.
   detalle       Json
@@ -159,14 +161,18 @@ model Ocupacion {
 }
 
 model Pago {
-  id        Int       @id @default(autoincrement())
-  reservaId Int
-  reserva   Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
-  fecha     DateTime  @db.Date
-  importe   Int
-  forma     FormaPago
-  detalle   String?   @db.VarChar(120)
-  creadoEn  DateTime  @default(now())
+  id            Int       @id @default(autoincrement())
+  reservaId     Int
+  reserva       Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  fecha         DateTime  @db.Date
+  /// Lo que se cobró. El descuento (10 % en efectivo) se guarda aparte para que el
+  /// saldo de la reserva quede en cero aunque se haya cobrado menos que el total.
+  importe       Int
+  descuento     Int       @default(0)
+  forma         FormaPago
+  detalle       String?   @db.VarChar(120)
+  registradoPor String?   @db.VarChar(80)
+  creadoEn      DateTime  @default(now())
 
   @@index([reservaId])
   @@index([fecha])
@@ -231,7 +237,7 @@ model Session {
   impersonatedBy String?  @db.Text
 
   @@unique([token])
-  @@index([userId(length: 191)])
+  @@index([userId])
   @@map("session")
 }
 
@@ -251,7 +257,7 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  @@index([userId(length: 191)])
+  @@index([userId])
   @@map("account")
 }
 

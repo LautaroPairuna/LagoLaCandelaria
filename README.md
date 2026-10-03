@@ -46,7 +46,7 @@ npm run usuario:crear -- correo@dominio.com "Nombre Apellido" reservas
 
 Roles: `admin`, `reservas`, `puerta`, `bar`, `restaurante`. Se pueden combinar separados por coma (`reservas,puerta`). El comando imprime una contraseña inicial.
 
-Paneles (según la presentación del proyecto): Reservas ya funciona (calendario del mes por propuesta, a confirmar, confirmadas, detalle con confirmar, cancelar y aviso por WhatsApp). Puerta, Bar, Restaurante y General aparecen como "Pronto".
+Paneles (según la presentación del proyecto): Funcionan Reservas (calendario del mes por propuesta, a confirmar, confirmadas, detalle con confirmar, cancelar y aviso por WhatsApp) y Puerta (lista del día, marcar ingreso, cobro del saldo con 10 % en efectivo, otro importe y caja del día). Bar, Restaurante y General aparecen como "Pronto".
 
 ### Pasar a producción
 

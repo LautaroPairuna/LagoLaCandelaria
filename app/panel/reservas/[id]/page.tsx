@@ -5,11 +5,12 @@ import { notFound } from "next/navigation"
 import type { ReactNode } from "react"
 
 import { AccionesReserva } from "@/components/panel/acciones-reserva"
+import { saldoDe } from "@/lib/panel/cobros"
 import { normalizarTelefono } from "@/lib/predio/contacto"
 import { deFechaDb } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
-import { lineaDelModulo, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
+import { lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { textoDelEfectivo, textoDelTotal, type SolicitudGuardada } from "@/lib/solicitud"
 import { urlSitio } from "@/lib/url-sitio"
@@ -21,16 +22,6 @@ const etiquetaDeEstado = {
   PENDIENTE: { texto: "A confirmar", clase: "bg-panel-claro text-panel-tostado" },
   CONFIRMADA: { texto: "Confirmada", clase: "bg-panel-naranja text-white" },
   CANCELADA: { texto: "Cancelada", clase: "bg-panel-line text-panel-muted" },
-} as const
-
-const nombreDeUnidad = {
-  PARRILLA: "Parrilla",
-  QUINCHO: "Quincho",
-  GAZEBO: "Gazebo",
-  PALAPA: "Palapa",
-  BUNGALOW: "Bungalow",
-  MESA_RESTAURANTE: "Mesa restaurante",
-  MESA_BAR: "Mesa bar",
 } as const
 
 export default async function DetalleReserva({ params }: PageProps<"/panel/reservas/[id]">) {
@@ -82,6 +73,11 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
         <Bloque titulo="Cuándo">
           <Dato termino="Llegada">{`${fechaLargaPanel(desde)} · ${reserva.ingreso}`}</Dato>
           <Dato termino="Salida">{`${fechaLargaPanel(hasta)} · ${reserva.salida}`}</Dato>
+          <Dato termino="Ingreso">
+            {reserva.ingresoEn
+              ? `${reserva.ingresoEn.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short" })}${reserva.ingresoPor ? ` · ${reserva.ingresoPor}` : ""}`
+              : "Todavía no ingresó"}
+          </Dato>
           <Dato termino="Pedida">{reserva.creadaEn.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}</Dato>
         </Bloque>
 
@@ -155,9 +151,12 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           {textoDelEfectivo(solicitud.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(solicitud.cotizacion)}</Dato> : null}
           {reserva.pagos.length ? (
             <Dato termino="Pagos">
-              {reserva.pagos.map((pago) => `${pesos(pago.importe)} (${pago.forma.toLowerCase()})`).join(" · ")}
+              {reserva.pagos
+                .map((pago) => `${pesos(pago.importe)} en ${pago.forma === "DEBITO" ? "débito" : pago.forma.toLowerCase()}${pago.descuento ? ` (−${pesos(pago.descuento)})` : ""}`)
+                .join(" · ")}
             </Dato>
           ) : null}
+          {!solicitud.cotizacion.aConfirmar ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}
           {reserva.notas ? <Dato termino="Notas">{reserva.notas}</Dato> : null}
           <p className="pt-3 text-sm">
             <a href={enlaceTicket} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">

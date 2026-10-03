@@ -1,6 +1,6 @@
 export const paneles = [
   { id: "reservas", nombre: "Reservas", href: "/panel/reservas", listo: true },
-  { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: false },
+  { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: true },
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: false },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: false },
   { id: "general", nombre: "General", href: "/panel/general", listo: false },

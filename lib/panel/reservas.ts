@@ -20,6 +20,16 @@ export const nombreDelModulo: Record<Modulo, string> = {
   ACTIVIDAD_AVENTURA: "Aventura",
 }
 
+export const nombreDeUnidad = {
+  PARRILLA: "Parrilla",
+  QUINCHO: "Quincho",
+  GAZEBO: "Gazebo",
+  PALAPA: "Palapa",
+  BUNGALOW: "Bungalow",
+  MESA_RESTAURANTE: "Mesa restaurante",
+  MESA_BAR: "Mesa bar",
+} as const
+
 export function esLinea(valor: string | undefined): valor is LineaId {
   return lineas.some((linea) => linea.id === valor)
 }
