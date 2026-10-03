@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation"
 import { useState, useTransition, type FormEvent } from "react"
 
-import { enviarPedidoDeGrupo, type ResultadoReserva } from "@/app/(sitio)/reserva/acciones"
-import { Aviso, Campo } from "@/components/reserva/campo"
+import { enviarPedidoDeGrupo } from "@/app/(sitio)/reserva/acciones"
+import { Campo } from "@/components/reserva/campo"
 import { Contador } from "@/components/reserva-nueva/datos-familia"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { Modulo } from "@/generated/prisma/enums"
+import { avisarError, irAlPrimerCampo, llamar } from "@/lib/avisos"
 import { hoyEnElPredio } from "@/lib/predio/fechas"
 import { cn } from "cn"
 
@@ -41,19 +42,16 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
   const [dietas, setDietas] = useState({ participantes: sinDietas, acompanantes: sinDietas })
   const [conDietas, setConDietas] = useState(false)
   const [errores, setErrores] = useState<Record<string, string>>({})
-  const [error, setError] = useState("")
   const [enviando, iniciar] = useTransition()
 
   const cambiar = (clave: keyof typeof datos, valor: string) => setDatos((actual) => ({ ...actual, [clave]: valor }))
 
   function enviar(evento: FormEvent) {
     evento.preventDefault()
-    setError("")
     setErrores({})
     iniciar(async () => {
-      let resultado: ResultadoReserva
-      try {
-        resultado = await enviarPedidoDeGrupo({
+      const resultado = await llamar(() =>
+        enviarPedidoDeGrupo({
           tipo,
           modalidad: datos.modalidad,
           institucion: datos.institucion,
@@ -66,16 +64,15 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
           hasta: datos.hasta || datos.desde,
           dietas: conDietas ? dietas : { participantes: sinDietas, acompanantes: sinDietas },
           observaciones: datos.observaciones,
-        })
-      } catch {
-        resultado = { ok: false, error: "No llegamos al predio. Revisá la conexión e intentá de nuevo." }
-      }
+        }),
+      )
       if (resultado.ok) {
         router.push(`/reserva/t/${resultado.token}?nuevo=1`)
         return
       }
-      setError(resultado.error)
+      avisarError(resultado.error)
       setErrores(resultado.campos ?? {})
+      irAlPrimerCampo(resultado.campos)
     })
   }
 
@@ -193,7 +190,6 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
           Este formulario es un pedido de servicio. El predio arma el presupuesto según la propuesta y las bonificaciones, y la reserva
           se confirma con el pago del 50 % del total. Pagando en efectivo, 10 % menos.
         </p>
-        {error ? <Aviso>{error}</Aviso> : null}
         <Button type="submit" disabled={enviando || !datos.desde} className="h-14 w-full text-base">
           {enviando ? "Enviando…" : "Enviar solicitud"}
         </Button>

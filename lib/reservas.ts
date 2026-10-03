@@ -12,19 +12,6 @@ import { db } from "@/lib/prisma"
 const INTENTOS = 3
 const MARGEN_DE_DIAS = 8
 
-export function baseCaida(error: unknown) {
-  if (
-    (error instanceof Prisma.PrismaClientKnownRequestError &&
-      ["P1000", "P1001", "P1002", "P1017", "P2021", "P2022"].includes(error.code)) ||
-    error instanceof Prisma.PrismaClientInitializationError ||
-    error instanceof Prisma.PrismaClientUnknownRequestError
-  ) {
-    return true
-  }
-  const texto = error instanceof Error ? `${error.name} ${error.message}` : ""
-  return /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|connect|pool timeout|database server|DATABASE_URL/i.test(texto)
-}
-
 function duplicado(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
 }

@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useTransition, type FormEvent } from "react"
-import { toast } from "sonner"
 
 import { cambiarAcceso, cambiarRoles, crearUsuario, generarContrasena, type ResultadoUsuario } from "@/app/panel/general/usuarios/acciones"
 import { Button } from "@/components/ui/button"
+import { avisarError, avisarExito, conAviso } from "@/lib/avisos"
 import { ROLES, type Rol } from "@/lib/panel/roles"
 import { cn } from "cn"
 
@@ -55,7 +55,12 @@ function ContrasenaNueva({ email, password, onCerrar }: { email: string; passwor
           type="button"
           variant="outline"
           className="h-9"
-          onClick={() => navigator.clipboard.writeText(password).then(() => toast.success("Contraseña copiada."))}
+          onClick={() =>
+            navigator.clipboard.writeText(password).then(
+              () => avisarExito("Contraseña copiada. Pegala en un mensaje privado."),
+              () => avisarError("El navegador no nos dejó copiar. Seleccioná la contraseña y copiala a mano."),
+            )
+          }
         >
           Copiar
         </Button>
@@ -76,17 +81,17 @@ export function NuevoUsuario() {
     evento.preventDefault()
     const formulario = evento.currentTarget
     const datos = new FormData(formulario)
+    const nombre = String(datos.get("nombre")).trim()
     const email = String(datos.get("email"))
     iniciar(async () => {
-      const resultado = await crearUsuario({ nombre: String(datos.get("nombre")), email, roles })
-      if (!resultado.ok) {
-        toast.error(resultado.error)
-        return
-      }
+      const resultado = await conAviso(
+        () => crearUsuario({ nombre, email, roles }),
+        `Listo, ${nombre} ya tiene usuario. Pasale la contraseña que te mostramos abajo.`,
+      )
+      if (!resultado.ok) return
       formulario.reset()
       setRoles(["reservas"])
       if (resultado.password) setCreado({ email, password: resultado.password })
-      toast.success("Usuario creado.")
     })
   }
 
@@ -137,13 +142,8 @@ export function FilaUsuario({
 
   function correr(tarea: () => Promise<ResultadoUsuario>, exito: string) {
     iniciar(async () => {
-      const resultado = await tarea()
-      if (!resultado.ok) {
-        toast.error(resultado.error)
-        return
-      }
-      if (resultado.password) setContrasena(resultado.password)
-      toast.success(exito)
+      const resultado = await conAviso(tarea, exito)
+      if (resultado.ok && resultado.password) setContrasena(resultado.password)
     })
   }
 
@@ -163,7 +163,7 @@ export function FilaUsuario({
             className="text-panel-tostado underline-offset-4 hover:underline"
             onClick={() => {
               if (window.confirm(`¿Generar una contraseña nueva para ${usuario.nombre}? La actual deja de funcionar.`)) {
-                correr(() => generarContrasena(usuario.id), "Contraseña nueva generada.")
+                correr(() => generarContrasena(usuario.id), `Listo, la contraseña anterior de ${usuario.nombre} dejó de funcionar. Pasale la nueva.`)
               }
             }}
           >
@@ -175,7 +175,7 @@ export function FilaUsuario({
               disabled={pendiente}
               className="text-panel-muted underline-offset-4 hover:underline"
               onClick={() =>
-                correr(() => cambiarAcceso(usuario.id, usuario.deshabilitado), usuario.deshabilitado ? "Usuario habilitado." : "Usuario deshabilitado.")
+                correr(() => cambiarAcceso(usuario.id, usuario.deshabilitado), usuario.deshabilitado ? `${usuario.nombre} puede volver a entrar al panel.` : `${usuario.nombre} ya no puede entrar al panel.`)
               }
             >
               {usuario.deshabilitado ? "Habilitar" : "Deshabilitar"}
@@ -186,7 +186,7 @@ export function FilaUsuario({
       <div className="flex flex-wrap items-center gap-3">
         <ElegirRoles elegidos={roles} onChange={setRoles} prefijo={usuario.id} />
         {cambiaron ? (
-          <Button type="button" disabled={pendiente || roles.length === 0} className="h-9 bg-panel-ink text-white" onClick={() => correr(() => cambiarRoles(usuario.id, roles), "Paneles actualizados.")}>
+          <Button type="button" disabled={pendiente || roles.length === 0} className="h-9 bg-panel-ink text-white" onClick={() => correr(() => cambiarRoles(usuario.id, roles), `Listo, cambiaron los paneles de ${usuario.nombre}.`)}>
             Guardar paneles
           </Button>
         ) : null}

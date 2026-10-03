@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-
 import { Button } from "@/components/ui/button"
+import { avisarError, avisarExito } from "@/lib/avisos"
 import { htmlDelTicket } from "@/lib/ticket-html"
 import type { TicketDatos } from "@/lib/reservas"
 
@@ -15,10 +14,7 @@ export function TicketAcciones({
   qrDataUrl?: string
   enlace: string
 }) {
-  const [aviso, setAviso] = useState("")
-
   async function descargar() {
-    setAviso("")
     try {
       let qr = qrDataUrl
       if (!qr) {
@@ -32,8 +28,9 @@ export function TicketAcciones({
       ancla.download = `${ticket.codigo}.html`
       ancla.click()
       URL.revokeObjectURL(url)
+      avisarExito("Listo, el ticket quedó en tus descargas.")
     } catch {
-      setAviso("No pudimos armar el archivo. Probá con Imprimir y guardalo como PDF.")
+      avisarError("No pudimos armar el archivo. Tocá «Imprimir o guardar PDF» y elegí guardarlo como PDF.")
     }
   }
 
@@ -47,15 +44,7 @@ export function TicketAcciones({
           Imprimir o guardar PDF
         </Button>
       </div>
-      {aviso ? (
-        <p className="mt-3 text-sm text-destructive" role="alert">
-          {aviso}
-        </p>
-      ) : (
-        <p className="mt-3 text-sm text-ink/60">
-          El archivo queda en tu teléfono o computadora. El QR abre esta misma reserva.
-        </p>
-      )}
+      <p className="mt-3 text-sm text-ink/60">El archivo queda en tu teléfono o computadora. El QR abre esta misma reserva.</p>
     </div>
   )
 }

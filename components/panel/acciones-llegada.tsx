@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { toast } from "sonner"
 
 import { cobrar, deshacerIngreso, marcarIngreso } from "@/app/panel/puerta/acciones"
 import { Button } from "@/components/ui/button"
+import { avisarRevisar, conAviso } from "@/lib/avisos"
+import type { Resultado } from "@/lib/errores"
 import { cobroDelSaldo, type FormaDeCobro } from "@/lib/panel/cobros"
 import { pesos } from "@/lib/predio/tarifas"
 
@@ -16,38 +17,31 @@ const nombreDeForma: Record<FormaDeCobro, string> = {
 
 export function AccionesLlegada({
   id,
+  titular,
   ingreso,
   saldo,
 }: {
   id: number
+  titular: string
   ingreso: { hora: string; por: string | null } | null
   saldo: number | null
 }) {
   const [pendiente, iniciar] = useTransition()
   const [otroImporte, setOtroImporte] = useState(false)
 
-  function correr(tarea: () => Promise<void>, exito: string) {
-    iniciar(async () => {
-      try {
-        await tarea()
-        toast.success(exito)
-      } catch {
-        toast.error("No se pudo guardar. Probá de nuevo.")
-      }
-    })
+  function correr(tarea: () => Promise<Resultado>, exito: string) {
+    iniciar(async () => void (await conAviso(tarea, exito)))
   }
 
   function cobrarAhora(forma: FormaDeCobro, importe?: number) {
     const monto = importe ?? (saldo ? cobroDelSaldo(saldo, forma).importe : 0)
     if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]}?`)) return
     iniciar(async () => {
-      const resultado = await cobrar({ id, forma, importe })
-      if (resultado.ok) {
-        toast.success(`Cobrado ${pesos(resultado.importe)} en ${nombreDeForma[forma]}.`)
-        setOtroImporte(false)
-      } else {
-        toast.error(resultado.error)
-      }
+      const resultado = await conAviso(
+        () => cobrar({ id, forma, importe }),
+        (cobro) => `Listo, quedaron cobrados ${pesos(cobro.importe)} en ${nombreDeForma[forma]} a ${titular}.`,
+      )
+      if (resultado.ok) setOtroImporte(false)
     })
   }
 
@@ -63,7 +57,7 @@ export function AccionesLlegada({
             type="button"
             disabled={pendiente}
             className="text-panel-muted underline-offset-4 hover:underline"
-            onClick={() => correr(() => deshacerIngreso(id), "Ingreso deshecho.")}
+            onClick={() => correr(() => deshacerIngreso(id), `Listo, ${titular} vuelve a figurar como que no llegó.`)}
           >
             Deshacer
           </button>
@@ -73,7 +67,7 @@ export function AccionesLlegada({
           type="button"
           disabled={pendiente}
           className="h-11 bg-panel-ink px-5 text-white hover:bg-panel-tostado"
-          onClick={() => correr(() => marcarIngreso(id), "Ingreso registrado.")}
+          onClick={() => correr(() => marcarIngreso(id), `Listo, ${titular} ya figura adentro.`)}
         >
           Marcar ingreso
         </Button>
@@ -110,7 +104,7 @@ export function AccionesLlegada({
             const datos = new FormData(evento.currentTarget)
             const importe = Number(String(datos.get("importe")).replace(/\D/g, ""))
             if (!importe) {
-              toast.error("Cargá un importe.")
+              avisarRevisar("Escribí cuánto vas a cobrar, en pesos y sin puntos.")
               return
             }
             cobrarAhora(datos.get("forma") as FormaDeCobro, importe)

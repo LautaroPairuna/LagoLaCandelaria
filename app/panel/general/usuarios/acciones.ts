@@ -6,43 +6,39 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { z } from "zod"
 
-import { auth, errorDeAuth } from "@/lib/auth"
+import { auth } from "@/lib/auth"
+import { accion, exigir, validar, type Resultado } from "@/lib/errores"
 import { ROLES } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
 
-export type ResultadoUsuario = { ok: true; password?: string } | { ok: false; error: string }
+export type ResultadoUsuario = Resultado<{ password?: string }>
 
-const roles = z.array(z.enum(ROLES)).min(1, "Elegí al menos un panel.")
+const roles = z.array(z.enum(ROLES)).min(1, "Elegí al menos un panel para que pueda entrar.")
 const idDeUsuario = z.string().min(1).max(64)
 
 function contrasenaNueva() {
   return randomBytes(12).toString("base64url")
 }
 
-async function comoAdmin<T>(tarea: (cabeceras: Headers, yo: string) => Promise<T>): Promise<T | ResultadoUsuario> {
-  const sesion = await permisoParaAccion("general")
-  try {
-    return await tarea(await headers(), sesion.user.id)
-  } catch (error) {
-    const fallo = errorDeAuth(error)
-    if (!fallo) throw error
-    return { ok: false, error: /exist/i.test(fallo.message) ? "Ya hay un usuario con ese correo." : "No se pudo guardar el cambio." }
-  }
+function comoAdmin(nombre: string, tarea: (cabeceras: Headers, yo: string) => Promise<ResultadoUsuario>) {
+  return accion(nombre, async () => {
+    const sesion = await permisoParaAccion("general")
+    return tarea(await headers(), sesion.user.id)
+  })
 }
 
 const nuevoUsuario = z.object({
-  nombre: z.string().trim().min(2, "Escribí el nombre.").max(80),
-  email: z.string().trim().toLowerCase().email("Ese correo no parece completo.").max(120),
+  nombre: z.string().trim().min(2, "Escribí el nombre de la persona.").max(80, "Ese nombre es muy largo."),
+  email: z.string().trim().toLowerCase().email("Ese correo no parece completo: revisá que tenga @ y el dominio.").max(120, "Ese correo es muy largo."),
   roles,
 })
 
 export async function crearUsuario(datos: z.input<typeof nuevoUsuario>): Promise<ResultadoUsuario> {
-  const entrada = nuevoUsuario.safeParse(datos)
-  if (!entrada.success) return { ok: false, error: entrada.error.issues[0]?.message ?? "Revisá los datos." }
-  return comoAdmin(async (cabeceras) => {
+  return comoAdmin("crearUsuario", async (cabeceras) => {
+    const entrada = validar(nuevoUsuario, datos)
     const password = contrasenaNueva()
     await auth().api.createUser({
-      body: { name: entrada.data.nombre, email: entrada.data.email, password, role: entrada.data.roles },
+      body: { name: entrada.nombre, email: entrada.email, password, role: entrada.roles },
       headers: cabeceras,
     })
     revalidatePath("/panel/general/usuarios")
@@ -51,21 +47,21 @@ export async function crearUsuario(datos: z.input<typeof nuevoUsuario>): Promise
 }
 
 export async function cambiarRoles(userId: string, nuevos: string[]): Promise<ResultadoUsuario> {
-  const entrada = z.object({ userId: idDeUsuario, roles }).safeParse({ userId, roles: nuevos })
-  if (!entrada.success) return { ok: false, error: entrada.error.issues[0]?.message ?? "Revisá los datos." }
-  return comoAdmin(async (cabeceras, yo) => {
-    if (entrada.data.userId === yo && !entrada.data.roles.includes("admin")) {
-      return { ok: false, error: "No podés quitarte la administración a vos mismo." }
-    }
-    await auth().api.setRole({ body: { userId: entrada.data.userId, role: entrada.data.roles }, headers: cabeceras })
+  return comoAdmin("cambiarRoles", async (cabeceras, yo) => {
+    const entrada = validar(z.object({ userId: idDeUsuario, roles }), { userId, roles: nuevos })
+    exigir(
+      entrada.userId !== yo || entrada.roles.includes("admin"),
+      "No podés sacarte la administración a vos mismo: pedíselo a otra persona que sea administradora.",
+    )
+    await auth().api.setRole({ body: { userId: entrada.userId, role: entrada.roles }, headers: cabeceras })
     revalidatePath("/panel/general/usuarios")
     return { ok: true }
   })
 }
 
 export async function generarContrasena(userId: string): Promise<ResultadoUsuario> {
-  const id = idDeUsuario.parse(userId)
-  return comoAdmin(async (cabeceras) => {
+  return comoAdmin("generarContrasena", async (cabeceras) => {
+    const id = idDeUsuario.parse(userId)
     const password = contrasenaNueva()
     await auth().api.setUserPassword({ body: { userId: id, newPassword: password }, headers: cabeceras })
     await auth().api.revokeUserSessions({ body: { userId: id }, headers: cabeceras })
@@ -74,9 +70,9 @@ export async function generarContrasena(userId: string): Promise<ResultadoUsuari
 }
 
 export async function cambiarAcceso(userId: string, habilitado: boolean): Promise<ResultadoUsuario> {
-  const id = idDeUsuario.parse(userId)
-  return comoAdmin(async (cabeceras, yo) => {
-    if (id === yo) return { ok: false, error: "No podés deshabilitar tu propio usuario." }
+  return comoAdmin("cambiarAcceso", async (cabeceras, yo) => {
+    const id = idDeUsuario.parse(userId)
+    exigir(id !== yo, "No podés deshabilitar tu propio usuario.")
     if (habilitado) await auth().api.unbanUser({ body: { userId: id }, headers: cabeceras })
     else await auth().api.banUser({ body: { userId: id, banReason: "Deshabilitado desde el panel" }, headers: cabeceras })
     revalidatePath("/panel/general/usuarios")

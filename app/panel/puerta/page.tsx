@@ -149,6 +149,7 @@ function ListaLlegadas({ titulo, llegadas, vacio }: { titulo: string; llegadas: 
               </div>
               <AccionesLlegada
                 id={llegada.id}
+                titular={llegada.titular}
                 ingreso={llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null}
                 saldo={llegada.saldo}
               />

@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { avisarError, avisarRevisar, falloDeRed } from "@/lib/avisos"
 import type { Categoria, EstadoDeFecha } from "@/lib/disponibilidad"
 import { diaDeLaSemana, fechaLarga, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { cn } from "cn"
@@ -41,8 +42,8 @@ export function CalendarioDisponible({
   const primerMes = hoy.slice(0, 7)
   const [mes, setMes] = useState((desde || hoy).slice(0, 7))
   const [meses, setMeses] = useState<Record<string, DatosDelMes>>({})
-  const [fallo, setFallo] = useState<string | null>(null)
-  const [aviso, setAviso] = useState<string | null>(null)
+  const [fallo, setFallo] = useState(false)
+  const [intento, setIntento] = useState(0)
   const datos = meses[`${categoria}|${mes}`]
 
   useEffect(() => {
@@ -51,26 +52,28 @@ export function CalendarioDisponible({
     fetch(`/api/calendario?mes=${mes}&tipo=${categoria}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string } & DatosDelMes) => {
-        if (!json.ok) {
-          setFallo(json.error ?? "No pudimos cargar el calendario.")
-          return
-        }
-        setFallo(null)
+        if (!json.ok) throw new Error(json.error)
+        setFallo(false)
         setMeses((actuales) => ({ ...actuales, [`${categoria}|${mes}`]: json }))
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return
-        setFallo("No pudimos cargar el calendario. Revisá la conexión.")
+        setFallo(true)
+        avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "calendario", reintentar: reintentar })
       })
     return () => controlador.abort()
-  }, [categoria, mes, datos])
+  }, [categoria, mes, datos, intento])
+
+  function reintentar() {
+    setFallo(false)
+    setIntento((actual) => actual + 1)
+  }
 
   function estadoDe(fecha: string) {
     return meses[`${categoria}|${fecha.slice(0, 7)}`]?.dias[fecha]
   }
 
   function elegir(fecha: string) {
-    setAviso(null)
     if (modo === "dia" || !desde || hasta || fecha <= desde) {
       onElegir(fecha, modo === "dia" ? fecha : "")
       return
@@ -81,12 +84,12 @@ export function CalendarioDisponible({
       return estado && estado.estado !== "libre"
     })
     if (tomado) {
-      setAviso(`El ${fechaLarga(tomado).toLowerCase()} no está disponible. Elegí otra salida.`)
+      avisarRevisar(`El ${fechaLarga(tomado).toLowerCase()} ya está ocupado, así que la estadía no puede pasar por ese día. Elegí una salida anterior.`, "rango")
       return
     }
     const problema = validarRango?.(desde, fecha, Object.fromEntries(Object.entries(meses).filter(([clave]) => clave.startsWith(`${categoria}|`)).map(([clave, valor]) => [clave.split("|")[1], valor])))
     if (problema) {
-      setAviso(problema)
+      avisarRevisar(problema, "rango")
       return
     }
     onElegir(desde, fecha)
@@ -122,8 +125,11 @@ export function CalendarioDisponible({
       </div>
 
       {fallo ? (
-        <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] px-4 py-3 text-sm text-[#7a2e24]">
-          {fallo}
+        <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/70">
+          Este mes no se cargó.
+          <button type="button" className="font-semibold text-lake-ink underline underline-offset-4" onClick={reintentar}>
+            Volver a intentar
+          </button>
         </p>
       ) : null}
 
@@ -132,7 +138,7 @@ export function CalendarioDisponible({
           <span key={indice}>{letra}</span>
         ))}
       </div>
-      <div className="mt-1 grid grid-cols-7 gap-1.5" aria-busy={!datos}>
+      <div className="mt-1 grid grid-cols-7 gap-1.5" aria-busy={!datos && !fallo}>
         {Array.from({ length: desplazamiento }, (_, indice) => (
           <span key={`vacio-${indice}`} aria-hidden />
         ))}
@@ -154,7 +160,8 @@ export function CalendarioDisponible({
               onClick={() => elegir(fecha)}
               className={cn(
                 "aspect-square rounded-xl border text-sm font-semibold transition md:text-base",
-                !estado && "animate-pulse border-ink/5 bg-ink/5 text-ink/30",
+                !estado && "border-ink/5 bg-ink/5 text-ink/30",
+                !estado && !fallo && "animate-pulse",
                 libre && "border-[#9fd18f] bg-[#eaf6e4] text-[#2f5d16] hover:bg-[#d6eecb]",
                 (estado?.estado === "completo" || estado?.estado === "cerrado") && "border-[#f3c1b8] bg-[#fde8e4] text-[#a0453a]/70",
                 estado?.estado === "pasado" && "border-transparent bg-transparent text-ink/25",
@@ -180,11 +187,6 @@ export function CalendarioDisponible({
         </li>
       </ul>
 
-      {aviso ? (
-        <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] px-4 py-3 text-sm text-[#7a2e24]">
-          {aviso}
-        </p>
-      ) : null}
       {modo === "rango" && desde && !hasta ? (
         <p className="mt-4 text-sm font-semibold text-ink/70">Llegada el {fechaLarga(desde).toLowerCase()}. Ahora tocá el día de salida.</p>
       ) : null}

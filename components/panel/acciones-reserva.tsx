@@ -1,24 +1,13 @@
 "use client"
 
 import { useTransition } from "react"
-import { toast } from "sonner"
 
 import { cancelarReserva, confirmarReserva } from "@/app/panel/reservas/acciones"
 import { Button } from "@/components/ui/button"
+import { conAviso } from "@/lib/avisos"
 
-export function AccionesReserva({ id, estado }: { id: number; estado: "PENDIENTE" | "CONFIRMADA" | "CANCELADA" }) {
+export function AccionesReserva({ id, codigo, estado }: { id: number; codigo: string; estado: "PENDIENTE" | "CONFIRMADA" | "CANCELADA" }) {
   const [pendiente, iniciar] = useTransition()
-
-  function ejecutar(accion: () => Promise<void>, exito: string) {
-    iniciar(async () => {
-      try {
-        await accion()
-        toast.success(exito)
-      } catch {
-        toast.error("No se pudo guardar el cambio. Probá de nuevo.")
-      }
-    })
-  }
 
   if (estado === "CANCELADA") return null
 
@@ -29,9 +18,9 @@ export function AccionesReserva({ id, estado }: { id: number; estado: "PENDIENTE
           type="button"
           disabled={pendiente}
           className="h-11 bg-panel-naranja px-5 text-white hover:bg-panel-tostado"
-          onClick={() => ejecutar(() => confirmarReserva(id), "Reserva confirmada.")}
+          onClick={() => iniciar(async () => void (await conAviso(() => confirmarReserva(id), `Listo, la reserva ${codigo} quedó confirmada.`)))}
         >
-          Confirmar reserva
+          {pendiente ? "Guardando…" : "Confirmar reserva"}
         </Button>
       ) : null}
       <Button
@@ -41,7 +30,7 @@ export function AccionesReserva({ id, estado }: { id: number; estado: "PENDIENTE
         className="h-11 px-5"
         onClick={() => {
           if (window.confirm("¿Cancelar la reserva? Los lugares quedan libres para otros.")) {
-            ejecutar(() => cancelarReserva(id), "Reserva cancelada.")
+            iniciar(async () => void (await conAviso(() => cancelarReserva(id), `La reserva ${codigo} quedó cancelada y sus lugares, libres.`)))
           }
         }}
       >

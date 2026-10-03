@@ -138,11 +138,12 @@ export function CamposFamilia({
                 placeholder="11 3009 1020"
                 value={datos.telefono}
                 aria-invalid={errores["responsable.telefono"] ? true : undefined}
+                aria-describedby="responsable.telefono-ayuda"
                 onChange={(evento) => cambiar("telefono", soloNumeros(evento.target.value, 10))}
                 className="field-control h-10 min-w-0 flex-1 border-0 px-3 outline-none"
               />
             </span>
-            <span className={cn("mt-1 block text-sm", errores["responsable.telefono"] ? "text-destructive" : "text-ink/55")} role={errores["responsable.telefono"] ? "alert" : undefined}>
+            <span id="responsable.telefono-ayuda" className={cn("mt-1 block text-sm", errores["responsable.telefono"] ? "text-destructive" : "text-ink/55")}>
               {errores["responsable.telefono"] ?? "Característica y número, sin 0 ni 15."}
             </span>
           </label>

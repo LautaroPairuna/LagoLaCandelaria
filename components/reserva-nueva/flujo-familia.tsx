@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 
-import { reservarBungalow, reservarDia, type ResultadoReserva } from "@/app/(sitio)/reserva/acciones"
-import { Aviso } from "@/components/reserva/campo"
+import { reservarBungalow, reservarDia } from "@/app/(sitio)/reserva/acciones"
 import { CalendarioDisponible, type DatosDelMes } from "@/components/reserva-nueva/calendario-disponible"
 import { CamposFamilia, datosFamiliaVacios, pedidoFamiliar, type DatosFamilia } from "@/components/reserva-nueva/datos-familia"
 import { Button } from "@/components/ui/button"
+import { avisarError, avisarRevisar, irAlPrimerCampo, llamar } from "@/lib/avisos"
 import { asignarBungalows, bungalowsPara } from "@/lib/predio/bungalows"
 import { cotizarBungalows, cotizarDia, textoDelEfectivo, textoDelTotal } from "@/lib/predio/cotizacion"
 import { fechaLarga, fechasEntre, hoyEnElPredio } from "@/lib/predio/fechas"
@@ -40,7 +40,6 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
   const [fechas, setFechas] = useState({ desde: "", hasta: "" })
   const [datos, setDatos] = useState<DatosFamilia>(datosFamiliaVacios)
   const [errores, setErrores] = useState<Record<string, string>>({})
-  const [error, setError] = useState("")
   const [enviando, iniciar] = useTransition()
 
   const personas = datos.adultos + datos.menores + datos.sinCargo
@@ -55,28 +54,24 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
   const fechaLista = modo === "dia" ? Boolean(fechas.desde) : noches > 0
 
   function confirmar() {
-    setError("")
     setErrores({})
     if (modo === "bungalow" && personas > MAX_PERSONAS_BUNGALOW) {
-      setError(`Para más de ${MAX_PERSONAS_BUNGALOW} personas escribinos por WhatsApp.`)
+      avisarRevisar(`Para más de ${MAX_PERSONAS_BUNGALOW} personas armamos la estadía a medida: escribinos por WhatsApp.`)
       return
     }
     iniciar(async () => {
-      let resultado: ResultadoReserva
-      try {
-        resultado =
-          modo === "dia"
-            ? await reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", ...pedidoFamiliar(datos) })
-            : await reservarBungalow({ desde: fechas.desde, hasta: fechas.hasta, ...pedidoFamiliar(datos) })
-      } catch {
-        resultado = { ok: false, error: "No llegamos al predio. Revisá la conexión e intentá de nuevo." }
-      }
+      const resultado = await llamar(() =>
+        modo === "dia"
+          ? reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", ...pedidoFamiliar(datos) })
+          : reservarBungalow({ desde: fechas.desde, hasta: fechas.hasta, ...pedidoFamiliar(datos) }),
+      )
       if (resultado.ok) {
         router.push(`/reserva/t/${resultado.token}?nuevo=1`)
         return
       }
-      setError(resultado.error)
+      avisarError(resultado.error)
       setErrores(resultado.campos ?? {})
+      irAlPrimerCampo(resultado.campos)
     })
   }
 
@@ -165,7 +160,6 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
             {textoDelEfectivo(cotizacion) ? <p className="text-sm font-semibold text-ink/75">{textoDelEfectivo(cotizacion)}</p> : null}
           </div>
         ) : null}
-        {error ? <Aviso>{error}</Aviso> : null}
         <Button type="button" disabled={!fechaLista || enviando} className="h-14 w-full text-base" onClick={confirmar}>
           {enviando ? "Reservando…" : "Confirmar reserva"}
         </Button>

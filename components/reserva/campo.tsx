@@ -1,7 +1,6 @@
-import type { HTMLAttributes, ReactNode } from "react"
+import type { HTMLAttributes } from "react"
 
 import { Input } from "@/components/ui/input"
-import { cn } from "cn"
 
 export function Campo({
   id,
@@ -37,35 +36,14 @@ export function Campo({
         placeholder={placeholder}
         onValueChange={(value) => onChange(value)}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
         className="field-control mt-1.5"
       />
       {error ? (
-        <span className="mt-1 block text-sm text-destructive" role="alert">
+        <span id={`${id}-error`} className="mt-1 block text-sm text-destructive">
           {error}
         </span>
       ) : null}
     </label>
-  )
-}
-
-export function Aviso({
-  children,
-  tono = "alerta",
-}: {
-  children: ReactNode
-  tono?: "alerta" | "ok" | "info"
-}) {
-  return (
-    <p
-      role={tono === "alerta" ? "alert" : "status"}
-      className={cn(
-        "rounded-2xl px-4 py-3 text-sm leading-relaxed",
-        tono === "alerta" && "bg-[#fde8e4] text-[#7a2e24]",
-        tono === "ok" && "bg-green-soft text-lime-ink",
-        tono === "info" && "bg-lake-soft text-lake-ink",
-      )}
-    >
-      {children}
-    </p>
   )
 }

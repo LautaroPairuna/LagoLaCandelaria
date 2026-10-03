@@ -48,6 +48,12 @@ Roles: `admin`, `reservas`, `puerta`, `bar`, `restaurante`. Se pueden combinar s
 
 Paneles (según la presentación del proyecto): Funcionan Reservas (calendario del mes por propuesta, a confirmar, confirmadas, detalle con confirmar, cancelar y aviso por WhatsApp) Puerta (lista del día, marcar ingreso, cobro del saldo con 10 % en efectivo, otro importe y caja del día). General (resumen de hoy con ocupación y caja, reportes por período con variación contra el período anterior, personas por mes, reservas por propuesta, edad de quien reserva y clientes nuevos, y usuarios y permisos: alta, paneles, contraseña nueva y deshabilitar). Bar y Restaurante aparecen como "Pronto".
 
+### Errores y avisos
+
+Ninguna pantalla muestra un error técnico. Las Server Actions pasan por `accion()` de `lib/errores.ts`: si algo sale mal, el detalle queda en el log del servidor (`[nombreDeLaAccion] ...`) y a la persona le llega una frase que dice qué pasó y qué hacer. Cuando el motivo es conocido (la reserva ya no estaba pendiente, no queda lugar) se tira `ErrorHumano` con el texto, o se usa `exigir(condición, "texto")`. El sitio público usa `mensajesDelSitio`, que ofrece el WhatsApp en vez de "avisá a la administración".
+
+En el navegador, `lib/avisos.ts` muestra los toasts (`conAviso` corre la acción y avisa cómo salió) y distingue cuando se cortó internet. En los formularios, cada campo con problema queda marcado al lado, el toast lo resume y el foco va al primero.
+
 ### Pasar a producción
 
 ```bash

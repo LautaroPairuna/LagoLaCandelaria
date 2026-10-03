@@ -67,7 +67,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
             {reserva.origen === "LEGADO" ? <span>Vino de la web anterior</span> : null}
           </p>
         </div>
-        <AccionesReserva id={reserva.id} estado={reserva.estado} />
+        <AccionesReserva id={reserva.id} codigo={reserva.codigo} estado={reserva.estado} />
       </header>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
