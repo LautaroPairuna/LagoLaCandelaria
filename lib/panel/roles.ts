@@ -7,6 +7,7 @@ export const paneles = [
   { id: "reservas", nombre: "Reservas", href: "/panel/reservas", listo: true, rol: "reservas" },
   { id: "lugares", nombre: "Lugares", href: "/panel/lugares", listo: true, rol: "reservas" },
   { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: true, rol: "puerta" },
+  { id: "caja", nombre: "Caja", href: "/panel/caja", listo: true, rol: "admin" },
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: false, rol: "bar" },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: false, rol: "restaurante" },
   { id: "general", nombre: "General", href: "/panel/general", listo: true, rol: "admin" },

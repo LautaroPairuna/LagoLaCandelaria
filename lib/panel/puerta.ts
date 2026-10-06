@@ -29,7 +29,8 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
     },
   })
 
-  const texto = busqueda.trim().toLowerCase()
+  const texto = busqueda.trim().toLowerCase().replace(/^(n\.?\s*º?|#)\s*/, "")
+  const numero = /^\d{1,7}$/.test(texto) ? Number(texto) : null
   return filas
     .map((fila) => {
       const titular = fila.institucion ?? `${fila.cliente.nombre} ${fila.cliente.apellido}`
@@ -51,7 +52,7 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
         buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido].join(" ").toLowerCase(),
       }
     })
-    .filter((fila) => !texto || fila.buscable.includes(texto))
+    .filter((fila) => !texto || fila.id === numero || fila.buscable.includes(texto))
 }
 
 export type Llegada = Awaited<ReturnType<typeof llegadasDelDia>>[number]

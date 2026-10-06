@@ -1,4 +1,4 @@
-import { Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
@@ -7,8 +7,9 @@ import { totalesPorForma } from "@/lib/panel/cobros"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { llegadasDelDia, pagosDelDia, type Llegada } from "@/lib/panel/puerta"
 import { nombreDelModulo } from "@/lib/panel/reservas"
+import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
-import { hoyEnElPredio } from "@/lib/predio/fechas"
+import { esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
 
@@ -17,11 +18,16 @@ export const metadata: Metadata = { title: "Puerta" }
 const hora = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" })
 
 export default async function PanelPuerta({ searchParams }: PageProps<"/panel/puerta">) {
-  await exigirPanel("puerta")
-  const { q } = await searchParams
-  const busqueda = (Array.isArray(q) ? q[0] : q)?.slice(0, 60) ?? ""
+  const sesion = await exigirPanel("puerta")
+  const params = await searchParams
+  const busqueda = (Array.isArray(params.q) ? params.q[0] : params.q)?.slice(0, 60) ?? ""
   const hoy = hoyEnElPredio()
-  const [llegadas, todas, pagos] = await Promise.all([llegadasDelDia(hoy, busqueda), llegadasDelDia(hoy), pagosDelDia(hoy)])
+  const fechaPedida = Array.isArray(params.fecha) ? params.fecha[0] : params.fecha
+  const fecha = fechaPedida && esFechaIso(fechaPedida) ? fechaPedida : hoy
+  const momento = fecha < hoy ? "pasado" : fecha > hoy ? "futuro" : "hoy"
+  const [llegadas, todas, pagos] = await Promise.all([llegadasDelDia(fecha, busqueda), llegadasDelDia(fecha), pagosDelDia(fecha)])
+  const verCaja = puedeVer(sesion.user.role, "caja")
+  const enlace = (dia: string) => (dia === hoy ? "/panel/puerta" : `/panel/puerta?fecha=${dia}`)
 
   const esperadas = todas.reduce((suma, item) => suma + item.personas, 0)
   const adentro = todas.filter((item) => item.ingresoEn).reduce((suma, item) => suma + item.personas, 0)
@@ -33,16 +39,37 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
       <header>
-        <p className="text-xs font-bold tracking-[0.16em] text-panel-naranja uppercase">Panel de Puerta</p>
-        <h1 className="font-display mt-2 text-3xl tracking-tight md:text-4xl">{fechaLargaPanel(hoy)}</h1>
+        <div className="flex items-center justify-between gap-3 md:justify-start md:gap-4">
+          <p className="text-xs font-bold tracking-[0.16em] text-panel-naranja uppercase">Ingreso y cobranza</p>
+          {momento !== "hoy" ? (
+            <Link href="/panel/puerta" className="shrink-0 rounded-full border border-panel-line bg-white px-3 py-1 text-sm font-semibold hover:border-panel-muted">
+              Hoy
+            </Link>
+          ) : null}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-2 md:mt-2 md:gap-x-2">
+          <Link href={enlace(sumarDiasIso(fecha, -1))} className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-panel-line md:size-11" aria-label="Día anterior">
+            <ChevronLeft className="size-5" aria-hidden />
+          </Link>
+          <h1 className="font-display min-w-0 text-center text-2xl leading-tight tracking-tight md:text-4xl">{fechaLargaPanel(fecha)}</h1>
+          <Link href={enlace(sumarDiasIso(fecha, 1))} className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-panel-line md:size-11" aria-label="Día siguiente">
+            <ChevronRight className="size-5" aria-hidden />
+          </Link>
+          <form action="/panel/puerta" className="flex items-center gap-2 md:ml-3">
+            <input type="date" name="fecha" defaultValue={fecha} aria-label="Elegir otro día" className="h-10 rounded-xl border border-panel-line bg-white px-3 text-sm" />
+            <button type="submit" className="h-10 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted">
+              Ir
+            </button>
+          </form>
+        </div>
       </header>
 
       <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { termino: "Grupos hoy", valor: String(todas.length) },
+          { termino: "Grupos", valor: String(todas.length) },
           { termino: "Personas esperadas", valor: String(esperadas) },
-          { termino: "Ya ingresaron", valor: `${adentro} de ${esperadas}` },
-          { termino: "Cobrado hoy", valor: pesos(cobrado) },
+          { termino: momento === "pasado" ? "Ingresaron" : "Ya ingresaron", valor: `${adentro} de ${esperadas}` },
+          { termino: momento === "hoy" ? "Cobrado hoy" : "Cobrado ese día", valor: pesos(cobrado) },
         ].map((dato) => (
           <div key={dato.termino} className="rounded-2xl bg-white px-4 py-3 shadow-[0_8px_28px_rgba(58,42,24,0.06)]">
             <dt className="text-xs font-bold tracking-wide text-panel-muted uppercase">{dato.termino}</dt>
@@ -54,23 +81,38 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
           <form className="relative" role="search">
+            {momento !== "hoy" ? <input type="hidden" name="fecha" value={fecha} /> : null}
             <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-panel-muted" aria-hidden />
             <input
               type="search"
               name="q"
               defaultValue={busqueda}
-              placeholder="Buscar por apellido, institución, DNI o código"
+              placeholder="N.º de reserva, apellido, institución o DNI"
               aria-label="Buscar reserva"
               className="h-12 w-full rounded-2xl border border-panel-line bg-white pr-4 pl-11"
             />
           </form>
 
-          <ListaLlegadas titulo="Por entrar" llegadas={porEntrar} vacio={busqueda ? "Nadie coincide con la búsqueda." : "No queda nadie por entrar."} />
-          <ListaLlegadas titulo="Ya ingresaron" llegadas={yaEntraron} vacio="Todavía no ingresó nadie." />
+          <ListaLlegadas
+            titulo={momento === "pasado" ? "No vinieron" : momento === "futuro" ? "Esperados" : "Por entrar"}
+            llegadas={porEntrar}
+            bloqueado={momento === "futuro"}
+            vacio={busqueda ? "Nadie coincide con la búsqueda." : momento === "pasado" ? "Vinieron todos." : momento === "futuro" ? "No hay reservas para ese día." : "No queda nadie por entrar."}
+          />
+          {momento !== "futuro" ? (
+            <ListaLlegadas titulo={momento === "pasado" ? "Ingresaron" : "Ya ingresaron"} llegadas={yaEntraron} vacio="No ingresó nadie." />
+          ) : null}
         </div>
 
         <section aria-label="Registro de pagos" className="h-fit rounded-3xl bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)]">
-          <h2 className="font-display text-2xl tracking-tight">Caja del día</h2>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-2xl tracking-tight">Caja del día</h2>
+            {verCaja ? (
+              <Link href={`/panel/caja?desde=${fecha}&hasta=${fecha}`} className="text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline">
+                Ver en Caja
+              </Link>
+            ) : null}
+          </div>
           <dl className="mt-3 space-y-1 text-sm">
             {(["EFECTIVO", "DEBITO", "TRANSFERENCIA"] as const).map((forma) => (
               <div key={forma} className="flex justify-between">
@@ -81,7 +123,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
           </dl>
           <h3 className="mt-5 text-sm font-bold tracking-wide text-panel-muted uppercase">Cobros</h3>
           {pagos.length === 0 ? (
-            <p className="mt-2 text-sm text-panel-muted">Todavía no se cobró nada hoy.</p>
+            <p className="mt-2 text-sm text-panel-muted">{momento === "hoy" ? "Todavía no se cobró nada hoy." : "No hay cobros registrados ese día."}</p>
           ) : (
             <ul className="mt-2 divide-y divide-panel-line text-sm">
               {pagos.map((pago) => (
@@ -109,7 +151,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   )
 }
 
-function ListaLlegadas({ titulo, llegadas, vacio }: { titulo: string; llegadas: Llegada[]; vacio: string }) {
+function ListaLlegadas({ titulo, llegadas, vacio, bloqueado = false }: { titulo: string; llegadas: Llegada[]; vacio: string; bloqueado?: boolean }) {
   return (
     <section aria-label={titulo}>
       <h2 className="font-display flex items-center gap-3 text-2xl tracking-tight">
@@ -147,12 +189,16 @@ function ListaLlegadas({ titulo, llegadas, vacio }: { titulo: string; llegadas: 
                   {llegada.aConfirmar ? "Presupuesto a confirmar con el predio" : llegada.saldo ? `Saldo ${pesos(llegada.saldo)}` : "Pagado"}
                 </p>
               </div>
+              {bloqueado ? (
+                <p className="text-sm text-panel-muted">El ingreso y el cobro se marcan ese día.</p>
+              ) : (
               <AccionesLlegada
                 id={llegada.id}
                 titular={llegada.titular}
                 ingreso={llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null}
                 saldo={llegada.saldo}
               />
+              )}
             </li>
           ))}
         </ul>
