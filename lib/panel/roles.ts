@@ -27,3 +27,11 @@ export function puedeVer(rol: string | null | undefined, panel: PanelId) {
 export function panelesDe(rol: string | null | undefined) {
   return paneles.filter((panel) => puedeVer(rol, panel.id))
 }
+
+export const etiquetaDeRol: Record<Rol, string> = {
+  admin: "Administración",
+  reservas: "Reservas",
+  puerta: "Puerta",
+  bar: "Bar",
+  restaurante: "Restaurante",
+}
