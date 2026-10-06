@@ -85,8 +85,8 @@ export default async function PanelGeneral({ searchParams }: PageProps<"/panel/g
             etiqueta="Reservas a confirmar"
             valor={numero.format(dia.pendientes)}
             pie={
-              <Link href="/panel/reservas" className="font-semibold text-panel-tostado underline-offset-4 hover:underline">
-                Ir a Reservas
+              <Link href="/panel/reservas?estado=PENDIENTE" className="font-semibold text-panel-tostado underline-offset-4 hover:underline">
+                Ver cuáles son
               </Link>
             }
           />

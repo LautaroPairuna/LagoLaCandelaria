@@ -79,3 +79,10 @@ export const inventario: UnidadPredio[] = [
 export function unidadesDelTipo(...tipos: TipoUnidad[]) {
   return inventario.filter((item) => tipos.includes(item.tipo))
 }
+
+// Personas que pueden estar en el predio en un mismo día. Hasta que el predio confirme
+// el número real, es lo que entra en parrillas, playa y bungalows.
+export const AFORO_DEL_PREDIO = unidadesDelTipo("PARRILLA", "GAZEBO", "PALAPA", "BUNGALOW").reduce(
+  (suma, unidad) => suma + (unidad.capacidad ?? 0),
+  0,
+)

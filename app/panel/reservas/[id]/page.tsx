@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageCircle, Phone } from "lucide-react"
+import { ArrowLeft, MessageCircle, Phone, TriangleAlert } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -42,15 +42,23 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
     reserva.estado === "CONFIRMADA"
       ? `¡Hola ${reserva.cliente.nombre}! Tu reserva ${reserva.codigo} en Lago La Candelaria para el ${fechaLargaPanel(desde).toLowerCase()} quedó confirmada. Tu ticket con el QR del ingreso: ${enlaceTicket}`
       : `¡Hola ${reserva.cliente.nombre}! Te escribimos de Lago La Candelaria por tu solicitud de reserva ${reserva.codigo}.`
+  const familias = new Map<number, typeof reserva.personas>()
+  for (const persona of reserva.personas) familias.set(persona.familia, [...(familias.get(persona.familia) ?? []), persona])
+  const importantes = reserva.personas.filter((persona) => persona.notas)
   const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
   const estado = etiquetaDeEstado[reserva.estado]
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
-      <Link href={`/panel/reservas?mes=${desde.slice(0, 7)}`} className="inline-flex items-center gap-2 text-sm font-semibold text-panel-muted hover:text-panel-ink">
-        <ArrowLeft className="size-4" aria-hidden />
-        Volver al calendario
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
+        <Link href="/panel/reservas" className="inline-flex items-center gap-2 text-panel-muted hover:text-panel-ink">
+          <ArrowLeft className="size-4" aria-hidden />
+          Volver a Reservas
+        </Link>
+        <Link href={`/panel/ocupacion?mes=${desde.slice(0, 7)}&dia=${desde}`} className="text-panel-tostado underline-offset-4 hover:underline">
+          Ver ese día en Ocupación
+        </Link>
+      </div>
 
       <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -69,6 +77,29 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
         </div>
         <AccionesReserva id={reserva.id} codigo={reserva.codigo} estado={reserva.estado} />
       </header>
+
+      {importantes.length > 0 ? (
+        <section aria-label="Información importante" className="mt-6 flex gap-3 rounded-3xl border border-panel-ambar bg-panel-claro p-4 md:p-5">
+          <TriangleAlert className="mt-0.5 size-5 shrink-0 text-panel-tostado" aria-hidden />
+          <div>
+            <h2 className="font-semibold">Información importante</h2>
+            <ul className="mt-1 space-y-1 text-sm">
+              {importantes.map((persona) => (
+                <li key={persona.id}>
+                  <strong>
+                    {persona.nombre} {persona.apellido}
+                  </strong>{" "}
+                  <span className="text-panel-muted">
+                    ({familias.size > 1 ? `familia ${persona.familia}, ` : ""}
+                    {persona.edad} años)
+                  </span>
+                  : {persona.notas}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Bloque titulo="Cuándo">
@@ -118,23 +149,27 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           <Dato termino="Menores">{String(reserva.menores)}</Dato>
           <Dato termino="Sin cargo">{String(reserva.sinCargo)}</Dato>
           {reserva.edadesGrupo ? <Dato termino="Edades">{reserva.edadesGrupo}</Dato> : null}
-          {reserva.personas.length > 0 ? (
-            <ul className="mt-3 divide-y divide-panel-line text-sm">
-              {reserva.personas.map((persona) => (
-                <li key={persona.id} className="flex flex-wrap justify-between gap-2 py-2">
-                  <span className="font-semibold">
-                    {persona.nombre} {persona.apellido}
-                    {persona.responsable ? <span className="ml-2 text-xs font-bold text-panel-naranja">Responsable fam. {persona.familia}</span> : null}
-                  </span>
-                  <span className="text-panel-muted">
-                    {persona.edad} años{persona.dni ? ` · DNI ${persona.dni}` : ""}
-                    {persona.cud ? " · CUD" : ""}
-                  </span>
-                  {persona.notas ? <span className="w-full text-panel-tostado">{persona.notas}</span> : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {familias.size > 1 ? <Dato termino="Familias">{String(familias.size)}</Dato> : null}
+          {[...familias].map(([numero, personas]) => (
+            <div key={numero} className="mt-3">
+              {familias.size > 1 ? <h3 className="text-xs font-bold tracking-wide text-panel-muted uppercase">Familia {numero}</h3> : null}
+              <ul className="divide-y divide-panel-line text-sm">
+                {personas.map((persona) => (
+                  <li key={persona.id} className="flex flex-wrap justify-between gap-x-2 gap-y-0.5 py-2">
+                    <span className="font-semibold">
+                      {persona.nombre} {persona.apellido}
+                      {persona.responsable ? <span className="ml-2 text-xs font-bold text-panel-naranja">Responsable</span> : null}
+                    </span>
+                    <span className="text-panel-muted">
+                      {persona.edad} años{persona.dni ? ` · DNI ${persona.dni}` : ""}
+                      {persona.cud ? " · CUD" : ""}
+                    </span>
+                    {persona.notas ? <span className="w-full font-semibold text-panel-tostado">{persona.notas}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </Bloque>
 
         <Bloque titulo="Lugar y total">

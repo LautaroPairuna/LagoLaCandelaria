@@ -14,7 +14,7 @@ export async function confirmarReserva(id: number): Promise<Resultado> {
     await permisoParaAccion("reservas")
     const reservaId = idDeReserva.parse(id)
     const { count } = await db().reserva.updateMany({ where: { id: reservaId, estado: "PENDIENTE" }, data: { estado: "CONFIRMADA" } })
-    revalidatePath("/panel/reservas", "layout")
+    revalidatePath("/panel", "layout")
     exigir(count > 0, "Esta reserva ya no estaba pendiente: alguien la confirmó o la canceló recién. Ya te mostramos cómo quedó.")
     return { ok: true }
   })
@@ -29,7 +29,7 @@ export async function cancelarReserva(id: number): Promise<Resultado> {
       db().ocupacion.deleteMany({ where: { reservaId } }),
       db().reserva.updateMany({ where: { id: reservaId, estado: { not: "CANCELADA" } }, data: { estado: "CANCELADA" } }),
     ])
-    revalidatePath("/panel/reservas", "layout")
+    revalidatePath("/panel", "layout")
     exigir(count > 0, "Esta reserva ya estaba cancelada. Ya te mostramos cómo quedó.")
     return { ok: true }
   })

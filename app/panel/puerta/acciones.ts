@@ -14,7 +14,7 @@ const idDeReserva = z.number().int().positive()
 
 function refrescar() {
   revalidatePath("/panel/puerta")
-  revalidatePath("/panel/reservas", "layout")
+  revalidatePath("/panel", "layout")
 }
 
 export async function marcarIngreso(id: number): Promise<Resultado> {

@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarCheck, DoorOpen, LayoutGrid, Martini, UtensilsCrossed, type LucideIcon } from "lucide-react"
+import { CalendarCheck, CalendarRange, DoorOpen, LayoutGrid, Martini, UtensilsCrossed, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -8,6 +8,7 @@ import type { PanelId } from "@/lib/panel/roles"
 import { cn } from "cn"
 
 const iconos: Record<PanelId, LucideIcon> = {
+  ocupacion: CalendarRange,
   reservas: CalendarCheck,
   puerta: DoorOpen,
   bar: Martini,
