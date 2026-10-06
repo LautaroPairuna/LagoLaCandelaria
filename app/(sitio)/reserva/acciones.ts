@@ -3,15 +3,17 @@
 import { headers } from "next/headers"
 import { z } from "zod"
 
-import { diasEspeciales } from "@/lib/disponibilidad"
+import { categorias, diasEspeciales } from "@/lib/disponibilidad"
 import { accion, ErrorHumano, exigir, mensajesDelSitio, type Resultado } from "@/lib/errores"
 import { limiteAlcanzado, registrarUso } from "@/lib/limite"
-import { asignarParrilla, asignarPlaya } from "@/lib/predio/asignacion"
-import { asignarBungalows, bungalowsPara } from "@/lib/predio/bungalows"
+import { estadoDelBungalow } from "@/lib/predio/bungalows"
 import { estadoDelDia } from "@/lib/predio/calendario"
-import { dniValido, limpiarDni, normalizarTelefono } from "@/lib/predio/contacto"
 import { cotizacionAConfirmar, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
+import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
 import { esFechaIso, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
+import { inventario, type UnidadPredio } from "@/lib/predio/inventario"
+import { nombreDeUnidad } from "@/lib/predio/nombres"
+import { contacto, email, familias, nombre, personasDe, telefono, type FamiliaValida } from "@/lib/reserva-familia"
 import { crearReserva, libreEn, type NuevaReserva } from "@/lib/reservas"
 
 export type ResultadoReserva = Resultado<{ token: string }>
@@ -19,50 +21,16 @@ export type ResultadoReserva = Resultado<{ token: string }>
 const HORARIO = { ingreso: "10:00", salida: "19:00" }
 const MAX_NOCHES = 14
 
-const nombre = z
-  .string()
-  .trim()
-  .min(2, "Escribilo completo, con al menos 2 letras.")
-  .max(40, "Es muy largo: dejalo en 40 letras o menos.")
-  .regex(/^[\p{L}' -]+$/u, "Escribilo solo con letras, sin números ni símbolos.")
-const telefono = z
-  .string()
-  .transform((valor, contexto) => {
-    const normalizado = normalizarTelefono(valor)
-    if (!normalizado) {
-      contexto.addIssue({ code: "custom", message: "Característica y número, 10 dígitos en total (por ejemplo 11 3009 1020)." })
-      return z.NEVER
-    }
-    return normalizado.e164
-  })
-const email = z.string().trim().max(120, "Ese correo es muy largo.").email("Ese correo no parece completo: revisá que tenga @ y el dominio.").or(z.literal("")).optional()
-const dni = z
-  .string()
-  .transform(limpiarDni)
-  .refine(dniValido, "El DNI tiene 7 u 8 números, sin puntos.")
-const cantidad = (minimo: number) =>
-  z
-    .number()
-    .int()
-    .min(minimo, minimo ? "Tiene que venir al menos un adulto." : "Revisá la cantidad.")
-    .max(99, "Para más de 99 personas escribinos por WhatsApp.")
-
-const responsable = z.object({
-  nombre,
-  apellido: nombre,
-  dni,
-  edad: z.number().int().min(1, "Escribí la edad de quien reserva.").min(18, "Quien reserva tiene que ser mayor de edad.").max(110, "Revisá la edad."),
-  telefono,
-  email,
-})
+const cantidad = z.number().int().min(0, "Revisá la cantidad.").max(99, "Para más de 99 personas escribinos por WhatsApp.")
 
 const grupoFamiliar = {
-  responsable,
-  adultos: cantidad(1),
-  menores: cantidad(0),
-  sinCargo: cantidad(0),
+  familias,
+  contacto,
+  unidades: z.array(z.string().max(24)).min(1, "Elegí el lugar.").max(10),
   formaPago: z.enum(["EFECTIVO", "DEBITO"]),
 }
+
+const MAX_PERSONAS = 99
 
 const RESERVAS_POR_IP = 5
 const VENTANA_MS = 10 * 60 * 1000
@@ -92,8 +60,43 @@ function fechaReservable(fecha: string) {
   return esFechaIso(fecha) && fecha >= hoy && fecha <= sumarDiasIso(hoy, 365)
 }
 
-function clienteDe(datos: z.infer<typeof responsable>): NuevaReserva["cliente"] {
-  return { nombre: datos.nombre, apellido: datos.apellido, dni: datos.dni, email: datos.email || null, telefono: datos.telefono }
+function clienteDe(grupos: FamiliaValida[], datos: z.infer<typeof contacto>): NuevaReserva["cliente"] {
+  const titular = personasDe(grupos).find((persona) => persona.responsable)!
+  return { nombre: titular.nombre, apellido: titular.apellido, dni: titular.dni || null, email: datos.email || null, telefono: datos.telefono }
+}
+
+function personasParaGuardar(grupos: FamiliaValida[]) {
+  return personasDe(grupos).map((persona) => ({
+    familia: persona.familia,
+    responsable: persona.responsable,
+    nombre: persona.nombre,
+    apellido: persona.apellido,
+    dni: persona.dni || null,
+    edad: persona.edad,
+    cud: false,
+    notas: persona.notas || null,
+  }))
+}
+
+const nombreDe = (unidad: UnidadPredio) => `${nombreDeUnidad[unidad.tipo].toLowerCase()} ${unidad.etiqueta}`
+
+/// Los lugares que eligió el grupo, comprobados contra el inventario y las reglas.
+function lugaresElegidos(tipo: TipoDeLugar, ids: string[], personas: number) {
+  const permitidos: readonly string[] = categorias[tipo]
+  const elegidas = [...new Set(ids)].map((id) => inventario.find((unidad) => unidad.id === id))
+  exigir(
+    elegidas.every((unidad) => unidad && permitidos.includes(unidad.tipo)),
+    "Hay un lugar elegido que no corresponde. Volvé al paso del lugar y elegilo de nuevo.",
+  )
+  const unidades = elegidas as UnidadPredio[]
+  const revision = revisarEleccion(tipo, personas, unidades)
+  exigir(revision.ok, revision.ok ? "" : revision.mensaje)
+  return unidades
+}
+
+function tomadosRecien(tomados: UnidadPredio[]) {
+  const lista = tomados.map(nombreDe).join(", ")
+  return `Justo alguien reservó ${tomados.length === 1 ? `la ${lista}` : lista} para esa fecha. Volvé al paso del lugar y elegí otro.`
 }
 
 async function guardar(nueva: NuevaReserva, sinLugar: () => string): Promise<ResultadoReserva> {
@@ -125,11 +128,12 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
   return reservar("reservarDia", async () => {
     const datos = pedidoDeDia.parse(pedido)
     exigir(fechaReservable(datos.fecha), "Elegí un día de hoy en adelante, dentro del próximo año.")
+    const personas = personasDe(datos.familias)
+    exigir(personas.length <= MAX_PERSONAS, `Para más de ${MAX_PERSONAS} personas escribinos por WhatsApp.`)
     await exigirAbierto(datos.fecha, datos.fecha, "Ese día")
-
-    const grupo = { adultos: datos.adultos, menores: datos.menores, sinCargo: datos.sinCargo }
-    const personas = grupo.adultos + grupo.menores + grupo.sinCargo
-    const asignador = datos.lugar === "parrilla" ? asignarParrilla : asignarPlaya
+    const elegidas = lugaresElegidos(datos.lugar, datos.unidades, personas.length)
+    const grupo = grupoPorEdades(personas.map((persona) => persona.edad))
+    let tomados: UnidadPredio[] = []
 
     return guardar(
       {
@@ -137,21 +141,19 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
         desde: datos.fecha,
         hasta: datos.fecha,
         ...HORARIO,
-        cliente: clienteDe(datos.responsable),
+        cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
         cotizacion: cotizarDia(grupo),
         formaPago: datos.formaPago,
         propuesta: datos.lugar === "parrilla" ? "Parrilla" : "Gazebo o palapa",
-        personas: [responsableComoPersona(datos.responsable)],
+        personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
-          const resultado = asignador(personas, libreEn(ocupacion, datos.fecha, datos.fecha))
-          return "unidades" in resultado ? resultado.unidades.map((unidad) => unidad.id) : null
+          const libre = libreEn(ocupacion, datos.fecha, datos.fecha)
+          tomados = elegidas.filter((unidad) => !libre(unidad.id))
+          return tomados.length ? null : elegidas.map((unidad) => unidad.id)
         },
       },
-      () =>
-        datos.lugar === "parrilla"
-          ? `Ese día ya no queda parrilla para ${personas} personas. Probá con otra fecha o con un lugar en la playa.`
-          : "Ese día ya no quedan gazebos ni palapas libres. Probá con otra fecha o con una parrilla.",
+      () => tomadosRecien(tomados),
     )
   })
 }
@@ -167,41 +169,42 @@ export async function reservarBungalow(pedido: z.input<typeof pedidoDeBungalow>)
     )
     const noches = fechasEntre(datos.desde, datos.hasta).length - 1
     exigir(noches <= MAX_NOCHES, `Por la web se pueden reservar hasta ${MAX_NOCHES} noches. Para estadías más largas escribinos por WhatsApp.`)
-
-    const grupo = { adultos: datos.adultos, menores: datos.menores, sinCargo: datos.sinCargo }
-    const personas = grupo.adultos + grupo.menores + grupo.sinCargo
-    exigir(personas <= 16, "Para más de 16 personas armamos la estadía a medida: escribinos por WhatsApp.")
+    const personas = personasDe(datos.familias)
+    exigir(personas.length <= 16, "Para más de 16 personas armamos la estadía a medida: escribinos por WhatsApp.")
     await exigirAbierto(datos.desde, datos.hasta, "Alguno de esos días")
+    const elegidas = lugaresElegidos("bungalow", datos.unidades, personas.length)
+    const grupo = grupoPorEdades(personas.map((persona) => persona.edad))
+    let tomados: UnidadPredio[] = []
+    let dejaHuecos = false
 
-    let motivo: "ocupado" | "deja-huecos" = "ocupado"
-    const cantidadDeBungalows = bungalowsPara(personas)
     return guardar(
       {
         modulo: "BUNGALOW",
         desde: datos.desde,
         hasta: datos.hasta,
         ...HORARIO,
-        cliente: clienteDe(datos.responsable),
+        cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
-        cotizacion: cotizarBungalows(personas, noches, cantidadDeBungalows),
+        cotizacion: cotizarBungalows(personas.length, noches, elegidas.length),
         formaPago: datos.formaPago,
-        personas: [responsableComoPersona(datos.responsable)],
+        personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
-          const resultado = asignarBungalows(personas, datos.desde, datos.hasta, hoyEnElPredio(), ocupacion)
-          if ("unidades" in resultado) return resultado.unidades.map((unidad) => unidad.id)
-          motivo = resultado.motivo
-          return null
+          const hoy = hoyEnElPredio()
+          const estados = elegidas.map((unidad) => ({ unidad, estado: estadoDelBungalow(ocupacion.get(unidad.id) ?? new Set(), datos.desde, datos.hasta, hoy) }))
+          tomados = estados.filter((item) => item.estado !== "libre").map((item) => item.unidad)
+          dejaHuecos = estados.every((item) => item.estado !== "ocupado")
+          return tomados.length ? null : elegidas.map((unidad) => unidad.id)
         },
       },
       () =>
-        motivo === "deja-huecos"
-          ? "Con esas fechas quedaría una noche suelta que nadie más podría reservar. Probá corriendo la estadía un día antes o después."
-          : "Justo se ocuparon los bungalows para esas fechas. Probá con otras o escribinos por WhatsApp.",
+        dejaHuecos
+          ? "Con esas fechas quedaría una noche suelta en ese bungalow que nadie más podría reservar. Probá con otro bungalow o corriendo la estadía un día."
+          : tomadosRecien(tomados),
     )
   })
 }
 
-const dietas = z.object({ celiacos: cantidad(0), vegetarianos: cantidad(0), veganos: cantidad(0) })
+const dietas = z.object({ celiacos: cantidad, vegetarianos: cantidad, veganos: cantidad })
 
 const pedidoDeGrupo = z.object({
   tipo: z.enum(["CAMPAMENTO", "SALIDA_EDUCATIVA", "VIAJE_EGRESADOS", "ACTIVIDAD_AVENTURA"]),
@@ -211,7 +214,7 @@ const pedidoDeGrupo = z.object({
   responsable: z.object({ nombre, apellido: nombre, cargo: z.string().trim().min(2, "Contanos qué rol tenés en el grupo.").max(80, "Es muy largo: dejalo en 80 letras o menos."), telefono, email }),
   participantes: z.number().int().min(1, "Contanos cuántos vienen.").max(999, "Para más de 999 personas escribinos por WhatsApp."),
   edades: z.string().trim().min(1, "Contanos la edad del grupo.").max(60, "Es muy largo: resumilo en pocas palabras."),
-  acompanantes: cantidad(0),
+  acompanantes: cantidad,
   desde: z.string(),
   hasta: z.string(),
   dietas: z.object({ participantes: dietas, acompanantes: dietas }),
@@ -255,17 +258,4 @@ export async function enviarPedidoDeGrupo(pedido: z.input<typeof pedidoDeGrupo>)
       () => mensajesDelSitio.inesperado,
     )
   })
-}
-
-function responsableComoPersona(datos: z.infer<typeof responsable>) {
-  return {
-    familia: 1,
-    responsable: true,
-    nombre: datos.nombre,
-    apellido: datos.apellido,
-    dni: datos.dni,
-    edad: datos.edad,
-    cud: false,
-    notas: null,
-  }
 }

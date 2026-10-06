@@ -1,6 +1,9 @@
 import { ZodError, type ZodType, type output } from "zod"
 
 import { Prisma } from "@/generated/prisma/client"
+import { camposDe } from "@/lib/errores-de-campos"
+
+export { camposDe }
 
 export type Fallo = { ok: false; error: string; campos?: Record<string, string> }
 export type Resultado<T extends object = object> = ({ ok: true } & T) | Fallo
@@ -69,11 +72,6 @@ export function errorDeAuth(error: unknown): { status: string; message: string }
   return null
 }
 
-export function camposDe(error: ZodError) {
-  const campos: Record<string, string> = {}
-  for (const problema of error.issues) campos[problema.path.join(".")] ??= problema.message
-  return campos
-}
 
 export function humanizar(error: unknown, textos: Mensajes = mensajes): Fallo {
   if (error instanceof ErrorHumano) return { ok: false, error: error.message }

@@ -25,6 +25,7 @@ function sumarMes(mes: string, meses: number) {
 
 export function CalendarioDisponible({
   categoria,
+  personas = 1,
   modo,
   desde,
   hasta,
@@ -32,6 +33,7 @@ export function CalendarioDisponible({
   validarRango,
 }: {
   categoria: Categoria
+  personas?: number
   modo: "dia" | "rango"
   desde: string
   hasta: string
@@ -44,17 +46,18 @@ export function CalendarioDisponible({
   const [meses, setMeses] = useState<Record<string, DatosDelMes>>({})
   const [fallo, setFallo] = useState(false)
   const [intento, setIntento] = useState(0)
-  const datos = meses[`${categoria}|${mes}`]
+  const clave = `${categoria}-${personas}`
+  const datos = meses[`${clave}|${mes}`]
 
   useEffect(() => {
     if (datos) return
     const controlador = new AbortController()
-    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}`, { signal: controlador.signal })
+    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string } & DatosDelMes) => {
         if (!json.ok) throw new Error(json.error)
         setFallo(false)
-        setMeses((actuales) => ({ ...actuales, [`${categoria}|${mes}`]: json }))
+        setMeses((actuales) => ({ ...actuales, [`${clave}|${mes}`]: json }))
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return
@@ -62,7 +65,7 @@ export function CalendarioDisponible({
         avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "calendario", reintentar: reintentar })
       })
     return () => controlador.abort()
-  }, [categoria, mes, datos, intento])
+  }, [categoria, personas, clave, mes, datos, intento])
 
   function reintentar() {
     setFallo(false)
@@ -70,7 +73,7 @@ export function CalendarioDisponible({
   }
 
   function estadoDe(fecha: string) {
-    return meses[`${categoria}|${fecha.slice(0, 7)}`]?.dias[fecha]
+    return meses[`${clave}|${fecha.slice(0, 7)}`]?.dias[fecha]
   }
 
   function elegir(fecha: string) {
@@ -87,7 +90,7 @@ export function CalendarioDisponible({
       avisarRevisar(`El ${fechaLarga(tomado).toLowerCase()} ya está ocupado, así que la estadía no puede pasar por ese día. Elegí una salida anterior.`, "rango")
       return
     }
-    const problema = validarRango?.(desde, fecha, Object.fromEntries(Object.entries(meses).filter(([clave]) => clave.startsWith(`${categoria}|`)).map(([clave, valor]) => [clave.split("|")[1], valor])))
+    const problema = validarRango?.(desde, fecha, Object.fromEntries(Object.entries(meses).filter(([nombre]) => nombre.startsWith(`${clave}|`)).map(([nombre, valor]) => [nombre.split("|")[1], valor])))
     if (problema) {
       avisarRevisar(problema, "rango")
       return
@@ -155,7 +158,7 @@ export function CalendarioDisponible({
               type="button"
               disabled={!libre}
               title={motivo || undefined}
-              aria-label={`${fechaLarga(fecha)}${motivo ? `: ${motivo}` : ": disponible"}`}
+              aria-label={`${fechaLarga(fecha)}${!estado ? ": cargando" : motivo ? `: ${motivo}` : ": disponible"}`}
               aria-pressed={elegido}
               onClick={() => elegir(fecha)}
               className={cn(

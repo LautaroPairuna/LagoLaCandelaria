@@ -5,7 +5,7 @@ import { useState, useTransition, type FormEvent } from "react"
 
 import { enviarPedidoDeGrupo } from "@/app/(sitio)/reserva/acciones"
 import { Campo } from "@/components/reserva/campo"
-import { Contador } from "@/components/reserva-nueva/datos-familia"
+import { Contador } from "@/components/reserva-nueva/contador"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { Modulo } from "@/generated/prisma/enums"
