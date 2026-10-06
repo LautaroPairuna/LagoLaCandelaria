@@ -30,11 +30,13 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   const enlace = (dia: string) => (dia === hoy ? "/panel/puerta" : `/panel/puerta?fecha=${dia}`)
 
   const esperadas = todas.reduce((suma, item) => suma + item.personas, 0)
-  const adentro = todas.filter((item) => item.ingresoEn).reduce((suma, item) => suma + item.personas, 0)
+  const adentro = todas.reduce((suma, item) => suma + item.adentro, 0)
+  const vinieron = todas.reduce((suma, item) => suma + item.adentro + item.salieron, 0)
   const caja = totalesPorForma(pagos)
   const cobrado = caja.EFECTIVO + caja.DEBITO + caja.TRANSFERENCIA
-  const porEntrar = llegadas.filter((item) => !item.ingresoEn)
-  const yaEntraron = llegadas.filter((item) => item.ingresoEn)
+  const porEntrar = llegadas.filter((item) => item.asistencia === "por-llegar" || item.asistencia === "no-vino")
+  const enElPredio = llegadas.filter((item) => item.asistencia === "parcial" || item.asistencia === "adentro")
+  const seFueron = llegadas.filter((item) => item.asistencia === "finalizada")
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
@@ -68,7 +70,9 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
         {[
           { termino: "Grupos", valor: String(todas.length) },
           { termino: "Personas esperadas", valor: String(esperadas) },
-          { termino: momento === "pasado" ? "Ingresaron" : "Ya ingresaron", valor: `${adentro} de ${esperadas}` },
+          momento === "pasado"
+            ? { termino: "Vinieron", valor: `${vinieron} de ${esperadas}` }
+            : { termino: "Adentro ahora", valor: `${adentro} de ${esperadas}` },
           { termino: momento === "hoy" ? "Cobrado hoy" : "Cobrado ese día", valor: pesos(cobrado) },
         ].map((dato) => (
           <div key={dato.termino} className="rounded-2xl bg-white px-4 py-3 shadow-[0_8px_28px_rgba(58,42,24,0.06)]">
@@ -94,13 +98,16 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
           </form>
 
           <ListaLlegadas
-            titulo={momento === "pasado" ? "No vinieron" : momento === "futuro" ? "Esperados" : "Por entrar"}
+            titulo={momento === "pasado" ? "No vinieron" : momento === "futuro" ? "Esperados" : "Por llegar"}
             llegadas={porEntrar}
             bloqueado={momento === "futuro"}
             vacio={busqueda ? "Nadie coincide con la búsqueda." : momento === "pasado" ? "Vinieron todos." : momento === "futuro" ? "No hay reservas para ese día." : "No queda nadie por entrar."}
           />
           {momento !== "futuro" ? (
-            <ListaLlegadas titulo={momento === "pasado" ? "Ingresaron" : "Ya ingresaron"} llegadas={yaEntraron} vacio="No ingresó nadie." />
+            <>
+              <ListaLlegadas titulo={momento === "pasado" ? "Se quedaron adentro" : "Adentro"} llegadas={enElPredio} vacio="No hay nadie adentro." ocultarVacia={momento === "pasado"} />
+              <ListaLlegadas titulo="Ya se fueron" llegadas={seFueron} vacio="Todavía no se fue nadie." />
+            </>
           ) : null}
         </div>
 
@@ -151,7 +158,20 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   )
 }
 
-function ListaLlegadas({ titulo, llegadas, vacio, bloqueado = false }: { titulo: string; llegadas: Llegada[]; vacio: string; bloqueado?: boolean }) {
+function ListaLlegadas({
+  titulo,
+  llegadas,
+  vacio,
+  bloqueado = false,
+  ocultarVacia = false,
+}: {
+  titulo: string
+  llegadas: Llegada[]
+  vacio: string
+  bloqueado?: boolean
+  ocultarVacia?: boolean
+}) {
+  if (ocultarVacia && llegadas.length === 0) return null
   return (
     <section aria-label={titulo}>
       <h2 className="font-display flex items-center gap-3 text-2xl tracking-tight">
@@ -167,7 +187,7 @@ function ListaLlegadas({ titulo, llegadas, vacio, bloqueado = false }: { titulo:
               key={llegada.id}
               className={cn(
                 "grid gap-4 rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5 2xl:grid-cols-[minmax(0,1fr)_auto]",
-                llegada.ingresoEn && "opacity-80",
+                llegada.asistencia === "finalizada" && "opacity-80",
               )}
             >
               <div className="min-w-0">
@@ -196,6 +216,8 @@ function ListaLlegadas({ titulo, llegadas, vacio, bloqueado = false }: { titulo:
                 id={llegada.id}
                 titular={llegada.titular}
                 ingreso={llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null}
+                asistencia={{ porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total }}
+                integrantes={llegada.integrantes}
                 saldo={llegada.saldo}
               />
               )}

@@ -7,11 +7,14 @@ import type { ReactNode } from "react"
 import { AccionesReserva } from "@/components/panel/acciones-reserva"
 import { saldoDe } from "@/lib/panel/cobros"
 import { normalizarTelefono } from "@/lib/predio/contacto"
-import { deFechaDb } from "@/lib/predio/fechas"
+import { deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { textoDelEfectivo, textoDelTotal } from "@/lib/predio/cotizacion"
 import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
+import { AsistenciaDelGrupo } from "@/components/panel/asistencia-grupo"
+import { estadoDe, nombreDeAsistencia, resumenDeAsistencia } from "@/lib/panel/asistencia"
+import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { detalleDe } from "@/lib/reservas"
 import { urlSitio } from "@/lib/url-sitio"
@@ -26,7 +29,9 @@ const etiquetaDeEstado = {
 } as const
 
 export default async function DetalleReserva({ params }: PageProps<"/panel/reservas/[id]">) {
-  await exigirPanel("reservas")
+  const sesion = await exigirPanel("reservas", "puerta")
+  const veReservas = puedeVer(sesion.user.role, "reservas")
+  const marcaIngresos = puedeVer(sesion.user.role, "puerta")
   const { id } = await params
   const numero = Number(id)
   if (!Number.isInteger(numero) || numero < 1) notFound()
@@ -42,8 +47,10 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
     reserva.estado === "CONFIRMADA"
       ? `¡Hola ${reserva.cliente.nombre}! Tu reserva ${reserva.codigo} en Lago La Candelaria para el ${fechaLargaPanel(desde).toLowerCase()} quedó confirmada. Tu ticket con el QR del ingreso: ${enlaceTicket}`
       : `¡Hola ${reserva.cliente.nombre}! Te escribimos de Lago La Candelaria por tu solicitud de reserva ${reserva.codigo}.`
-  const familias = new Map<number, typeof reserva.personas>()
-  for (const persona of reserva.personas) familias.set(persona.familia, [...(familias.get(persona.familia) ?? []), persona])
+  const familias = new Set(reserva.personas.map((persona) => persona.familia))
+  const hoy = hoyEnElPredio()
+  const asistencia = resumenDeAsistencia({ ...reserva, hasta }, hoy)
+  const puedeMarcar = marcaIngresos && reserva.estado !== "CANCELADA" && desde <= hoy
   const importantes = reserva.personas.filter((persona) => persona.notas)
   const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
   const estado = etiquetaDeEstado[reserva.estado]
@@ -51,13 +58,15 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
-        <Link href="/panel/reservas" className="inline-flex items-center gap-2 text-panel-muted hover:text-panel-ink">
+        <Link href={veReservas ? "/panel/reservas" : "/panel/puerta"} className="inline-flex items-center gap-2 text-panel-muted hover:text-panel-ink">
           <ArrowLeft className="size-4" aria-hidden />
-          Volver a Reservas
+          {veReservas ? "Volver a Reservas" : "Volver a Puerta"}
         </Link>
-        <Link href={`/panel/ocupacion?mes=${desde.slice(0, 7)}&dia=${desde}`} className="text-panel-tostado underline-offset-4 hover:underline">
-          Ver ese día en Ocupación
-        </Link>
+        {veReservas ? (
+          <Link href={`/panel/ocupacion?mes=${desde.slice(0, 7)}&dia=${desde}`} className="text-panel-tostado underline-offset-4 hover:underline">
+            Ver ese día en Ocupación
+          </Link>
+        ) : null}
       </div>
 
       <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
@@ -75,7 +84,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
             {reserva.origen === "LEGADO" ? <span>Vino de la web anterior</span> : null}
           </p>
         </div>
-        <AccionesReserva id={reserva.id} codigo={reserva.codigo} estado={reserva.estado} />
+        {veReservas ? <AccionesReserva id={reserva.id} codigo={reserva.codigo} estado={reserva.estado} /> : null}
       </header>
 
       {importantes.length > 0 ? (
@@ -113,7 +122,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           <Dato termino="Pedida">{reserva.creadaEn.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}</Dato>
         </Bloque>
 
-        <Bloque titulo="Quién reserva">
+        <Bloque titulo="Responsable de la reserva">
           <Dato termino="Nombre">{`${reserva.cliente.nombre} ${reserva.cliente.apellido}`}</Dato>
           {reserva.cliente.dni ? <Dato termino="DNI">{reserva.cliente.dni}</Dato> : null}
           {reserva.cargo ? <Dato termino="Cargo">{reserva.cargo}</Dato> : null}
@@ -144,34 +153,6 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           ) : null}
         </Bloque>
 
-        <Bloque titulo="El grupo">
-          <Dato termino="Adultos">{String(reserva.adultos)}</Dato>
-          <Dato termino="Menores">{String(reserva.menores)}</Dato>
-          <Dato termino="Sin cargo">{String(reserva.sinCargo)}</Dato>
-          {reserva.edadesGrupo ? <Dato termino="Edades">{reserva.edadesGrupo}</Dato> : null}
-          {familias.size > 1 ? <Dato termino="Familias">{String(familias.size)}</Dato> : null}
-          {[...familias].map(([numero, personas]) => (
-            <div key={numero} className="mt-3">
-              {familias.size > 1 ? <h3 className="text-xs font-bold tracking-wide text-panel-muted uppercase">Familia {numero}</h3> : null}
-              <ul className="divide-y divide-panel-line text-sm">
-                {personas.map((persona) => (
-                  <li key={persona.id} className="flex flex-wrap justify-between gap-x-2 gap-y-0.5 py-2">
-                    <span className="font-semibold">
-                      {persona.nombre} {persona.apellido}
-                      {persona.responsable ? <span className="ml-2 text-xs font-bold text-panel-naranja">Responsable</span> : null}
-                    </span>
-                    <span className="text-panel-muted">
-                      {persona.edad} años{persona.dni ? ` · DNI ${persona.dni}` : ""}
-                      {persona.cud ? " · CUD" : ""}
-                    </span>
-                    {persona.notas ? <span className="w-full font-semibold text-panel-tostado">{persona.notas}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </Bloque>
-
         <Bloque titulo="Lugar y total">
           <Dato termino="Lugares">
             {reserva.ocupaciones.length
@@ -200,6 +181,56 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
             </a>
           </p>
         </Bloque>
+
+        <section id="grupo" aria-label="El grupo" className="rounded-3xl bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)] lg:col-span-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="font-display text-2xl tracking-tight">El grupo</h2>
+            <p className="text-sm text-panel-muted">
+              {reserva.adultos} {reserva.adultos === 1 ? "adulto" : "adultos"} · {reserva.menores} {reserva.menores === 1 ? "menor" : "menores"}
+              {reserva.sinCargo ? ` · ${reserva.sinCargo} sin cargo` : ""}
+              {familias.size > 1 ? ` · ${familias.size} familias` : ""}
+              {reserva.estado !== "CANCELADA" ? (
+                <>
+                  {" · "}
+                  <strong className="text-panel-ink">{nombreDeAsistencia[asistencia.asistencia]}</strong>
+                  {asistencia.adentro + asistencia.salieron ? ` (${asistencia.adentro} adentro de ${asistencia.total})` : ""}
+                </>
+              ) : null}
+            </p>
+          </div>
+          {reserva.edadesGrupo ? <p className="mt-1 text-sm text-panel-muted">Edades: {reserva.edadesGrupo}</p> : null}
+          {asistencia.porPersona ? (
+            <div className="mt-4">
+              <AsistenciaDelGrupo
+                reservaId={reserva.id}
+                completo
+                puedeMarcar={puedeMarcar}
+                integrantes={reserva.personas.map((persona) => ({
+                  id: persona.id,
+                  familia: persona.familia,
+                  responsable: persona.responsable,
+                  nombre: persona.nombre,
+                  apellido: persona.apellido,
+                  dni: persona.dni,
+                  edad: persona.edad,
+                  notas: persona.notas,
+                  estado: estadoDe(persona),
+                }))}
+              />
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-panel-muted">
+              {reserva.personas.length
+                ? "Esta reserva no tiene a todas las personas cargadas, así que el ingreso se marca para el grupo entero desde Puerta."
+                : "En los grupos no se carga a cada participante: el ingreso se marca para el grupo entero desde Puerta."}{" "}
+              {marcaIngresos && desde <= hoy ? (
+                <Link href={`/panel/puerta?fecha=${desde < hoy ? desde : hoy}&q=${reserva.id}`} className="font-semibold text-panel-tostado underline-offset-4 hover:underline">
+                  Ir a Puerta
+                </Link>
+              ) : null}
+            </p>
+          )}
+        </section>
       </div>
     </main>
   )

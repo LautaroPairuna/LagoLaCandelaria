@@ -2,12 +2,22 @@
 
 import { useState, useTransition } from "react"
 
-import { cobrar, deshacerIngreso, marcarIngreso } from "@/app/panel/puerta/acciones"
+import { cobrar, registrarAsistencia } from "@/app/panel/puerta/acciones"
+import { AsistenciaDelGrupo, type Integrante } from "@/components/panel/asistencia-grupo"
 import { Button } from "@/components/ui/button"
 import { avisarRevisar, conAviso } from "@/lib/avisos"
-import type { Resultado } from "@/lib/errores"
+import { nombreDeAsistencia, type Asistencia, type Movimiento } from "@/lib/panel/asistencia"
 import { cobroDelSaldo, type FormaDeCobro } from "@/lib/panel/cobros"
 import { pesos } from "@/lib/predio/tarifas"
+import { cn } from "cn"
+
+const colorDeAsistencia: Record<Asistencia, string> = {
+  "por-llegar": "bg-panel text-panel-muted",
+  parcial: "bg-panel-claro text-panel-tostado",
+  adentro: "bg-[#e8f4e3] text-[#3f6b12]",
+  finalizada: "bg-panel-line text-panel-ink",
+  "no-vino": "bg-[#fde8e4] text-[#7a2e24]",
+}
 
 const nombreDeForma: Record<FormaDeCobro, string> = {
   EFECTIVO: "efectivo",
@@ -18,19 +28,23 @@ const nombreDeForma: Record<FormaDeCobro, string> = {
 export function AccionesLlegada({
   id,
   titular,
+  asistencia,
+  integrantes,
   ingreso,
   saldo,
 }: {
   id: number
   titular: string
+  asistencia: { porPersona: boolean; estado: Asistencia; adentro: number; salieron: number; total: number }
+  integrantes: Integrante[]
   ingreso: { hora: string; por: string | null } | null
   saldo: number | null
 }) {
   const [pendiente, iniciar] = useTransition()
   const [otroImporte, setOtroImporte] = useState(false)
 
-  function correr(tarea: () => Promise<Resultado>, exito: string) {
-    iniciar(async () => void (await conAviso(tarea, exito)))
+  function mover(movimiento: Movimiento, exito: string) {
+    iniciar(async () => void (await conAviso(() => registrarAsistencia({ reservaId: id, movimiento }), exito)))
   }
 
   function cobrarAhora(forma: FormaDeCobro, importe?: number) {
@@ -47,30 +61,37 @@ export function AccionesLlegada({
 
   return (
     <div className="space-y-3">
-      {ingreso ? (
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <span className="rounded-full bg-[#e8f4e3] px-3 py-1.5 font-bold text-[#3f6b12]">
-            Ingresó {ingreso.hora}
-            {ingreso.por ? ` · ${ingreso.por}` : ""}
+      <p className="flex flex-wrap items-center gap-2 text-sm">
+        <span className={cn("rounded-full px-3 py-1.5 font-bold", colorDeAsistencia[asistencia.estado])}>{nombreDeAsistencia[asistencia.estado]}</span>
+        {asistencia.adentro + asistencia.salieron > 0 ? (
+          <span className="text-panel-muted">
+            {asistencia.adentro} de {asistencia.total} adentro
+            {asistencia.salieron ? ` · ${asistencia.salieron} ya se ${asistencia.salieron === 1 ? "fue" : "fueron"}` : ""}
+            {ingreso ? ` · primer ingreso ${ingreso.hora}${ingreso.por ? ` (${ingreso.por})` : ""}` : ""}
           </span>
-          <button
-            type="button"
-            disabled={pendiente}
-            className="text-panel-muted underline-offset-4 hover:underline"
-            onClick={() => correr(() => deshacerIngreso(id), `Listo, ${titular} vuelve a figurar como que no llegó.`)}
-          >
-            Deshacer
-          </button>
-        </div>
+        ) : null}
+      </p>
+
+      {asistencia.porPersona ? (
+        <AsistenciaDelGrupo reservaId={id} integrantes={integrantes} puedeMarcar plegado />
       ) : (
-        <Button
-          type="button"
-          disabled={pendiente}
-          className="h-11 bg-panel-ink px-5 text-white hover:bg-panel-tostado"
-          onClick={() => correr(() => marcarIngreso(id), `Listo, ${titular} ya figura adentro.`)}
-        >
-          Marcar ingreso
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {asistencia.estado === "por-llegar" || asistencia.estado === "no-vino" ? (
+            <Button type="button" disabled={pendiente} className="h-11 bg-panel-ink px-5 text-white hover:bg-panel-tostado" onClick={() => mover("ingreso", `Listo, ${titular} ya figura adentro.`)}>
+              Marcar ingreso
+            </Button>
+          ) : null}
+          {asistencia.estado === "adentro" ? (
+            <Button type="button" variant="outline" disabled={pendiente} className="h-11 px-5" onClick={() => mover("salida", `Listo, ${titular} figura como que ya se fue.`)}>
+              Marcar salida
+            </Button>
+          ) : null}
+          {asistencia.estado === "adentro" || asistencia.estado === "finalizada" ? (
+            <button type="button" disabled={pendiente} className="text-sm text-panel-muted underline-offset-4 hover:underline" onClick={() => mover("deshacer", "Listo, se deshizo el último paso.")}>
+              Deshacer
+            </button>
+          ) : null}
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

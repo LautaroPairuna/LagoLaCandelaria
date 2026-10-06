@@ -94,8 +94,11 @@ model Reserva {
   total         Int
   formaPago     FormaPago?
   notas         String?          @db.Text
+  /// Primer ingreso al predio. En los grupos sin personas cargadas (estudiantiles) es
+  /// el único registro de asistencia, junto con la salida.
   ingresoEn     DateTime?
   ingresoPor    String?          @db.VarChar(80)
+  salidaEn      DateTime?
   /// La solicitud tal como se emitió (personas, lugares, cotización): es el documento
   /// del ticket y no se recalcula si después cambian las tarifas.
   detalle       Json
@@ -124,6 +127,10 @@ model ReservaPersona {
   edad        Int     @db.SmallInt
   cud         Boolean @default(false)
   notas       String? @db.VarChar(400)
+  /// Asistencia de cada persona: sin ingreso está pendiente, con ingreso y sin salida
+  /// está adentro, con salida ya se fue.
+  ingresoEn   DateTime?
+  salidaEn    DateTime?
 
   @@index([reservaId])
   @@index([dni])

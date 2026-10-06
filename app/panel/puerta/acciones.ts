@@ -6,7 +6,8 @@ import { z } from "zod"
 import { accion, exigir, ErrorHumano, type Resultado } from "@/lib/errores"
 import { cobroDelSaldo, saldoDe } from "@/lib/panel/cobros"
 import { permisoParaAccion } from "@/lib/panel/sesion"
-import { aFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
+import { aplicar, porPersona } from "@/lib/panel/asistencia"
+import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 import { detalleDe } from "@/lib/reservas"
 
@@ -17,25 +18,81 @@ function refrescar() {
   revalidatePath("/panel", "layout")
 }
 
-export async function marcarIngreso(id: number): Promise<Resultado> {
-  return accion("marcarIngreso", async () => {
-    const sesion = await permisoParaAccion("puerta")
-    const { count } = await db().reserva.updateMany({
-      where: { id: idDeReserva.parse(id), estado: { not: "CANCELADA" }, ingresoEn: null },
-      data: { ingresoEn: new Date(), ingresoPor: sesion.user.name.slice(0, 80) },
-    })
-    refrescar()
-    exigir(count > 0, "Este grupo ya figuraba adentro, o la reserva se canceló recién. Ya te mostramos cómo quedó.")
-    return { ok: true }
-  })
-}
+const pedidoDeAsistencia = z.object({
+  reservaId: idDeReserva,
+  movimiento: z.enum(["ingreso", "salida", "deshacer"]),
+  // Sin personas, el movimiento es para todas las que corresponda (o la reserva entera).
+  personas: z.array(z.number().int().positive()).max(200).optional(),
+})
 
-export async function deshacerIngreso(id: number): Promise<Resultado> {
-  return accion("deshacerIngreso", async () => {
-    await permisoParaAccion("puerta")
-    await db().reserva.updateMany({ where: { id: idDeReserva.parse(id) }, data: { ingresoEn: null, ingresoPor: null } })
+/// Registra ingresos, salidas o deshace el último paso, de algunas personas o de toda
+/// la reserva. Devuelve a cuántas personas afectó.
+export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsistencia>): Promise<Resultado<{ personas: number }>> {
+  return accion("registrarAsistencia", async () => {
+    const sesion = await permisoParaAccion("puerta")
+    const { reservaId, movimiento, personas: elegidas } = pedidoDeAsistencia.parse(pedido)
+    const ahora = new Date()
+    const quien = sesion.user.name.slice(0, 80)
+
+    const afectadas = await db().$transaction(async (tx) => {
+      const reserva = await tx.reserva.findUnique({
+        where: { id: reservaId },
+        select: {
+          estado: true,
+          desde: true,
+          adultos: true,
+          menores: true,
+          sinCargo: true,
+          ingresoEn: true,
+          salidaEn: true,
+          personas: { select: { id: true, ingresoEn: true, salidaEn: true } },
+        },
+      })
+      if (!reserva || reserva.estado === "CANCELADA") throw new ErrorHumano("Esta reserva se canceló, así que no se puede registrar el ingreso. Revisala en Reservas.")
+      if (deFechaDb(reserva.desde) > hoyEnElPredio()) throw new ErrorHumano("Esta reserva es para más adelante: el ingreso se marca el día que llegan.")
+
+      if (!porPersona(reserva)) {
+        const cambio = aplicar(movimiento, reserva, ahora)
+        if (!cambio) return 0
+        await tx.reserva.update({
+          where: { id: reservaId },
+          data: { ...cambio, ingresoPor: cambio.ingresoEn ? (reserva.ingresoEn ? undefined : quien) : null },
+        })
+        return reserva.adultos + reserva.menores + reserva.sinCargo
+      }
+
+      const objetivo = elegidas ? reserva.personas.filter((persona) => elegidas.includes(persona.id)) : reserva.personas
+      const cambios = objetivo.flatMap((persona) => {
+        const cambio = aplicar(movimiento, persona, ahora)
+        return cambio ? [{ id: persona.id, ...cambio }] : []
+      })
+      for (const { id, ...cambio } of cambios) await tx.reservaPersona.update({ where: { id }, data: cambio })
+
+      // La reserva guarda el primer ingreso y, cuando ya no queda nadie adentro, la salida.
+      const despues = reserva.personas.map((persona) => cambios.find((cambio) => cambio.id === persona.id) ?? persona)
+      const ingresos = despues.flatMap((persona) => (persona.ingresoEn ? [persona.ingresoEn.getTime()] : []))
+      const quedanAdentro = despues.some((persona) => persona.ingresoEn && !persona.salidaEn)
+      await tx.reserva.update({
+        where: { id: reservaId },
+        data: {
+          ingresoEn: ingresos.length ? new Date(Math.min(...ingresos)) : null,
+          ingresoPor: ingresos.length ? (reserva.ingresoEn ? undefined : quien) : null,
+          salidaEn: ingresos.length && !quedanAdentro ? ahora : null,
+        },
+      })
+      return cambios.length
+    })
+
     refrescar()
-    return { ok: true }
+    exigir(
+      afectadas > 0,
+      movimiento === "ingreso"
+        ? "Ya figuraban adentro. Te mostramos cómo quedó."
+        : movimiento === "salida"
+          ? "No hay nadie adentro para marcar la salida."
+          : "No había nada para deshacer.",
+    )
+    return { ok: true, personas: afectadas }
   })
 }
 

@@ -1,6 +1,7 @@
+import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
 import { nombreDeUnidad } from "@/lib/panel/reservas"
-import { aFechaDb } from "@/lib/predio/fechas"
+import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 import { detalleDe } from "@/lib/reservas"
 
@@ -20,9 +21,15 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
       sinCargo: true,
       total: true,
       institucion: true,
+      hasta: true,
       ingresoEn: true,
       ingresoPor: true,
+      salidaEn: true,
       detalle: true,
+      personas: {
+        orderBy: [{ familia: "asc" }, { id: "asc" }],
+        select: { id: true, familia: true, responsable: true, nombre: true, apellido: true, dni: true, edad: true, notas: true, ingresoEn: true, salidaEn: true },
+      },
       cliente: { select: { nombre: true, apellido: true, dni: true } },
       ocupaciones: { distinct: ["unidadId"], select: { unidad: { select: { tipo: true, etiqueta: true } } } },
       pagos: { select: { importe: true, descuento: true } },
@@ -31,11 +38,14 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
 
   const texto = busqueda.trim().toLowerCase().replace(/^(n\.?\s*º?|#)\s*/, "")
   const numero = /^\d{1,7}$/.test(texto) ? Number(texto) : null
+  const hoy = hoyEnElPredio()
   return filas
     .map((fila) => {
       const titular = fila.institucion ?? `${fila.cliente.nombre} ${fila.cliente.apellido}`
       const aConfirmar = Boolean(detalleDe(fila.detalle).cotizacion?.aConfirmar)
+      const resumen = resumenDeAsistencia({ ...fila, hasta: deFechaDb(fila.hasta) }, hoy)
       return {
+        ...resumen,
         id: fila.id,
         codigo: fila.codigo,
         modulo: fila.modulo,
@@ -47,9 +57,12 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
         lugares: fila.ocupaciones.map((item) => `${nombreDeUnidad[item.unidad.tipo]} ${item.unidad.etiqueta}`),
         ingresoEn: fila.ingresoEn,
         ingresoPor: fila.ingresoPor,
+        integrantes: fila.personas.map(({ ingresoEn, salidaEn, ...persona }) => ({ ...persona, estado: estadoDe({ ingresoEn, salidaEn }) })),
         aConfirmar,
         saldo: aConfirmar ? null : saldoDe(fila.total, fila.pagos),
-        buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido].join(" ").toLowerCase(),
+        buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido, ...fila.personas.map((persona) => `${persona.nombre} ${persona.apellido} ${persona.dni ?? ""}`)]
+          .join(" ")
+          .toLowerCase(),
       }
     })
     .filter((fila) => !texto || fila.id === numero || fila.buscable.includes(texto))

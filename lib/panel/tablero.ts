@@ -1,3 +1,4 @@
+import { resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { totalesPorForma } from "@/lib/panel/cobros"
 import { aFechaDb, deFechaDb, fechasEntre, sumarDiasIso } from "@/lib/predio/fechas"
 import { unidadesDelTipo } from "@/lib/predio/inventario"
@@ -132,7 +133,15 @@ export async function resumenDelDia(hoy: string) {
   const [llegadas, pagos, pendientes, ocupaciones] = await Promise.all([
     db().reserva.findMany({
       where: { estado: { not: "CANCELADA" }, desde: { lte: aFechaDb(hoy) }, hasta: { gte: aFechaDb(hoy) } },
-      select: { adultos: true, menores: true, sinCargo: true, ingresoEn: true },
+      select: {
+        adultos: true,
+        menores: true,
+        sinCargo: true,
+        hasta: true,
+        ingresoEn: true,
+        salidaEn: true,
+        personas: { select: { ingresoEn: true, salidaEn: true } },
+      },
     }),
     db().pago.findMany({ where: { fecha: aFechaDb(hoy) }, select: { forma: true, importe: true } }),
     db().reserva.count({ where: { estado: "PENDIENTE", hasta: { gte: aFechaDb(hoy) } } }),
@@ -155,7 +164,7 @@ export async function resumenDelDia(hoy: string) {
   return {
     grupos: llegadas.length,
     esperadas: llegadas.reduce((suma, fila) => suma + personas(fila), 0),
-    adentro: llegadas.filter((fila) => fila.ingresoEn).reduce((suma, fila) => suma + personas(fila), 0),
+    adentro: llegadas.reduce((suma, fila) => suma + resumenDeAsistencia({ ...fila, hasta: deFechaDb(fila.hasta) }, hoy).adentro, 0),
     caja: totalesPorForma(pagos),
     pendientes,
     ocupacion,

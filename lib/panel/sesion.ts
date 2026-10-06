@@ -16,9 +16,10 @@ export async function exigirSesion() {
   return sesion
 }
 
-export async function exigirPanel(panel: PanelId) {
+// Con varios paneles alcanza con poder ver alguno.
+export async function exigirPanel(...paneles: PanelId[]) {
   const sesion = await exigirSesion()
-  if (!puedeVer(sesion.user.role, panel)) redirect("/panel")
+  if (!paneles.some((panel) => puedeVer(sesion.user.role, panel))) redirect("/panel")
   return sesion
 }
 
