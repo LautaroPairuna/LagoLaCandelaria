@@ -5,6 +5,7 @@ export type Rol = (typeof ROLES)[number]
 export const paneles = [
   { id: "ocupacion", nombre: "Ocupación", href: "/panel/ocupacion", listo: true, rol: "reservas" },
   { id: "reservas", nombre: "Reservas", href: "/panel/reservas", listo: true, rol: "reservas" },
+  { id: "lugares", nombre: "Lugares", href: "/panel/lugares", listo: true, rol: "reservas" },
   { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: true, rol: "puerta" },
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: false, rol: "bar" },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: false, rol: "restaurante" },

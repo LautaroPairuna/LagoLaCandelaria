@@ -178,10 +178,15 @@ function ResumenDelDia({ dia, ocupado, cerrado, children }: { dia: string; ocupa
   return (
     <section aria-label="Resumen del día" className="space-y-4">
       <div className="rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5">
-        <h2 className="font-display text-xl tracking-tight md:text-2xl">
-          {fechaLargaPanel(dia)}
-          {cerrado ? <span className="ml-3 align-middle font-sans text-sm font-semibold text-panel-muted">Predio cerrado</span> : null}
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <h2 className="font-display text-xl tracking-tight md:text-2xl">
+            {fechaLargaPanel(dia)}
+            {cerrado ? <span className="ml-3 align-middle font-sans text-sm font-semibold text-panel-muted">Predio cerrado</span> : null}
+          </h2>
+          <Link href={`/panel/lugares?fecha=${dia}`} className="text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline">
+            Ver los lugares de este día
+          </Link>
+        </div>
         <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
           <Dato termino="Ocupación" valor={textoDelPorcentaje(ocupado?.personas ?? 0, AFORO_DEL_PREDIO)} pie={`${numero.format(ocupado?.personas ?? 0)} de ${numero.format(AFORO_DEL_PREDIO)} personas`} />
           <Dato
