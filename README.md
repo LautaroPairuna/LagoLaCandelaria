@@ -46,7 +46,15 @@ npm run usuario:crear -- correo@dominio.com "Nombre Apellido" reservas
 
 Roles: `admin`, `reservas`, `puerta`, `bar`, `restaurante`. Se pueden combinar separados por coma (`reservas,puerta`). El comando imprime una contraseña inicial.
 
-Paneles (según la presentación del proyecto): Funcionan Reservas (calendario del mes por propuesta, a confirmar, confirmadas, detalle con confirmar, cancelar y aviso por WhatsApp) Puerta (lista del día, marcar ingreso, cobro del saldo con 10 % en efectivo, otro importe y caja del día). General (resumen de hoy con ocupación y caja, reportes por período con variación contra el período anterior, personas por mes, reservas por propuesta, edad de quien reserva y clientes nuevos, y usuarios y permisos: alta, paneles, contraseña nueva y deshabilitar). Bar y Restaurante aparecen como "Pronto".
+Paneles:
+
+- **Ocupación** (rol reservas): calendario del mes con el porcentaje de ocupación de cada día, las personas sobre la capacidad del predio y las reservas por propuesta. La capacidad (`AFORO_DEL_PREDIO` en `lib/predio/inventario.ts`) es provisoria hasta que el predio dé el número real.
+- **Reservas** (rol reservas): buscador por nombre, institución, DNI, teléfono, número o código, con filtros de fecha, estado y propuesta; por defecto solo de hoy en adelante. El detalle agrupa a las personas por familia y destaca alergias y condiciones.
+- **Lugares** (rol reservas): para un día, cada parrilla, quincho, gazebo, palapa y bungalow libre u ocupado, y de quién es.
+- **Puerta** (rol puerta): ingreso y cobranza del día elegido, con cobro del saldo (10 % menos en efectivo) y quiénes no vinieron.
+- **Caja** (solo administración): cobros del período por forma de pago, con descarga en CSV.
+- **General** (solo administración): resumen de hoy, reportes por período y usuarios.
+- Bar y Restaurante aparecen como "Pronto".
 
 ### Errores y avisos
 
