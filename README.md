@@ -66,8 +66,10 @@ La web no cobra ni pregunta la forma de pago: se decide en la puerta del predio.
 
 ### Restaurante
 
-La mesa se reserva desde la web con el mismo flujo que la parrilla (personas, día, mesa, confirmar) y queda como reserva de módulo Restaurante, con las tarifas del día.
-Son 9 mesas según la planilla del predio: de 2 personas la 1, 5 y 7; de 4 la 2, 6 y 8; de 6 la 3, 4 y 9 (36 lugares). Un grupo puede juntar varias mesas, y para más de 36 personas se deriva a WhatsApp. Cada mesa se ocupa por día, igual que los demás lugares.
+La mesa se reserva desde la web con el mismo flujo que la parrilla (personas, horario y día, mesa, confirmar) y queda como reserva de módulo Restaurante.
+La reserva no tiene costo: se paga lo que consumen, en el restaurante (`cotizacionDeConsumo`, se ve como "Consumo aparte" en el ticket y en el panel).
+Son 9 mesas según la planilla del predio: de 2 personas la 1, 5 y 7; de 4 la 2, 6 y 8; de 6 la 3, 4 y 9 (36 lugares). Un grupo puede juntar varias mesas, y para más de 36 personas se deriva a WhatsApp.
+Las mesas se ocupan por hora, de 10 a 19 (`lib/predio/horario.ts`): cada reserva guarda una fila de `ocupaciones` por hora (`hora`; 0 es el día entero, como en los demás lugares), así la misma mesa puede tener una reserva de 12 a 14 y otra de 15 a 17, y el índice único frena a dos reservas que se pisan.
 El bar no tiene mesas reservables: la planilla no las lista, así que las que había quedaron inactivas (migración `mesas_del_restaurante`).
 
 ### Errores y avisos

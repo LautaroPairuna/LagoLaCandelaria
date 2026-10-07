@@ -49,6 +49,7 @@ export function PasoLugar({
   personas,
   elegidas,
   onChange,
+  horas,
 }: {
   tipo: TipoDeLugar
   desde: string
@@ -56,6 +57,7 @@ export function PasoLugar({
   personas: number
   elegidas: string[]
   onChange: (ids: string[]) => void
+  horas?: string
 }) {
   const [lugares, setLugares] = useState<LugarDisponible[] | null>(null)
   const [fallo, setFallo] = useState(false)
@@ -64,7 +66,7 @@ export function PasoLugar({
   useEffect(() => {
     const controlador = new AbortController()
     const categoria = tipo === "parrilla" ? "parrilla" : tipo
-    fetch(`/api/lugares?tipo=${categoria}&desde=${desde}&hasta=${hasta}`, { signal: controlador.signal })
+    fetch(`/api/lugares?tipo=${categoria}&desde=${desde}&hasta=${hasta}${horas ? `&horas=${horas}` : ""}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string; lugares?: LugarDisponible[] }) => {
         if (!json.ok || !json.lugares) throw new Error(json.error)
@@ -77,7 +79,7 @@ export function PasoLugar({
         avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "lugares", reintentar: () => setIntento((actual) => actual + 1) })
       })
     return () => controlador.abort()
-  }, [tipo, desde, hasta, intento])
+  }, [tipo, desde, hasta, horas, intento])
 
   // Si alguno de los elegidos dejó de estar libre (otra reserva lo tomó), se suelta.
   useEffect(() => {
@@ -161,7 +163,7 @@ export function PasoLugar({
                     type="button"
                     disabled={!libre}
                     aria-pressed={elegido}
-                    aria-label={`${nombre(lugar)}${lugar.capacidad ? `, hasta ${lugar.capacidad} personas` : ""}${libre ? (elegido ? ", elegido" : ", libre") : lugar.estado === "deja-huecos" ? ", no disponible para esas fechas" : ", ocupado"}`}
+                    aria-label={`${nombre(lugar)}${lugar.capacidad ? `, hasta ${lugar.capacidad} personas` : ""}${libre ? (elegido ? ", elegido" : ", libre") : lugar.estado === "deja-huecos" ? ", no disponible para esas fechas" : horas ? ", ocupada en ese horario" : ", ocupado"}`}
                     title={lugar.estado === "deja-huecos" ? "Con esas fechas dejaría una noche suelta" : undefined}
                     onClick={() => alternar(lugar.id)}
                     className={cn(

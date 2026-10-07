@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button"
 import { avisarError, avisarRevisar, irAlPrimerCampo, llamar } from "@/lib/avisos"
 import { camposDe } from "@/lib/errores-de-campos"
 import { asignarBungalows, bungalowsPara } from "@/lib/predio/bungalows"
-import { cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
+import { cotizacionDeConsumo, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
 import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
 import { fechaLarga, fechasEntre, hoyEnElPredio } from "@/lib/predio/fechas"
+import { HORARIO_RESTAURANTE, textoDeHora, type Franja } from "@/lib/predio/horario"
 import { inventario, MAX_PERSONAS_RESTAURANTE } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { pesos } from "@/lib/predio/tarifas"
@@ -51,6 +52,9 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
   const [fechas, setFechas] = useState({ desde: "", hasta: "" })
   const [unidades, setUnidades] = useState<string[]>([])
   const [contacto, setContacto] = useState({ telefono: "", email: "" })
+  const [horario, setHorario] = useState<Franja>({ desde: 12, hasta: 14 })
+  const restaurante = tipo === "restaurante"
+  const horas = restaurante ? `${horario.desde}-${horario.hasta}` : undefined
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [enviando, iniciar] = useTransition()
 
@@ -58,7 +62,7 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
   const edades = familias.flatMap((familia) => [...familia.adultos, ...familia.ninos]).map((persona) => Number(persona.edad)).filter(edadValida)
   const grupo = grupoPorEdades(edades)
   const noches = fechas.desde && fechas.hasta ? fechasEntre(fechas.desde, fechas.hasta).length - 1 : 0
-  const cotizacion = modo === "dia" ? cotizarDia(grupo) : noches > 0 ? cotizarBungalows(personas, noches, bungalowsPara(personas)) : null
+  const cotizacion = restaurante ? cotizacionDeConsumo : modo === "dia" ? cotizarDia(grupo) : noches > 0 ? cotizarBungalows(personas, noches, bungalowsPara(personas)) : null
   const fechaLista = modo === "dia" ? Boolean(fechas.desde) : noches > 0
   const elegidas = unidades.map((id) => inventario.find((unidad) => unidad.id === id)).filter((unidad) => unidad !== undefined)
   const cambiarUnidades = useCallback((ids: string[]) => setUnidades(ids), [])
@@ -126,7 +130,7 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
       const comun = { familias: familiasParaEnviar(familias), contacto, unidades }
       const resultado = await llamar(() =>
         modo === "dia"
-          ? reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", ...comun })
+          ? reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", horario: restaurante ? horario : undefined, ...comun })
           : reservarBungalow({ desde: fechas.desde, hasta: fechas.hasta, ...comun }),
       )
       if (resultado.ok) {
@@ -194,13 +198,25 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
 
             {paso === 1 ? (
               <>
+                {restaurante ? (
+                  <ElegirHorario
+                    horario={horario}
+                    onChange={(nuevo) => {
+                      setHorario(nuevo)
+                      setUnidades([])
+                    }}
+                  />
+                ) : null}
                 <p className="mb-4 text-ink/70">
-                  {modo === "dia"
-                    ? `En verde, los días en que hay lugar para ${personas} ${personas === 1 ? "persona" : "personas"}. El predio abre de 10 a 19.`
-                    : "Tocá el día de llegada y después el de salida. En verde, los días con bungalow libre."}
+                  {restaurante
+                    ? `En verde, los días con mesa libre para ${personas} ${personas === 1 ? "persona" : "personas"} en ese horario.`
+                    : modo === "dia"
+                      ? `En verde, los días en que hay lugar para ${personas} ${personas === 1 ? "persona" : "personas"}. El predio abre de 10 a 19.`
+                      : "Tocá el día de llegada y después el de salida. En verde, los días con bungalow libre."}
                 </p>
                 <CalendarioDisponible
                   categoria={tipo}
+                  horas={horas}
                   personas={personas}
                   modo={modo === "dia" ? "dia" : "rango"}
                   desde={fechas.desde}
@@ -225,7 +241,15 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
             ) : null}
 
             {paso === 2 ? (
-              <PasoLugar tipo={tipo} desde={fechas.desde} hasta={fechas.hasta || fechas.desde} personas={personas} elegidas={unidades} onChange={cambiarUnidades} />
+              <PasoLugar
+                tipo={tipo}
+                desde={fechas.desde}
+                hasta={fechas.hasta || fechas.desde}
+                personas={personas}
+                elegidas={unidades}
+                onChange={cambiarUnidades}
+                horas={horas}
+              />
             ) : null}
 
             {paso === 3 ? (
@@ -279,9 +303,19 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
                 ? `${noches} ${noches === 1 ? "noche" : "noches"} desde el ${fechaLarga(fechas.desde).toLowerCase()}`
                 : "Falta elegir"}
           </Resumen>
+          {restaurante ? (
+            <Resumen termino="Horario">
+              {textoDeHora(horario.desde)} a {textoDeHora(horario.hasta)}
+            </Resumen>
+          ) : null}
           <Resumen termino="Lugar">{elegidas.length ? elegidas.map((unidad) => `${nombreDeUnidad[unidad.tipo]} ${unidad.etiqueta}`).join(", ") : "Falta elegir"}</Resumen>
         </dl>
-        {cotizacion && cotizacion.total > 0 ? (
+        {cotizacion?.consumo ? (
+          <p className="border-t border-ink/10 pt-4 text-sm">
+            <span className="block font-semibold">La mesa no tiene costo de reserva.</span>
+            <span className="text-ink/70">Se paga lo que consuman, en el restaurante.</span>
+          </p>
+        ) : cotizacion && cotizacion.total > 0 ? (
           <div className="border-t border-ink/10 pt-4">
             <ul className="space-y-1.5 text-sm">
               {cotizacion.lineas.map((linea) => (
@@ -305,6 +339,52 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
         <p className="text-xs leading-relaxed text-ink/55">No se cobra en la web. Te queda un ticket con QR y el predio te confirma por WhatsApp.</p>
       </aside>
     </div>
+  )
+}
+
+const horasDelRestaurante = Array.from(
+  { length: HORARIO_RESTAURANTE.cierra - HORARIO_RESTAURANTE.abre + 1 },
+  (_, indice) => HORARIO_RESTAURANTE.abre + indice,
+)
+
+function ElegirHorario({ horario, onChange }: { horario: Franja; onChange: (horario: Franja) => void }) {
+  const campo = "mt-1 block h-12 w-full rounded-2xl border border-ink/15 bg-white px-4 text-base text-ink"
+  return (
+    <fieldset className="mb-5 rounded-2xl bg-sand px-4 py-3">
+      <legend className="font-semibold">¿En qué horario usan la mesa?</legend>
+      <div className="mt-2 grid grid-cols-2 gap-3 sm:max-w-sm">
+        <label className="text-sm text-ink/70">
+          Llegan a las
+          <select
+            className={campo}
+            value={horario.desde}
+            onChange={(evento) => {
+              const desde = Number(evento.target.value)
+              onChange({ desde, hasta: Math.max(horario.hasta, desde + 1) })
+            }}
+          >
+            {horasDelRestaurante.slice(0, -1).map((hora) => (
+              <option key={hora} value={hora}>
+                {textoDeHora(hora)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-ink/70">
+          Se van a las
+          <select className={campo} value={horario.hasta} onChange={(evento) => onChange({ ...horario, hasta: Number(evento.target.value) })}>
+            {horasDelRestaurante
+              .filter((hora) => hora > horario.desde)
+              .map((hora) => (
+                <option key={hora} value={hora}>
+                  {textoDeHora(hora)}
+                </option>
+              ))}
+          </select>
+        </label>
+      </div>
+      <p className="mt-2 text-xs text-ink/60">La misma mesa puede tener otra reserva antes o después de ese horario.</p>
+    </fieldset>
   )
 }
 

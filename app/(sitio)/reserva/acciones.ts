@@ -8,9 +8,10 @@ import { accion, ErrorHumano, exigir, mensajesDelSitio, type Resultado } from "@
 import { limiteAlcanzado, registrarUso } from "@/lib/limite"
 import { estadoDelBungalow } from "@/lib/predio/bungalows"
 import { estadoDelDia } from "@/lib/predio/calendario"
-import { cotizacionAConfirmar, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
+import { cotizacionAConfirmar, cotizacionDeConsumo, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
 import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
 import { esFechaIso, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
+import { esFranja, horasDe, textoDeHora } from "@/lib/predio/horario"
 import { inventario, MAX_PERSONAS_RESTAURANTE, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { contacto, email, familias, nombre, personasDe, telefono, type FamiliaValida } from "@/lib/reserva-familia"
@@ -121,7 +122,12 @@ function reservar(nombre: string, tarea: () => Promise<ResultadoReserva>) {
   )
 }
 
-const pedidoDeDia = z.object({ fecha: z.string(), lugar: z.enum(["parrilla", "playa", "restaurante"]), ...grupoFamiliar })
+const pedidoDeDia = z.object({
+  fecha: z.string(),
+  lugar: z.enum(["parrilla", "playa", "restaurante"]),
+  horario: z.object({ desde: z.number(), hasta: z.number() }).optional(),
+  ...grupoFamiliar,
+})
 
 const propuestaDelLugar = { parrilla: "Parrilla", playa: "Gazebo o palapa", restaurante: "Restaurante" } as const
 
@@ -135,6 +141,10 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
       datos.lugar !== "restaurante" || personas.length <= MAX_PERSONAS_RESTAURANTE,
       `En el restaurante entran hasta ${MAX_PERSONAS_RESTAURANTE} personas: para un grupo más grande escribinos por WhatsApp.`,
     )
+    const restaurante = datos.lugar === "restaurante"
+    const franja = restaurante ? datos.horario : undefined
+    exigir(!restaurante || (franja !== undefined && esFranja(franja)), "Elegí a qué hora llegan y a qué hora se van del restaurante.")
+    const horas = franja ? horasDe(franja) : undefined
     await exigirAbierto(datos.fecha, datos.fecha, "Ese día")
     const elegidas = lugaresElegidos(datos.lugar, datos.unidades, personas.length)
     const grupo = grupoPorEdades(personas.map((persona) => persona.edad))
@@ -142,17 +152,18 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
 
     return guardar(
       {
-        modulo: datos.lugar === "restaurante" ? "RESTAURANTE" : "FINDE_FAMILIA",
+        modulo: restaurante ? "RESTAURANTE" : "FINDE_FAMILIA",
         desde: datos.fecha,
         hasta: datos.fecha,
-        ...HORARIO,
+        ...(franja ? { ingreso: textoDeHora(franja.desde), salida: textoDeHora(franja.hasta) } : HORARIO),
+        horas,
         cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
-        cotizacion: cotizarDia(grupo),
+        cotizacion: restaurante ? cotizacionDeConsumo : cotizarDia(grupo),
         propuesta: propuestaDelLugar[datos.lugar],
         personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
-          const libre = libreEn(ocupacion, datos.fecha, datos.fecha)
+          const libre = libreEn(ocupacion, datos.fecha, datos.fecha, horas)
           tomados = elegidas.filter((unidad) => !libre(unidad.id))
           return tomados.length ? null : elegidas.map((unidad) => unidad.id)
         },

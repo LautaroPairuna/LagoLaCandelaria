@@ -239,6 +239,7 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
 
 function Saldo({ fila }: { fila: FilaDeBusqueda }) {
   if (fila.estado === "CANCELADA") return <span className="text-panel-muted">—</span>
+  if (fila.consumo) return <span className="text-panel-muted">Consumo aparte</span>
   if (fila.aConfirmar) return <span className="text-panel-muted">A presupuestar</span>
   if (fila.saldo === 0) return <span className="text-[#3f6b12]">Pagado</span>
   return <>{pesos(fila.saldo)}</>

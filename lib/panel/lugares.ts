@@ -1,3 +1,4 @@
+import type { EstadoReserva, Modulo } from "@/generated/prisma/enums"
 import { saldoDe } from "@/lib/panel/cobros"
 import { aFechaDb, deFechaDb } from "@/lib/predio/fechas"
 import { gruposDeMesas, gruposDeParrillas, unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
@@ -74,27 +75,51 @@ export async function ocupacionDeLugares(fecha: string) {
     },
   })
 
-  return new Map(
-    filas.map(({ unidadId, reserva }) => [
-      unidadId,
-      {
-        id: reserva.id,
-        codigo: reserva.codigo,
-        modulo: reserva.modulo,
-        estado: reserva.estado,
-        desde: deFechaDb(reserva.desde),
-        hasta: deFechaDb(reserva.hasta),
-        horario: `${reserva.ingreso} a ${reserva.salida}`,
-        titular: reserva.institucion ?? `${reserva.cliente.nombre} ${reserva.cliente.apellido}`,
-        telefono: reserva.cliente.telefono,
-        personas: reserva.adultos + reserva.menores + reserva.sinCargo,
-        aConfirmar: Boolean(detalleDe(reserva.detalle).cotizacion?.aConfirmar),
-        saldo: saldoDe(reserva.total, reserva.pagos),
-        ingreso: reserva.ingresoEn !== null,
-        otrosLugares: reserva.ocupaciones.map((item) => item.unidadId).filter((id) => id !== unidadId),
-      },
-    ]),
-  )
+  // Una mesa puede tener varias reservas el mismo día (en distintos horarios), y cada
+  // reserva de mesa ocupa una fila por hora: se agrupa por lugar y se cuenta una vez.
+  const porLugar = new Map<string, ReservaEnLugar[]>()
+  for (const { unidadId, reserva } of filas) {
+    const lista = porLugar.get(unidadId) ?? []
+    if (lista.some((item) => item.id === reserva.id)) continue
+    const cotizacion = detalleDe(reserva.detalle).cotizacion
+    lista.push({
+      id: reserva.id,
+      codigo: reserva.codigo,
+      modulo: reserva.modulo,
+      estado: reserva.estado,
+      desde: deFechaDb(reserva.desde),
+      hasta: deFechaDb(reserva.hasta),
+      ingresoHora: reserva.ingreso,
+      horario: `${reserva.ingreso} a ${reserva.salida}`,
+      titular: reserva.institucion ?? `${reserva.cliente.nombre} ${reserva.cliente.apellido}`,
+      telefono: reserva.cliente.telefono,
+      personas: reserva.adultos + reserva.menores + reserva.sinCargo,
+      aConfirmar: Boolean(cotizacion?.aConfirmar),
+      consumo: Boolean(cotizacion?.consumo),
+      saldo: saldoDe(reserva.total, reserva.pagos),
+      ingreso: reserva.ingresoEn !== null,
+      otrosLugares: [...new Set(reserva.ocupaciones.map((item) => item.unidadId))].filter((id) => id !== unidadId),
+    })
+    porLugar.set(unidadId, lista.sort((a, b) => a.ingresoHora.localeCompare(b.ingresoHora)))
+  }
+  return porLugar
 }
 
-export type ReservaEnLugar = NonNullable<ReturnType<Awaited<ReturnType<typeof ocupacionDeLugares>>["get"]>>
+export type ReservaEnLugar = {
+  id: number
+  codigo: string
+  modulo: Modulo
+  estado: EstadoReserva
+  desde: string
+  hasta: string
+  ingresoHora: string
+  horario: string
+  titular: string
+  telefono: string | null
+  personas: number
+  aConfirmar: boolean
+  consumo: boolean
+  saldo: number
+  ingreso: boolean
+  otrosLugares: string[]
+}

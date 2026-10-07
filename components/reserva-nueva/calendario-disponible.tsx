@@ -31,6 +31,7 @@ export function CalendarioDisponible({
   hasta,
   onElegir,
   validarRango,
+  horas,
 }: {
   categoria: Categoria
   personas?: number
@@ -39,6 +40,8 @@ export function CalendarioDisponible({
   hasta: string
   onElegir: (desde: string, hasta: string) => void
   validarRango?: (desde: string, hasta: string, meses: Record<string, DatosDelMes>) => string | null
+  /// Franja horaria ("12-14") para las mesas del restaurante.
+  horas?: string
 }) {
   const hoy = hoyEnElPredio()
   const primerMes = hoy.slice(0, 7)
@@ -46,13 +49,13 @@ export function CalendarioDisponible({
   const [meses, setMeses] = useState<Record<string, DatosDelMes>>({})
   const [fallo, setFallo] = useState(false)
   const [intento, setIntento] = useState(0)
-  const clave = `${categoria}-${personas}`
+  const clave = `${categoria}-${personas}-${horas ?? ""}`
   const datos = meses[`${clave}|${mes}`]
 
   useEffect(() => {
     if (datos) return
     const controlador = new AbortController()
-    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}`, { signal: controlador.signal })
+    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}${horas ? `&horas=${horas}` : ""}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string } & DatosDelMes) => {
         if (!json.ok) throw new Error(json.error)
@@ -65,7 +68,7 @@ export function CalendarioDisponible({
         avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "calendario", reintentar: reintentar })
       })
     return () => controlador.abort()
-  }, [categoria, personas, clave, mes, datos, intento])
+  }, [categoria, personas, horas, clave, mes, datos, intento])
 
   function reintentar() {
     setFallo(false)

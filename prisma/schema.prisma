@@ -151,8 +151,9 @@ model Unidad {
   @@map("unidades")
 }
 
-/// Una fila por unidad y por día. El índice único es lo que impide que dos reservas
-/// tomen el mismo lugar el mismo día; al cancelar una reserva se borran sus filas.
+/// Una fila por unidad y por día (y por hora, en las mesas del restaurante). El índice
+/// único es lo que impide que dos reservas tomen el mismo lugar a la vez; al cancelar una
+/// reserva se borran sus filas.
 model Ocupacion {
   id        Int      @id @default(autoincrement())
   reservaId Int
@@ -160,8 +161,10 @@ model Ocupacion {
   unidadId  String   @db.VarChar(24)
   unidad    Unidad   @relation(fields: [unidadId], references: [id])
   fecha     DateTime @db.Date
+  /// 0 es el día entero. Las mesas se ocupan por hora: 12 es de 12:00 a 13:00.
+  hora      Int      @default(0) @db.SmallInt
 
-  @@unique([unidadId, fecha])
+  @@unique([unidadId, fecha, hora])
   @@index([fecha])
   @@index([reservaId])
   @@map("ocupaciones")

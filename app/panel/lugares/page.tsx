@@ -44,7 +44,7 @@ export default async function PanelLugares({ searchParams }: PageProps<"/panel/l
 
   const [ocupadas, especial] = await Promise.all([ocupacionDeLugares(fecha), db().diaEspecial.findUnique({ where: { fecha: aFechaDb(fecha) } })])
   const estado = estadoDelDia(fecha, mapaDeEspeciales(especial ? [{ fecha: deFechaDb(especial.fecha), tipo: especial.tipo as TipoDia, motivo: especial.motivo }] : []))
-  const reservaElegida = elegida ? ocupadas.get(elegida.id) : undefined
+  const reservasElegida = elegida ? (ocupadas.get(elegida.id) ?? []) : []
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
@@ -120,7 +120,7 @@ export default async function PanelLugares({ searchParams }: PageProps<"/panel/l
                 <ul className="mt-3 grid grid-cols-5 gap-1.5 sm:grid-cols-8 md:gap-2 xl:grid-cols-10">
                   {seccion.unidades.map((unidad) => (
                     <li key={unidad.id}>
-                      <Lugar unidad={unidad} reserva={ocupadas.get(unidad.id)} elegida={unidad.id === elegida?.id} href={enlace(fecha, zona, unidad.id)} />
+                      <Lugar unidad={unidad} reservas={ocupadas.get(unidad.id) ?? []} elegida={unidad.id === elegida?.id} href={enlace(fecha, zona, unidad.id)} />
                     </li>
                   ))}
                 </ul>
@@ -148,7 +148,7 @@ export default async function PanelLugares({ searchParams }: PageProps<"/panel/l
             aria-label={`Detalle de ${nombreDe(elegida)}`}
             className="fixed inset-x-0 bottom-0 z-40 max-h-[70svh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-[0_-12px_40px_rgba(58,42,24,0.18)] lg:sticky lg:top-6 lg:z-auto lg:max-h-none lg:rounded-3xl lg:shadow-[0_8px_28px_rgba(58,42,24,0.06)]"
           >
-            <Detalle unidad={elegida} reserva={reservaElegida} cerrar={enlace(fecha, zona)} />
+            <Detalle unidad={elegida} reservas={reservasElegida} cerrar={enlace(fecha, zona)} />
           </aside>
         ) : (
           <p className="hidden rounded-3xl bg-white p-5 text-sm text-panel-muted shadow-[0_8px_28px_rgba(58,42,24,0.06)] lg:block">
@@ -160,36 +160,41 @@ export default async function PanelLugares({ searchParams }: PageProps<"/panel/l
   )
 }
 
-function Lugar({ unidad, reserva, elegida, href }: { unidad: UnidadPredio; reserva?: ReservaEnLugar; elegida: boolean; href: string }) {
-  const apellido = reserva ? reserva.titular.split(" ").at(-1) : null
+function Lugar({ unidad, reservas, elegida, href }: { unidad: UnidadPredio; reservas: ReservaEnLugar[]; elegida: boolean; href: string }) {
+  const [reserva] = reservas
+  const confirmada = reservas.some((item) => item.estado === "CONFIRMADA")
+  const debajo = reservas.length > 1 ? `${reservas.length} reservas` : reserva ? reserva.titular.split(" ").at(-1) : null
+  const descripcion = reservas
+    .map((item) => `${item.titular}, ${item.personas} personas${unidad.tipo === "MESA_RESTAURANTE" ? `, de ${item.horario}` : ""}, ${item.estado === "PENDIENTE" ? "a confirmar" : "confirmada"}`)
+    .join("; ")
   return (
     <Link
       href={href}
       scroll={false}
-      aria-label={`${nombreDe(unidad)}${reserva ? `: ${reserva.titular}, ${reserva.personas} personas, ${reserva.estado === "PENDIENTE" ? "a confirmar" : "confirmada"}` : ": libre"}`}
+      aria-label={`${nombreDe(unidad)}: ${reserva ? descripcion : "libre"}`}
       aria-current={elegida ? "true" : undefined}
       className={cn(
         "flex h-14 flex-col items-center justify-center rounded-xl border px-1 text-center transition md:h-16",
         !reserva && "border-panel-line bg-white text-panel-ink hover:border-panel-muted",
-        reserva?.estado === "CONFIRMADA" && "border-panel-naranja bg-panel-naranja text-white hover:bg-panel-tostado",
-        reserva?.estado === "PENDIENTE" && "border-dashed border-panel-ambar bg-panel-claro text-panel-ink hover:bg-[#f3d3a8]",
+        reserva && confirmada && "border-panel-naranja bg-panel-naranja text-white hover:bg-panel-tostado",
+        reserva && !confirmada && "border-dashed border-panel-ambar bg-panel-claro text-panel-ink hover:bg-[#f3d3a8]",
         elegida && "ring-2 ring-panel-ink ring-offset-2",
       )}
     >
       <span className="text-base leading-none font-bold">{unidad.etiqueta}</span>
-      {apellido ? <span className="mt-1 w-full truncate text-[0.65rem] leading-none font-semibold">{apellido}</span> : null}
+      {debajo ? <span className="mt-1 w-full truncate text-[0.65rem] leading-none font-semibold">{debajo}</span> : null}
     </Link>
   )
 }
 
-function Detalle({ unidad, reserva, cerrar }: { unidad: UnidadPredio; reserva?: ReservaEnLugar; cerrar: string }) {
-  const otros = (reserva?.otrosLugares ?? []).map((id) => inventario.find((item) => item.id === id)).filter((item) => item !== undefined)
+function Detalle({ unidad, reservas, cerrar }: { unidad: UnidadPredio; reservas: ReservaEnLugar[]; cerrar: string }) {
+  const titulo = reservas.length === 0 ? "Libre" : reservas.length === 1 ? reservas[0].titular : `${reservas.length} reservas`
   return (
     <>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-wide text-panel-muted uppercase">{nombreDe(unidad)}</p>
-          <h2 className="font-display mt-1 text-2xl tracking-tight">{reserva ? reserva.titular : "Libre"}</h2>
+          <h2 className="font-display mt-1 text-2xl tracking-tight">{titulo}</h2>
         </div>
         <Link href={cerrar} scroll={false} aria-label="Cerrar" className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-panel">
           <X className="size-5" aria-hidden />
@@ -197,36 +202,51 @@ function Detalle({ unidad, reserva, cerrar }: { unidad: UnidadPredio; reserva?: 
       </div>
       {unidad.capacidad ? (
         <p className="mt-1 text-sm text-panel-muted">
-          Hasta {unidad.capacidad} personas{unidad.mesas ? ` · ${unidad.mesas} ${unidad.mesas === 1 ? "mesa" : "mesas"}` : ""}
+          Hasta {unidad.capacidad} personas
+          {unidad.tipo !== "MESA_RESTAURANTE" && unidad.mesas ? ` · ${unidad.mesas} ${unidad.mesas === 1 ? "mesa" : "mesas"}` : ""}
         </p>
       ) : null}
-      {reserva ? (
-        <>
-          <dl className="mt-4 space-y-2 text-sm">
-            <Fila termino="Reserva">
-              N.º {reserva.id} · {reserva.codigo}
-            </Fila>
-            <Fila termino="Propuesta">
-              {nombreDelModulo[reserva.modulo]} · {reserva.personas} pers.
-            </Fila>
-            <Fila termino="Fechas">{rangoConMesPanel(reserva.desde, reserva.hasta)}</Fila>
-            <Fila termino="Horario">{reserva.horario}</Fila>
-            <Fila termino="Estado">{reserva.ingreso ? "Ya ingresó" : reserva.estado === "PENDIENTE" ? "A confirmar" : "Confirmada"}</Fila>
-            <Fila termino="Saldo">{reserva.aConfirmar ? "A presupuestar" : reserva.saldo ? pesos(reserva.saldo) : "Pagado"}</Fila>
-            {reserva.telefono ? <Fila termino="Teléfono">{reserva.telefono}</Fila> : null}
-            {otros.length ? <Fila termino="También tiene">{otros.map(nombreDe).join(", ")}</Fila> : null}
-          </dl>
-          <Link
-            href={`/panel/reservas/${reserva.id}`}
-            className="mt-5 flex h-11 items-center justify-center rounded-full bg-panel-ink px-5 text-sm font-semibold text-white hover:bg-panel-tostado"
-          >
-            Ver la reserva completa
-          </Link>
-        </>
+      {reservas.length ? (
+        <div className="divide-y divide-panel-line">
+          {reservas.map((reserva) => (
+            <ReservaDelLugar key={reserva.id} reserva={reserva} conTitular={reservas.length > 1} />
+          ))}
+        </div>
       ) : (
         <p className="mt-4 text-sm text-panel-muted">Nadie lo reservó para este día.</p>
       )}
     </>
+  )
+}
+
+function ReservaDelLugar({ reserva, conTitular }: { reserva: ReservaEnLugar; conTitular: boolean }) {
+  const otros = reserva.otrosLugares.map((id) => inventario.find((item) => item.id === id)).filter((item) => item !== undefined)
+  return (
+    <section className="py-4">
+      {conTitular ? <h3 className="font-semibold">{reserva.titular}</h3> : null}
+      <dl className="mt-1 space-y-2 text-sm">
+        <Fila termino="Reserva">
+          N.º {reserva.id} · {reserva.codigo}
+        </Fila>
+        <Fila termino="Propuesta">
+          {nombreDelModulo[reserva.modulo]} · {reserva.personas} pers.
+        </Fila>
+        <Fila termino="Fechas">{rangoConMesPanel(reserva.desde, reserva.hasta)}</Fila>
+        <Fila termino="Horario">{reserva.horario}</Fila>
+        <Fila termino="Estado">{reserva.ingreso ? "Ya ingresó" : reserva.estado === "PENDIENTE" ? "A confirmar" : "Confirmada"}</Fila>
+        <Fila termino="Saldo">
+          {reserva.consumo ? "Consumo aparte" : reserva.aConfirmar ? "A presupuestar" : reserva.saldo ? pesos(reserva.saldo) : "Pagado"}
+        </Fila>
+        {reserva.telefono ? <Fila termino="Teléfono">{reserva.telefono}</Fila> : null}
+        {otros.length ? <Fila termino="También tiene">{otros.map(nombreDe).join(", ")}</Fila> : null}
+      </dl>
+      <Link
+        href={`/panel/reservas/${reserva.id}`}
+        className="mt-4 flex h-11 items-center justify-center rounded-full bg-panel-ink px-5 text-sm font-semibold text-white hover:bg-panel-tostado"
+      >
+        Ver la reserva completa
+      </Link>
+    </section>
   )
 }
 

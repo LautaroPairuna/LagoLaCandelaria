@@ -21,7 +21,7 @@ export function htmlDelTicket(ticket: TicketDatos, qrDataUrl: string, enlace: st
         .join("")}</ul>`
     : ""
   const lineas = ticket.cotizacion.lineas
-    .map((linea) => `<div class="fila"><dt>${escapar(linea.concepto)}<small>${escapar(linea.detalle)}</small></dt><dd>${escapar(pesos(linea.importe))}</dd></div>`)
+    .map((linea) => `<div class="fila"><dt>${escapar(linea.concepto)}<small>${escapar(linea.detalle)}</small></dt><dd>${ticket.cotizacion.consumo ? "" : escapar(pesos(linea.importe))}</dd></div>`)
     .join("")
   const efectivo = textoDelEfectivo(ticket.cotizacion)
 

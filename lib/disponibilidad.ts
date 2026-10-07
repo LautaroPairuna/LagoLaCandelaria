@@ -4,7 +4,7 @@ import { estadoDelBungalow } from "@/lib/predio/bungalows"
 import { hayLugarPara } from "@/lib/predio/eleccion"
 import { unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
 import { db } from "@/lib/prisma"
-import { ocupacionPorUnidad } from "@/lib/reservas"
+import { libreEn, ocupacionPorUnidad } from "@/lib/reservas"
 
 export const categorias = {
   parrilla: ["PARRILLA", "QUINCHO"],
@@ -22,7 +22,8 @@ export async function diasEspeciales(desde: string, hasta: string) {
   return mapaDeEspeciales(filas.map((fila) => ({ fecha: deFechaDb(fila.fecha), tipo: fila.tipo as TipoDia, motivo: fila.motivo })))
 }
 
-export async function disponibilidadDelMes(mes: string, categoria: Categoria, personas = 1) {
+/// Con `horas` (mesas del restaurante) cuenta solo lo libre en esas horas.
+export async function disponibilidadDelMes(mes: string, categoria: Categoria, personas = 1, horas?: number[]) {
   const inicio = `${mes}-01`
   const [anio, numero] = mes.split("-").map(Number)
   const fin = new Date(Date.UTC(anio, numero, 0)).toISOString().slice(0, 10)
@@ -41,7 +42,8 @@ export async function disponibilidadDelMes(mes: string, categoria: Categoria, pe
     if (fecha < hoy) dias[fecha] = { estado: "pasado" }
     else if (!apertura.abierto) dias[fecha] = { estado: "cerrado", motivo: apertura.motivo }
     else {
-      const libres = delTipo.filter((unidad) => !ocupacion.get(unidad.id)?.has(fecha))
+      const libre = libreEn(ocupacion, fecha, fecha, horas)
+      const libres = delTipo.filter((unidad) => libre(unidad.id))
       const alcanza = categoria === "bungalow" ? libres.length > 0 : hayLugarPara(categoria, personas, libres)
       dias[fecha] = { estado: alcanza ? "libre" : "completo" }
     }
@@ -61,18 +63,19 @@ export type LugarDisponible = Pick<UnidadPredio, "id" | "tipo" | "numero" | "eti
 
 /// Estado de cada lugar de la categoría para un día (o una estadía, en bungalows).
 /// No expone de quién es la reserva.
-export async function lugaresDisponibles(categoria: Categoria, desde: string, hasta: string): Promise<LugarDisponible[]> {
+export async function lugaresDisponibles(categoria: Categoria, desde: string, hasta: string, horas?: number[]): Promise<LugarDisponible[]> {
   const ocupacion = await ocupacionPorUnidad(sumarDiasIso(desde, -8), sumarDiasIso(hasta, 8))
   const hoy = hoyEnElPredio()
   const vacio = new Set<string>()
+  const libre = libreEn(ocupacion, desde, hasta, horas)
   return unidadesDelTipo(...categorias[categoria]).map(({ id, tipo, numero, etiqueta, capacidad, mesas }) => {
     const ocupadas = ocupacion.get(id) ?? vacio
     const estado =
       categoria === "bungalow"
         ? estadoDelBungalow(ocupadas, desde, hasta, hoy)
-        : fechasEntre(desde, hasta).some((fecha) => ocupadas.has(fecha))
-          ? "ocupado"
-          : "libre"
+        : libre(id)
+          ? "libre"
+          : "ocupado"
     return { id, tipo, numero, etiqueta, capacidad, mesas, estado }
   })
 }

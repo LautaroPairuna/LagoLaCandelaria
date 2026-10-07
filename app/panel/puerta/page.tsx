@@ -208,7 +208,13 @@ function ListaLlegadas({
                   {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
                 </p>
                 <p className="mt-2 text-base font-semibold">
-                  {llegada.aConfirmar ? "Presupuesto a confirmar con el predio" : llegada.saldo ? `Saldo ${pesos(llegada.saldo)}` : "Pagado"}
+                  {llegada.consumo
+                    ? "Mesa en el restaurante: paga el consumo aparte"
+                    : llegada.aConfirmar
+                      ? "Presupuesto a confirmar con el predio"
+                      : llegada.saldo
+                        ? `Saldo ${pesos(llegada.saldo)}`
+                        : "Pagado"}
                 </p>
               </div>
               {bloqueado ? (

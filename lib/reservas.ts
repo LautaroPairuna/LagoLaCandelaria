@@ -7,6 +7,7 @@ import {
 } from "@/generated/prisma/client"
 import type { Cotizacion, Grupo } from "@/lib/predio/cotizacion"
 import { aFechaDb, deFechaDb, fechasEntre, sumarDiasIso } from "@/lib/predio/fechas"
+import { claveDeHora } from "@/lib/predio/horario"
 import { db } from "@/lib/prisma"
 
 const INTENTOS = 3
@@ -50,16 +51,19 @@ export async function ocupadosEntre(desde: string, hasta: string, unidades?: str
   return new Set(filas.map((fila) => fila.unidadId))
 }
 
+/// Por cada unidad, los días que tiene tomados ("2026-10-12") y, en las mesas, las horas
+/// ("2026-10-12@13").
 export async function ocupacionPorUnidad(desde: string, hasta: string) {
   const filas = await db().ocupacion.findMany({
     where: { fecha: { gte: aFechaDb(desde), lte: aFechaDb(hasta) } },
-    select: { unidadId: true, fecha: true },
+    select: { unidadId: true, fecha: true, hora: true },
   })
   const mapa = new Map<string, Set<string>>()
   for (const fila of filas) {
-    const fechas = mapa.get(fila.unidadId) ?? new Set<string>()
-    fechas.add(deFechaDb(fila.fecha))
-    mapa.set(fila.unidadId, fechas)
+    const tomado = mapa.get(fila.unidadId) ?? new Set<string>()
+    const fecha = deFechaDb(fila.fecha)
+    tomado.add(fila.hora ? claveDeHora(fecha, fila.hora) : fecha)
+    mapa.set(fila.unidadId, tomado)
   }
   return mapa
 }
@@ -102,6 +106,8 @@ export type NuevaReserva = {
   /// después, para la regla de bungalows) y devuelve las que hay que ocupar, o null si
   /// no hay lugar. Se vuelve a llamar si otra reserva ganó el lugar mientras tanto.
   asignar?: (ocupacion: Map<string, Set<string>>) => string[] | null
+  /// Las horas que ocupa cada unidad (mesas del restaurante). Sin horas, el día entero.
+  horas?: number[]
 }
 
 export type ReservaCreada = { id: number; token: string; codigo: string; unidades: string[] }
@@ -150,7 +156,11 @@ async function crearUnaVez(nueva: NuevaReserva, codigo: string, unidades: string
         detalle: detalle as Prisma.InputJsonValue,
         personas: { create: nueva.personas ?? [] },
         ocupaciones: {
-          createMany: { data: unidades.flatMap((unidadId) => fechas.map((fecha) => ({ unidadId, fecha: aFechaDb(fecha) }))) },
+          createMany: {
+            data: unidades.flatMap((unidadId) =>
+              fechas.flatMap((fecha) => (nueva.horas?.length ? nueva.horas : [0]).map((hora) => ({ unidadId, fecha: aFechaDb(fecha), hora }))),
+            ),
+          },
         },
       },
       select: { id: true, token: true, codigo: true },
@@ -179,9 +189,19 @@ export async function crearReserva(nueva: NuevaReserva): Promise<ReservaCreada |
   }
 }
 
-export function libreEn(ocupacion: Map<string, Set<string>>, desde: string, hasta: string) {
+/// Si la unidad está libre esos días. Con `horas`, alcanza con que estén libres esas
+/// horas; sin ellas, el día tiene que estar libre entero (ni una hora tomada).
+export function libreEn(ocupacion: Map<string, Set<string>>, desde: string, hasta: string, horas?: number[]) {
   const fechas = fechasEntre(desde, hasta)
-  return (unidadId: string) => !fechas.some((fecha) => ocupacion.get(unidadId)?.has(fecha))
+  return (unidadId: string) => {
+    const tomado = ocupacion.get(unidadId)
+    if (!tomado) return true
+    return !fechas.some(
+      (fecha) =>
+        tomado.has(fecha) ||
+        (horas ? horas.some((hora) => tomado.has(claveDeHora(fecha, hora))) : [...tomado].some((clave) => clave.startsWith(`${fecha}@`))),
+    )
+  }
 }
 
 export async function ticketDeReserva(token: string) {

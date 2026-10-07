@@ -43,7 +43,8 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
   return filas
     .map((fila) => {
       const titular = fila.institucion ?? `${fila.cliente.nombre} ${fila.cliente.apellido}`
-      const aConfirmar = Boolean(detalleDe(fila.detalle).cotizacion?.aConfirmar)
+      const cotizacion = detalleDe(fila.detalle).cotizacion
+      const aConfirmar = Boolean(cotizacion?.aConfirmar)
       const resumen = resumenDeAsistencia({ ...fila, hasta: deFechaDb(fila.hasta) }, hoy)
       return {
         ...resumen,
@@ -61,6 +62,7 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
         ingresoPor: fila.ingresoPor,
         integrantes: fila.personas.map(({ ingresoEn, salidaEn, ...persona }) => ({ ...persona, estado: estadoDe({ ingresoEn, salidaEn }, deFechaDb(fila.hasta) < hoy) })),
         aConfirmar,
+        consumo: Boolean(cotizacion?.consumo),
         saldo: aConfirmar ? null : saldoDe(fila.total, fila.pagos),
         buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido, ...fila.personas.map((persona) => `${persona.nombre} ${persona.apellido} ${persona.dni ?? ""}`)]
           .join(" ")

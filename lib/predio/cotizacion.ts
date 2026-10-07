@@ -14,6 +14,8 @@ export type Cotizacion = {
   total: number
   totalEfectivo?: number
   aConfirmar?: boolean
+  /// Reserva de mesa en el restaurante: no se cobra la reserva, se paga lo que consumen.
+  consumo?: boolean
   lineas: LineaCotizacion[]
 }
 
@@ -69,7 +71,20 @@ export const cotizacionAConfirmar: Cotizacion = {
   ],
 }
 
+export const cotizacionDeConsumo: Cotizacion = {
+  total: 0,
+  consumo: true,
+  lineas: [
+    {
+      concepto: "Mesa en el restaurante",
+      detalle: "La reserva no tiene costo: se paga lo que consumen, en el restaurante.",
+      importe: 0,
+    },
+  ],
+}
+
 export function textoDelTotal(cotizacion: Cotizacion) {
+  if (cotizacion.consumo) return "Consumo aparte"
   return cotizacion.aConfirmar ? "A confirmar" : pesos(cotizacion.total)
 }
 

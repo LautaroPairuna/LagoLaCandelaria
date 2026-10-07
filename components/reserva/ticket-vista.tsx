@@ -96,7 +96,7 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
         <h3 className="font-display mt-8 text-2xl tracking-tight">Total</h3>
         <dl>
           {ticket.cotizacion.lineas.map((linea) => (
-            <Fila key={`${linea.concepto}-${linea.detalle}`} termino={linea.concepto} detalle={`${linea.detalle} · ${pesos(linea.importe)}`} />
+            <Fila key={`${linea.concepto}-${linea.detalle}`} termino={linea.concepto} detalle={ticket.cotizacion.consumo ? linea.detalle : `${linea.detalle} · ${pesos(linea.importe)}`} />
           ))}
         </dl>
         <p className="font-display mt-4 text-4xl tracking-tight">{textoDelTotal(ticket.cotizacion)}</p>
@@ -104,7 +104,9 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/65">
           {grupo
             ? "Es un pedido de servicio: el predio arma el presupuesto y la reserva se confirma con el pago del 50 %."
-            : "No se cobra nada por la web. El pago se hace en el predio, cuando llegan."}
+            : ticket.cotizacion.consumo
+              ? "No se cobra nada por la web. En el restaurante se paga lo que consuman."
+              : "No se cobra nada por la web. El pago se hace en el predio, cuando llegan."}
         </p>
 
         <h3 className="font-display mt-8 text-2xl tracking-tight">Quién hizo la reserva</h3>

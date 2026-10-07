@@ -176,7 +176,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
                 .join(" · ")}
             </Dato>
           ) : null}
-          {!detalle.cotizacion.aConfirmar ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}
+          {!detalle.cotizacion.aConfirmar && !detalle.cotizacion.consumo ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}
           {reserva.notas ? <Dato termino="Notas">{reserva.notas}</Dato> : null}
           <p className="pt-3 text-sm">
             <a href={enlaceTicket} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">

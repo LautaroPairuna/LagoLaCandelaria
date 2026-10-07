@@ -114,6 +114,7 @@ export async function buscarReservas(busqueda: Busqueda, cantidad = POR_PAGINA) 
       personas: fila.adultos + fila.menores + fila.sinCargo,
       lugares: fila.ocupaciones.map(({ unidad }) => `${nombreDeUnidad[unidad.tipo]} ${unidad.etiqueta}`),
       aConfirmar: Boolean(detalleDe(fila.detalle).cotizacion?.aConfirmar),
+      consumo: Boolean(detalleDe(fila.detalle).cotizacion?.consumo),
       saldo: saldoDe(fila.total, fila.pagos),
       visible: estadoVisible(fila.estado, resumenDeAsistencia({ ...fila, hasta: deFechaDb(fila.hasta) }, hoy).asistencia),
     })),
