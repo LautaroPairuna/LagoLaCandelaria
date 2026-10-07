@@ -1,3 +1,4 @@
+import type { Modulo } from "@/generated/prisma/enums"
 import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
 import { estadoVisible } from "@/lib/panel/estados"
@@ -6,9 +7,9 @@ import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 import { detalleDe } from "@/lib/reservas"
 
-export async function llegadasDelDia(dia: string, busqueda = "") {
+export async function llegadasDelDia(dia: string, busqueda = "", modulo?: Modulo) {
   const filas = await db().reserva.findMany({
-    where: { estado: { not: "CANCELADA" }, desde: { lte: aFechaDb(dia) }, hasta: { gte: aFechaDb(dia) } },
+    where: { estado: { not: "CANCELADA" }, desde: { lte: aFechaDb(dia) }, hasta: { gte: aFechaDb(dia) }, ...(modulo ? { modulo } : {}) },
     orderBy: [{ ingreso: "asc" }, { id: "asc" }],
     select: {
       id: true,

@@ -54,7 +54,8 @@ Paneles:
 - **Puerta** (rol puerta): ingreso y cobranza del día elegido, con cobro del saldo (10 % menos en efectivo) y quiénes no vinieron. El ingreso se marca por persona, por familia o para todo el grupo.
 - **Caja** (solo administración): cobros del período por forma de pago, con descarga en CSV.
 - **General** (solo administración): resumen de hoy, reportes por período y usuarios.
-- Bar y Restaurante aparecen como "Pronto".
+- **Restaurante** (rol restaurante): el salón del día por horario (cada mesa es una fila y cada reserva un bloque con el color de su estado, con la hora actual marcada) y las reservas de mesa ordenadas por horario, con alergias y condiciones a la vista. Se marca la llegada y la salida por persona, por familia o la mesa entera; ese rol solo puede marcar reservas de mesa.
+- Bar aparece como "Pronto".
 
 ### Estados de una reserva
 

@@ -24,8 +24,8 @@ export async function exigirPanel(...paneles: PanelId[]) {
 }
 
 // Las Server Actions son endpoints públicos: cada una vuelve a verificar sesión y rol.
-export async function permisoParaAccion(panel: PanelId) {
+export async function permisoParaAccion(...paneles: PanelId[]) {
   const sesion = await sesionActual()
-  if (!sesion || !puedeVer(sesion.user.role, panel)) throw new ErrorHumano(mensajes.sinPermiso)
+  if (!sesion || !paneles.some((panel) => puedeVer(sesion.user.role, panel))) throw new ErrorHumano(mensajes.sinPermiso)
   return sesion
 }

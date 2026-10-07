@@ -40,6 +40,13 @@ export function hoyEnElPredio() {
   return fechaDelPredio.format(new Date())
 }
 
+const horaDelPredio = new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" })
+
+/// La hora en punto en el predio (0 a 23).
+export function horaEnElPredio() {
+  return Number(horaDelPredio.format(new Date()))
+}
+
 const fechaLargaEs = new Intl.DateTimeFormat("es-AR", {
   weekday: "long",
   day: "numeric",

@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { accion, exigir, ErrorHumano, type Resultado } from "@/lib/errores"
+import { accion, exigir, ErrorHumano, mensajes, type Resultado } from "@/lib/errores"
 import { cobroDelSaldo, saldoDe } from "@/lib/panel/cobros"
+import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
 import { aplicar, porPersona } from "@/lib/panel/asistencia"
 import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
@@ -15,6 +16,7 @@ const idDeReserva = z.number().int().positive()
 
 function refrescar() {
   revalidatePath("/panel/puerta")
+  revalidatePath("/panel/restaurante")
   revalidatePath("/panel", "layout")
 }
 
@@ -29,8 +31,10 @@ const pedidoDeAsistencia = z.object({
 /// la reserva. Devuelve a cuántas personas afectó.
 export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsistencia>): Promise<Resultado<{ personas: number }>> {
   return accion("registrarAsistencia", async () => {
-    const sesion = await permisoParaAccion("puerta")
+    // Puerta marca cualquier reserva; el restaurante, solo las de mesa.
+    const sesion = await permisoParaAccion("puerta", "restaurante")
     const { reservaId, movimiento, personas: elegidas } = pedidoDeAsistencia.parse(pedido)
+    const soloMesas = !puedeVer(sesion.user.role, "puerta")
     const ahora = new Date()
     const quien = sesion.user.name.slice(0, 80)
 
@@ -39,6 +43,7 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
         where: { id: reservaId },
         select: {
           estado: true,
+          modulo: true,
           desde: true,
           adultos: true,
           menores: true,
@@ -48,6 +53,7 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
           personas: { select: { id: true, ingresoEn: true, salidaEn: true } },
         },
       })
+      if (reserva && soloMesas && reserva.modulo !== "RESTAURANTE") throw new ErrorHumano(mensajes.sinPermiso)
       if (!reserva || reserva.estado === "CANCELADA") throw new ErrorHumano("Esta reserva se canceló, así que no se puede registrar el ingreso. Revisala en Reservas.")
       if (deFechaDb(reserva.desde) > hoyEnElPredio()) throw new ErrorHumano("Esta reserva es para más adelante: el ingreso se marca el día que llegan.")
 
