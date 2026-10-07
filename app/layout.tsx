@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Fraunces, Outfit } from "next/font/google"
 
 import { AppToaster } from "@/components/app-toaster"
+import { NOMBRE_DEL_SITIO, seoDelInicio } from "@/lib/seo"
 import { urlSitio } from "@/lib/url-sitio"
 
 import "./globals.css"
@@ -19,24 +20,21 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
 })
 
-const descripcion =
-  "Predio recreativo en Tristán Suárez. Canotaje, tirolesa, restaurante, bungalows y campamentos para familias y estudiantes. La visita se reserva."
-
 export const metadata: Metadata = {
   metadataBase: new URL(urlSitio),
   title: {
-    default: "Lago La Candelaria",
-    template: "%s · Lago La Candelaria",
+    default: seoDelInicio.titulo,
+    template: `%s · ${NOMBRE_DEL_SITIO}`,
   },
-  description: descripcion,
+  description: seoDelInicio.descripcion,
   openGraph: {
     type: "website",
     locale: "es_AR",
-    siteName: "Lago La Candelaria",
-    title: "Lago La Candelaria",
-    description: descripcion,
+    siteName: NOMBRE_DEL_SITIO,
+    title: seoDelInicio.titulo,
+    description: seoDelInicio.descripcion,
   },
-  twitter: { card: "summary_large_image" },
+  twitter: { card: "summary_large_image", title: seoDelInicio.titulo, description: seoDelInicio.descripcion },
 }
 
 export const viewport: Viewport = {
@@ -48,7 +46,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="es"
+      lang="es-AR"
       data-scroll-behavior="smooth"
       className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}
     >

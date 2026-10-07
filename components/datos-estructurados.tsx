@@ -4,10 +4,12 @@ import { urlSitio } from "@/lib/url-sitio"
 const redes = ["facebook", "instagram", "youtube", "tiktok"]
 
 export function DatosEstructurados() {
-  const datos = {
-    "@context": "https://schema.org",
+  const negocio = {
     "@type": ["LocalBusiness", "TouristAttraction"],
+    "@id": `${urlSitio}/#negocio`,
     name: "Lago La Candelaria",
+    inLanguage: "es-AR",
+    hasMap: `https://www.google.com/maps?q=${mapPoint.lat},${mapPoint.lng}`,
     description:
       "Predio recreativo de 27 hectáreas en Tristán Suárez con canotaje, tirolesa, parque aéreo, restaurante, bungalows y campamentos estudiantiles.",
     url: urlSitio,
@@ -23,6 +25,8 @@ export function DatosEstructurados() {
     geo: { "@type": "GeoCoordinates", latitude: mapPoint.lat, longitude: mapPoint.lng },
     sameAs: channels.filter((channel) => redes.includes(channel.id)).map((channel) => channel.href),
   }
+  const sitio = { "@type": "WebSite", "@id": `${urlSitio}/#sitio`, url: urlSitio, name: "Lago La Candelaria", inLanguage: "es-AR", publisher: { "@id": `${urlSitio}/#negocio` } }
+  const datos = { "@context": "https://schema.org", "@graph": [negocio, sitio] }
 
   return (
     <script

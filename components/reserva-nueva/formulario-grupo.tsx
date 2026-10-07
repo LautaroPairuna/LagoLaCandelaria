@@ -105,7 +105,7 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
                     key={opcion}
                     className={cn(
                       "cursor-pointer rounded-full border-2 px-4 py-2 text-sm font-semibold",
-                      datos.modalidad === opcion ? "border-orange bg-orange text-white" : "border-ink/10 bg-white",
+                      datos.modalidad === opcion ? "border-orange bg-orange text-sobre-naranja" : "border-ink/10 bg-white",
                     )}
                   >
                     <input type="radio" name="modalidad" value={opcion} checked={datos.modalidad === opcion} onChange={() => cambiar("modalidad", opcion)} className="sr-only" />

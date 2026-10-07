@@ -13,6 +13,8 @@
   --font-mono: var(--font-outfit), "Outfit", sans-serif;
   --color-orange: #ff7a14;
   --color-orange-hover: #e86a0c;
+  /* Texto sobre el naranja de la marca: el blanco da 2,6:1 y este, 6,3:1. */
+  --color-sobre-naranja: #241f1a;
   --color-lake: #1f7fb5;
   --color-lake-ink: #1c71a1;
   --color-lake-deep: #1d77aa;

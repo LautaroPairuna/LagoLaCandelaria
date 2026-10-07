@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { MapPin } from "lucide-react"
 
 import { AboutPlace } from "@/components/about-place"
@@ -7,6 +8,9 @@ import { TextLink } from "@/components/text-link"
 import { VideoFondo } from "@/components/video-fondo"
 import { Wave } from "@/components/wave"
 import { fotoUrl } from "@/lib/fotos"
+import { seoDeInicio } from "@/lib/seo"
+
+export const metadata: Metadata = seoDeInicio()
 
 export default function HomePage() {
   return (
@@ -31,7 +35,7 @@ export default function HomePage() {
               <div className="mt-8 flex justify-center sm:mt-10">
                 <ButtonLink
                   href="/#actividades"
-                  className="h-14 bg-orange px-8 text-lg text-white shadow-[0_10px_28px_rgba(255,122,20,0.45)] hover:bg-orange-hover"
+                  className="h-14 bg-orange px-8 text-lg text-sobre-naranja shadow-[0_10px_28px_rgba(255,122,20,0.45)] hover:bg-orange-hover"
                 >
                   Ver actividades
                 </ButtonLink>

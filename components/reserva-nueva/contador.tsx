@@ -40,7 +40,7 @@ export function Contador({
           type="button"
           aria-label={`Sumar ${etiqueta.toLowerCase()}`}
           disabled={valor >= maximo}
-          className="grid size-10 place-items-center rounded-full border border-orange bg-orange text-white disabled:opacity-30"
+          className="grid size-10 place-items-center rounded-full border border-orange bg-orange text-sobre-naranja disabled:opacity-30"
           onClick={() => onChange(valor + 1)}
         >
           <Plus className="size-4" aria-hidden />

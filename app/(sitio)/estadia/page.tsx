@@ -1,15 +1,11 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 
 import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
 import { stays } from "@/lib/categories"
+import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Estadía",
-  description:
-    "Bungalows, campamento y pasar el día en Lago La Candelaria. Cada opción tiene su ficha. La fecha se confirma con el equipo.",
-}
+export const metadata = seoDePagina({ ...seoDePaginas.estadia, ruta: "/estadia" })
 
 export default function EstadiaPage() {
   return (

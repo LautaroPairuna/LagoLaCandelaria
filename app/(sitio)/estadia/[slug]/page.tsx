@@ -1,8 +1,10 @@
+import { MigasJsonLd } from "@/components/migas-json-ld"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { CategoryDetail } from "@/components/category-detail"
 import { getStay, stays } from "@/lib/categories"
+import { seoDeEstadias, seoDePagina } from "@/lib/seo"
 
 export function generateStaticParams() {
   return stays.map((stay) => ({ slug: stay.slug }))
@@ -18,10 +20,10 @@ export async function generateMetadata({
   const { slug } = await params
   const stay = getStay(slug)
   if (!stay) return { title: "Estadía" }
-  return {
-    title: stay.title,
-    description: stay.summary,
-  }
+  return seoDePagina({
+    ...(seoDeEstadias[slug] ?? { titulo: stay.title, descripcion: stay.summary }),
+    ruta: `/estadia/${slug}`,
+  })
 }
 
 export default async function StayPage({
@@ -37,6 +39,13 @@ export default async function StayPage({
 
   return (
     <main>
+      <MigasJsonLd
+        migas={[
+          { nombre: "Inicio", ruta: "/" },
+          { nombre: "Estadía", ruta: "/estadia" },
+          { nombre: stay.title, ruta: `/estadia/${stay.slug}` },
+        ]}
+      />
       <CategoryDetail
         category={stay}
         others={others}

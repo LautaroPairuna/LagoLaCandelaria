@@ -1,14 +1,10 @@
-import type { Metadata } from "next"
 
 import { ButtonLink } from "@/components/button-link"
 import { PageHero } from "@/components/page-hero"
 import { TextLink } from "@/components/text-link"
+import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Grupos",
-  description:
-    "Findes en familia, campamentos estudiantiles, egresados y salidas educativas en Lago La Candelaria. La visita es con reserva.",
-}
+export const metadata = seoDePagina({ ...seoDePaginas.grupos, ruta: "/grupos" })
 
 const script = [
   {

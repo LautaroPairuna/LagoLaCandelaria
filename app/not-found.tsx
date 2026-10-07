@@ -1,5 +1,7 @@
 import { ButtonLink } from "@/components/button-link"
 
+export const metadata = { title: "Página no encontrada" }
+
 export default function NotFound() {
   return (
     <main className="flex min-h-svh items-center bg-cream text-ink">

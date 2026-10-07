@@ -1,15 +1,11 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 
 import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
 import { categories } from "@/lib/categories"
+import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Actividades",
-  description:
-    "Fichas del predio: lago, parque aéreo, canchas, playa, parrillas y palapas, bar y restaurante. La entrada es al predio.",
-}
+export const metadata = seoDePagina({ ...seoDePaginas.actividades, ruta: "/actividades" })
 
 export default function ActividadesPage() {
   return (

@@ -169,7 +169,7 @@ export function CalendarioDisponible({
                 (estado?.estado === "completo" || estado?.estado === "cerrado") && "border-[#f3c1b8] bg-[#fde8e4] text-[#a0453a]/70",
                 estado?.estado === "pasado" && "border-transparent bg-transparent text-ink/25",
                 enRango && "border-orange/50 bg-orange/15 text-ink",
-                elegido && "border-orange bg-orange text-white hover:bg-orange",
+                elegido && "border-orange bg-orange text-sobre-naranja hover:bg-orange",
               )}
             >
               {Number(fecha.slice(8))}

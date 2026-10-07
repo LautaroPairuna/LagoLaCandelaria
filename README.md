@@ -62,6 +62,10 @@ Ninguna pantalla muestra un error técnico. Las Server Actions pasan por `accion
 
 En el navegador, `lib/avisos.ts` muestra los toasts (`conAviso` corre la acción y avisa cómo salió) y distingue cuando se cortó internet. En los formularios, cada campo con problema queda marcado al lado, el toast lo resume y el foco va al primero.
 
+### SEO
+
+Los títulos, descripciones e imágenes al compartir de cada página están en `lib/seo.ts`, y `seoDePagina()` arma también la canonical y la vista previa (Open Graph y Twitter). `lib/seo.test.ts` controla que cada ficha tenga sus textos, que no se repitan y que entren en el resultado de búsqueda (título hasta 62 caracteres, descripción de 110 a 160). Al sumar una página o una ficha nueva hay que agregarle sus textos ahí.
+
 ### Migraciones al desplegar
 
 `npm start` aplica las migraciones pendientes (`prisma migrate deploy`) antes de levantar la app, así cada deploy deja la base al día. Las migraciones son aditivas (columnas e índices nuevos); si alguna llegara a ser destructiva hay que sacar un backup antes. Se corre desde el arranque y no desde el build porque el contenedor de build no ve la red interna de la base. Con más de una réplica conviene sacar este paso del arranque.

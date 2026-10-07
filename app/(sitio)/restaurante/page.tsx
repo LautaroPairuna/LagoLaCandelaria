@@ -1,13 +1,9 @@
-import type { Metadata } from "next"
 
 import { ButtonLink } from "@/components/button-link"
 import { PageHero } from "@/components/page-hero"
+import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Restaurante",
-  description:
-    "Restaurante, bar de playa, parrilla, gazebo y proveeduría en el predio de Lago La Candelaria. También se puede traer comida.",
-}
+export const metadata = seoDePagina({ ...seoDePaginas.restaurante, ruta: "/restaurante" })
 
 const sectors = [
   {

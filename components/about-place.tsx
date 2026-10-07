@@ -17,11 +17,11 @@ const shell =
 const surfaces: Record<ChannelId, string> = {
   whatsapp: "bg-[#25D366] text-[#05351c] shadow-[0_16px_34px_rgba(7,94,84,0.28)]",
   phone: "bg-[#24362c] text-[#f6f1e6] shadow-[0_16px_34px_rgba(36,54,44,0.3)]",
-  mail: "bg-[#EA4335] text-white shadow-[0_16px_34px_rgba(197,34,31,0.32)]",
-  facebook: "bg-[#1877F2] text-white shadow-[0_16px_34px_rgba(24,119,242,0.32)]",
+  mail: "bg-[#C5221F] text-white shadow-[0_16px_34px_rgba(197,34,31,0.32)]",
+  facebook: "bg-[#0F5CC4] text-white shadow-[0_16px_34px_rgba(24,119,242,0.32)]",
   instagram:
     "bg-[linear-gradient(145deg,#f9ce34_0%,#f77737_18%,#ee2a7b_46%,#c13584_68%,#6228d7_100%)] text-white shadow-[0_16px_34px_rgba(193,53,132,0.34)]",
-  youtube: "bg-[#FF0000] text-white shadow-[0_16px_34px_rgba(204,0,0,0.32)]",
+  youtube: "bg-[#CC0000] text-white shadow-[0_16px_34px_rgba(204,0,0,0.32)]",
   tiktok: "bg-black text-white shadow-[0_16px_34px_rgba(0,0,0,0.38)] ring-1 ring-white/12",
 }
 
@@ -173,7 +173,7 @@ function ChannelCard({ channel, layout }: { channel: Channel; layout: "direct" |
     >
       <Mark id={channel.id} />
       <span className={layout === "direct" ? "min-w-0" : "min-w-0 max-w-full"}>
-        <span className="block text-[0.72rem] font-bold tracking-[0.16em] uppercase opacity-80">
+        <span className="block text-[0.72rem] font-bold tracking-[0.16em] uppercase opacity-90">
           {channel.label}
         </span>
         <ChannelDetail channel={channel} layout={layout} />

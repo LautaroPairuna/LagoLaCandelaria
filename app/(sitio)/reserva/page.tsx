@@ -1,5 +1,4 @@
 import { ArrowLeft, ArrowRight, MessageCircle } from "lucide-react"
-import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -9,12 +8,9 @@ import { FlujoFamilia } from "@/components/reserva-nueva/flujo-familia"
 import { FormularioGrupo } from "@/components/reserva-nueva/formulario-grupo"
 import { buscarPropuesta, destinoDeVisitaVieja, propuestas, type Opcion, type Propuesta } from "@/lib/propuestas"
 import { enlaceWhatsappDelPredio } from "@/lib/site"
+import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Reserva",
-  description:
-    "Reservá en Lago La Candelaria: finde en familia con parrilla, playa o bungalow, propuestas estudiantiles y actividades de aventura. Te queda un ticket con QR.",
-}
+export const metadata = seoDePagina({ ...seoDePaginas.reserva, ruta: "/reserva" })
 
 function primero(valor: string | string[] | undefined) {
   return Array.isArray(valor) ? valor[0] : valor

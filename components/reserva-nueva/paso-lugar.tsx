@@ -160,7 +160,7 @@ export function PasoLugar({
                     className={cn(
                       "flex h-14 w-full flex-col items-center justify-center rounded-xl border text-center transition md:h-16",
                       libre && !elegido && "border-[#9fd18f] bg-[#eaf6e4] text-[#2f5d16] hover:bg-[#d6eecb]",
-                      elegido && "border-orange bg-orange text-white",
+                      elegido && "border-orange bg-orange text-sobre-naranja",
                       !libre && "cursor-not-allowed border-transparent bg-ink/5 text-ink/30 line-through",
                     )}
                   >

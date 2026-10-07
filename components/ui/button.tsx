@@ -8,7 +8,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "rounded-full bg-orange font-bold text-white hover:bg-orange-hover",
+          "rounded-full bg-orange font-bold text-sobre-naranja hover:bg-orange-hover",
         outline:
           "rounded-full border-[1.5px] border-lake-ink bg-transparent text-lake-ink hover:bg-lake-soft hover:text-lake-ink",
         secondary:
