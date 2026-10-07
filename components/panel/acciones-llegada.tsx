@@ -6,18 +6,11 @@ import { cobrar, registrarAsistencia } from "@/app/panel/puerta/acciones"
 import { AsistenciaDelGrupo, type Integrante } from "@/components/panel/asistencia-grupo"
 import { Button } from "@/components/ui/button"
 import { avisarRevisar, conAviso } from "@/lib/avisos"
-import { nombreDeAsistencia, type Asistencia, type Movimiento } from "@/lib/panel/asistencia"
+import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
+import type { Asistencia, Movimiento } from "@/lib/panel/asistencia"
 import { cobroDelSaldo, type FormaDeCobro } from "@/lib/panel/cobros"
+import type { EstadoVisible } from "@/lib/panel/estados"
 import { pesos } from "@/lib/predio/tarifas"
-import { cn } from "cn"
-
-const colorDeAsistencia: Record<Asistencia, string> = {
-  "por-llegar": "bg-panel text-panel-muted",
-  parcial: "bg-panel-claro text-panel-tostado",
-  adentro: "bg-[#e8f4e3] text-[#3f6b12]",
-  finalizada: "bg-panel-line text-panel-ink",
-  "no-vino": "bg-[#fde8e4] text-[#7a2e24]",
-}
 
 const nombreDeForma: Record<FormaDeCobro, string> = {
   EFECTIVO: "efectivo",
@@ -28,6 +21,7 @@ const nombreDeForma: Record<FormaDeCobro, string> = {
 export function AccionesLlegada({
   id,
   titular,
+  visible,
   asistencia,
   integrantes,
   ingreso,
@@ -35,6 +29,7 @@ export function AccionesLlegada({
 }: {
   id: number
   titular: string
+  visible: EstadoVisible
   asistencia: { porPersona: boolean; estado: Asistencia; adentro: number; salieron: number; total: number }
   integrantes: Integrante[]
   ingreso: { hora: string; por: string | null } | null
@@ -62,7 +57,7 @@ export function AccionesLlegada({
   return (
     <div className="space-y-3">
       <p className="flex flex-wrap items-center gap-2 text-sm">
-        <span className={cn("rounded-full px-3 py-1.5 font-bold", colorDeAsistencia[asistencia.estado])}>{nombreDeAsistencia[asistencia.estado]}</span>
+        <InsigniaDeEstado estado={visible} grande />
         {asistencia.adentro + asistencia.salieron > 0 ? (
           <span className="text-panel-muted">
             {asistencia.adentro} de {asistencia.total} adentro

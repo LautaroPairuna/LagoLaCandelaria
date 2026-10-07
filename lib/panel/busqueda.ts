@@ -1,7 +1,9 @@
 import type { EstadoReserva, Prisma } from "@/generated/prisma/client"
+import { resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
+import { estadoVisible } from "@/lib/panel/estados"
 import { lineas, nombreDeUnidad, type LineaId } from "@/lib/panel/reservas"
-import { aFechaDb, deFechaDb } from "@/lib/predio/fechas"
+import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 import { detalleDe } from "@/lib/reservas"
 
@@ -86,7 +88,9 @@ export async function buscarReservas(busqueda: Busqueda, cantidad = POR_PAGINA) 
         total: true,
         institucion: true,
         ingresoEn: true,
+        salidaEn: true,
         detalle: true,
+        personas: { select: { ingresoEn: true, salidaEn: true } },
         cliente: { select: { nombre: true, apellido: true, telefono: true } },
         ocupaciones: { distinct: ["unidadId"], select: { unidad: { select: { tipo: true, etiqueta: true } } } },
         pagos: { select: { importe: true, descuento: true } },
@@ -94,6 +98,7 @@ export async function buscarReservas(busqueda: Busqueda, cantidad = POR_PAGINA) 
     }),
   ])
 
+  const hoy = hoyEnElPredio()
   return {
     total,
     filas: filas.map((fila) => ({
@@ -110,7 +115,7 @@ export async function buscarReservas(busqueda: Busqueda, cantidad = POR_PAGINA) 
       lugares: fila.ocupaciones.map(({ unidad }) => `${nombreDeUnidad[unidad.tipo]} ${unidad.etiqueta}`),
       aConfirmar: Boolean(detalleDe(fila.detalle).cotizacion?.aConfirmar),
       saldo: saldoDe(fila.total, fila.pagos),
-      ingreso: fila.ingresoEn !== null,
+      visible: estadoVisible(fila.estado, resumenDeAsistencia({ ...fila, hasta: deFechaDb(fila.hasta) }, hoy).asistencia),
     })),
   }
 }

@@ -3,7 +3,9 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { AccionesLlegada } from "@/components/panel/acciones-llegada"
+import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { totalesPorForma } from "@/lib/panel/cobros"
+import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { llegadasDelDia, pagosDelDia, type Llegada } from "@/lib/panel/puerta"
 import { nombreDelModulo } from "@/lib/panel/reservas"
@@ -97,6 +99,8 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
             />
           </form>
 
+          <LeyendaDeEstados />
+
           <ListaLlegadas
             titulo={momento === "pasado" ? "No vinieron" : momento === "futuro" ? "Esperados" : "Por llegar"}
             llegadas={porEntrar}
@@ -186,35 +190,37 @@ function ListaLlegadas({
             <li
               key={llegada.id}
               className={cn(
-                "grid gap-4 rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5 2xl:grid-cols-[minmax(0,1fr)_auto]",
-                llegada.asistencia === "finalizada" && "opacity-80",
+                "grid gap-4 rounded-3xl border-2 border-l-8 p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5 2xl:grid-cols-[minmax(0,1fr)_auto]",
+                estilosDeEstado[llegada.visible].tarjeta,
+                estilosDeEstado[llegada.visible].borde,
               )}
             >
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-2 text-xs font-bold tracking-wide text-panel-muted uppercase">
                   {nombreDelModulo[llegada.modulo]} · {llegada.codigo}
-                  {llegada.estado === "PENDIENTE" ? (
-                    <span className="rounded-full bg-panel-claro px-2 py-0.5 text-panel-tostado normal-case">Sin confirmar</span>
-                  ) : null}
                 </p>
-                <Link href={`/panel/reservas/${llegada.id}`} className="font-display mt-1 block text-2xl tracking-tight hover:underline">
+                <Link href={`/panel/reservas/${llegada.id}`} className="font-display mt-1 block text-2xl tracking-tight hover:underline md:text-3xl">
                   {llegada.titular}
                 </Link>
-                <p className="mt-1 text-sm text-panel-muted">
+                <p className="mt-1 text-base text-panel-ink/80">
                   {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"} · {llegada.horario}
                   {llegada.lugares.length ? ` · ${llegada.lugares.join(", ")}` : ""}
                   {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
                 </p>
-                <p className="mt-2 text-sm font-semibold">
+                <p className="mt-2 text-base font-semibold">
                   {llegada.aConfirmar ? "Presupuesto a confirmar con el predio" : llegada.saldo ? `Saldo ${pesos(llegada.saldo)}` : "Pagado"}
                 </p>
               </div>
               {bloqueado ? (
-                <p className="text-sm text-panel-muted">El ingreso y el cobro se marcan ese día.</p>
+                <div className="space-y-2">
+                  <InsigniaDeEstado estado={llegada.visible} grande />
+                  <p className="text-sm text-panel-ink/70">El ingreso y el cobro se marcan ese día.</p>
+                </div>
               ) : (
               <AccionesLlegada
                 id={llegada.id}
                 titular={llegada.titular}
+                visible={llegada.visible}
                 ingreso={llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null}
                 asistencia={{ porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total }}
                 integrantes={llegada.integrantes}

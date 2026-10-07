@@ -1,5 +1,6 @@
 import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
+import { estadoVisible } from "@/lib/panel/estados"
 import { nombreDeUnidad } from "@/lib/panel/reservas"
 import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
@@ -50,6 +51,7 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
         codigo: fila.codigo,
         modulo: fila.modulo,
         estado: fila.estado,
+        visible: estadoVisible(fila.estado, resumen.asistencia),
         horario: `${fila.ingreso} a ${fila.salida}`,
         personas: fila.adultos + fila.menores + fila.sinCargo,
         titular,
@@ -57,7 +59,7 @@ export async function llegadasDelDia(dia: string, busqueda = "") {
         lugares: fila.ocupaciones.map((item) => `${nombreDeUnidad[item.unidad.tipo]} ${item.unidad.etiqueta}`),
         ingresoEn: fila.ingresoEn,
         ingresoPor: fila.ingresoPor,
-        integrantes: fila.personas.map(({ ingresoEn, salidaEn, ...persona }) => ({ ...persona, estado: estadoDe({ ingresoEn, salidaEn }) })),
+        integrantes: fila.personas.map(({ ingresoEn, salidaEn, ...persona }) => ({ ...persona, estado: estadoDe({ ingresoEn, salidaEn }, deFechaDb(fila.hasta) < hoy) })),
         aConfirmar,
         saldo: aConfirmar ? null : saldoDe(fila.total, fila.pagos),
         buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido, ...fila.personas.map((persona) => `${persona.nombre} ${persona.apellido} ${persona.dni ?? ""}`)]

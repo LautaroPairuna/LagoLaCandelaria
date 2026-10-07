@@ -51,7 +51,6 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
   const [fechas, setFechas] = useState({ desde: "", hasta: "" })
   const [unidades, setUnidades] = useState<string[]>([])
   const [contacto, setContacto] = useState({ telefono: "", email: "" })
-  const [formaPago, setFormaPago] = useState<"EFECTIVO" | "DEBITO">("EFECTIVO")
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [enviando, iniciar] = useTransition()
 
@@ -120,7 +119,7 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
       return
     }
     iniciar(async () => {
-      const comun = { familias: familiasParaEnviar(familias), contacto, unidades, formaPago }
+      const comun = { familias: familiasParaEnviar(familias), contacto, unidades }
       const resultado = await llamar(() =>
         modo === "dia"
           ? reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", ...comun })
@@ -227,14 +226,12 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
               <PasoConfirmar
                 familias={familias}
                 contacto={contacto}
-                formaPago={formaPago}
                 errores={errores}
                 onContacto={(nuevo) => {
                   if (nuevo.telefono !== contacto.telefono) limpiar("contacto.telefono")
                   if (nuevo.email !== contacto.email) limpiar("contacto.email")
                   setContacto(nuevo)
                 }}
-                onFormaPago={setFormaPago}
               />
             ) : null}
           </div>
@@ -321,17 +318,13 @@ function Resumen({ termino, children }: { termino: string; children: ReactNode }
 function PasoConfirmar({
   familias,
   contacto,
-  formaPago,
   errores,
   onContacto,
-  onFormaPago,
 }: {
   familias: FamiliaForm[]
   contacto: { telefono: string; email: string }
-  formaPago: "EFECTIVO" | "DEBITO"
   errores: Record<string, string>
   onContacto: (contacto: { telefono: string; email: string }) => void
-  onFormaPago: (forma: "EFECTIVO" | "DEBITO") => void
 }) {
   const conNotas = familias.flatMap((familia, indice) =>
     [...familia.adultos, ...familia.ninos].filter((persona) => persona.notas.trim()).map((persona) => ({ ...persona, familia: indice + 1 })),
@@ -388,31 +381,10 @@ function PasoConfirmar({
         <p className="mt-1 text-sm text-ink/55">Característica y número, sin 0 ni 15.</p>
       </fieldset>
 
-      <fieldset>
-        <legend className="font-semibold">¿Cómo vas a pagar en el predio?</legend>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {(
-            [
-              ["EFECTIVO", "Efectivo", "10 % menos"],
-              ["DEBITO", "Débito", "Precio de lista"],
-            ] as const
-          ).map(([valor, nombre, detalle]) => (
-            <label
-              key={valor}
-              className={cn(
-                "flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3",
-                formaPago === valor ? "border-orange bg-orange/5" : "border-ink/15 hover:border-ink/30",
-              )}
-            >
-              <input type="radio" name="formaPago" value={valor} checked={formaPago === valor} onChange={() => onFormaPago(valor)} className="size-4 accent-[#ff7a14]" />
-              <span>
-                <span className="block font-semibold">{nombre}</span>
-                <span className="text-sm text-ink/60">{detalle}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <div className="rounded-2xl bg-sand px-4 py-3 text-sm leading-relaxed">
+        <p className="font-semibold">El pago se hace en el predio</p>
+        <p className="mt-1 text-ink/75">Ahora no se cobra nada. Cuando lleguen, elegís cómo pagar en la puerta. Pagando en efectivo tenés 10 % de descuento.</p>
+      </div>
     </div>
   )
 }

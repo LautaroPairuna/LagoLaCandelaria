@@ -13,20 +13,15 @@ import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
 import { AsistenciaDelGrupo } from "@/components/panel/asistencia-grupo"
-import { estadoDe, nombreDeAsistencia, resumenDeAsistencia } from "@/lib/panel/asistencia"
+import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
+import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
+import { estadoVisible } from "@/lib/panel/estados"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { detalleDe } from "@/lib/reservas"
 import { urlSitio } from "@/lib/url-sitio"
-import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Reserva" }
-
-const etiquetaDeEstado = {
-  PENDIENTE: { texto: "A confirmar", clase: "bg-panel-claro text-panel-tostado" },
-  CONFIRMADA: { texto: "Confirmada", clase: "bg-panel-naranja text-white" },
-  CANCELADA: { texto: "Cancelada", clase: "bg-panel-line text-panel-muted" },
-} as const
 
 export default async function DetalleReserva({ params }: PageProps<"/panel/reservas/[id]">) {
   const sesion = await exigirPanel("reservas", "puerta")
@@ -53,7 +48,15 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const puedeMarcar = marcaIngresos && reserva.estado !== "CANCELADA" && desde <= hoy
   const importantes = reserva.personas.filter((persona) => persona.notas)
   const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
-  const estado = etiquetaDeEstado[reserva.estado]
+  const visible = estadoVisible(reserva.estado, asistencia.asistencia)
+  const motivoSinMarcar =
+    reserva.estado === "CANCELADA"
+      ? "La reserva está cancelada: no se puede marcar el ingreso."
+      : desde > hoy
+        ? `El ingreso se marca desde el ${fechaLargaPanel(desde).toLowerCase()}.`
+        : !marcaIngresos
+          ? "Tu usuario no marca ingresos: eso se hace desde Puerta."
+          : undefined
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
@@ -78,7 +81,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
             {reserva.institucion ?? `${reserva.cliente.nombre} ${reserva.cliente.apellido}`}
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-3 text-panel-muted">
-            <span className={cn("rounded-full px-3 py-1 text-sm font-bold", estado.clase)}>{estado.texto}</span>
+            <InsigniaDeEstado estado={visible} grande />
             <span className="font-semibold tracking-wider">{reserva.codigo}</span>
             <span>{nombreDelModulo[reserva.modulo]}</span>
             {reserva.origen === "LEGADO" ? <span>Vino de la web anterior</span> : null}
@@ -192,7 +195,6 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
               {reserva.estado !== "CANCELADA" ? (
                 <>
                   {" · "}
-                  <strong className="text-panel-ink">{nombreDeAsistencia[asistencia.asistencia]}</strong>
                   {asistencia.adentro + asistencia.salieron ? ` (${asistencia.adentro} adentro de ${asistencia.total})` : ""}
                 </>
               ) : null}
@@ -205,6 +207,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
                 reservaId={reserva.id}
                 completo
                 puedeMarcar={puedeMarcar}
+                motivoSinMarcar={motivoSinMarcar}
                 integrantes={reserva.personas.map((persona) => ({
                   id: persona.id,
                   familia: persona.familia,
@@ -214,7 +217,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
                   dni: persona.dni,
                   edad: persona.edad,
                   notas: persona.notas,
-                  estado: estadoDe(persona),
+                  estado: estadoDe(persona, hasta < hoy),
                 }))}
               />
             </div>

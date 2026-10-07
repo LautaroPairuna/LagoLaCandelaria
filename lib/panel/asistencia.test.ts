@@ -9,8 +9,12 @@ const adentro = { ingresoEn: t, salidaEn: null }
 const salio = { ingresoEn: t, salidaEn: despues }
 
 describe("estados", () => {
-  it("cada persona está pendiente, adentro o se fue", () => {
-    expect([pendiente, adentro, salio].map(estadoDe)).toEqual(["pendiente", "adentro", "salio"])
+  it("cada persona está pendiente, ingresada o finalizada", () => {
+    expect([pendiente, adentro, salio].map((persona) => estadoDe(persona))).toEqual(["pendiente", "adentro", "finalizado"])
+  })
+
+  it("pasada la fecha, quien ingresó queda finalizado solo y quien no, figura como que no vino", () => {
+    expect([pendiente, adentro, salio].map((persona) => estadoDe(persona, true))).toEqual(["no-vino", "finalizado", "finalizado"])
   })
 
   it("la reserva sale de sus personas", () => {
@@ -18,9 +22,17 @@ describe("estados", () => {
     expect(asistenciaDe(["pendiente", "pendiente"], true)).toBe("no-vino")
     expect(asistenciaDe(["adentro", "pendiente"], false)).toBe("parcial")
     expect(asistenciaDe(["adentro", "adentro"], false)).toBe("adentro")
-    expect(asistenciaDe(["adentro", "salio"], false)).toBe("adentro")
-    expect(asistenciaDe(["salio", "salio"], false)).toBe("finalizada")
-    expect(asistenciaDe(["salio", "pendiente"], true)).toBe("finalizada")
+    expect(asistenciaDe(["adentro", "finalizado"], false)).toBe("adentro")
+    expect(asistenciaDe(["finalizado", "finalizado"], false)).toBe("finalizada")
+  })
+
+  it("una familia que ya se fue mientras la otra no llegó sigue como ingreso parcial", () => {
+    expect(asistenciaDe(["finalizado", "pendiente"], false)).toBe("parcial")
+  })
+
+  it("pasada la fecha queda finalizada sola si entró alguien, aunque falte alguno", () => {
+    expect(asistenciaDe(["finalizado", "no-vino"], true)).toBe("finalizada")
+    expect(asistenciaDe(["no-vino", "no-vino"], true)).toBe("no-vino")
   })
 })
 
@@ -30,10 +42,16 @@ describe("resumenDeAsistencia", () => {
     expect(resumen).toMatchObject({ porPersona: true, asistencia: "parcial", pendientes: 2, adentro: 2, salieron: 0, total: 4 })
   })
 
+  it("al día siguiente la reserva con ingresos figura finalizada sin haber marcado salidas", () => {
+    const reserva = { ...pendiente, adultos: 2, menores: 0, sinCargo: 0, hasta: "2026-10-10", personas: [adentro, pendiente] }
+    expect(resumenDeAsistencia(reserva, "2026-10-11")).toMatchObject({ asistencia: "finalizada", adentro: 0, salieron: 1, pendientes: 1 })
+  })
+
   it("sin personas cargadas, la reserva entera cuenta como una", () => {
     expect(porPersona({ adultos: 2, menores: 40, sinCargo: 0, personas: [] })).toBe(false)
     const resumen = resumenDeAsistencia({ ...adentro, adultos: 2, menores: 40, sinCargo: 0, hasta: "2026-10-10", personas: [] }, "2026-10-10")
     expect(resumen).toMatchObject({ porPersona: false, asistencia: "adentro", adentro: 42, pendientes: 0 })
+    expect(resumenDeAsistencia({ ...adentro, adultos: 2, menores: 40, sinCargo: 0, hasta: "2026-10-10", personas: [] }, "2026-10-11").asistencia).toBe("finalizada")
   })
 })
 

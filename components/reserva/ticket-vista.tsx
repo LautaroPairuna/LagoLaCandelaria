@@ -104,7 +104,7 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/65">
           {grupo
             ? "Es un pedido de servicio: el predio arma el presupuesto y la reserva se confirma con el pago del 50 %."
-            : "No se cobra en esta pantalla. Se paga en el predio, en efectivo o con débito."}
+            : "No se cobra nada por la web. El pago se hace en el predio, cuando llegan."}
         </p>
 
         <h3 className="font-display mt-8 text-2xl tracking-tight">Quién hizo la reserva</h3>

@@ -1,4 +1,6 @@
-export type EstadoPersona = "pendiente" | "adentro" | "salio"
+// Cada persona está pendiente de ingreso, ingresada o finalizada. Cuando pasa la fecha de
+// la reserva, quien ingresó queda finalizado solo y quien no ingresó figura como que no vino.
+export type EstadoPersona = "pendiente" | "adentro" | "finalizado" | "no-vino"
 export type Asistencia = "por-llegar" | "parcial" | "adentro" | "finalizada" | "no-vino"
 
 type ConHoras = { ingresoEn: Date | null; salidaEn: Date | null }
@@ -6,29 +8,32 @@ type ConHoras = { ingresoEn: Date | null; salidaEn: Date | null }
 export const nombreDeEstado: Record<EstadoPersona, string> = {
   pendiente: "Pendiente de ingreso",
   adentro: "Ingresado",
-  salio: "Finalizado",
+  finalizado: "Finalizado",
+  "no-vino": "No vino",
 }
 
 export const nombreDeAsistencia: Record<Asistencia, string> = {
   "por-llegar": "Por llegar",
   parcial: "Ingreso parcial",
-  adentro: "Adentro",
+  adentro: "Ingresada",
   finalizada: "Finalizada",
   "no-vino": "No vino",
 }
 
-export function estadoDe({ ingresoEn, salidaEn }: ConHoras): EstadoPersona {
-  if (!ingresoEn) return "pendiente"
-  return salidaEn ? "salio" : "adentro"
+export function estadoDe({ ingresoEn, salidaEn }: ConHoras, fechaPasada = false): EstadoPersona {
+  if (!ingresoEn) return fechaPasada ? "no-vino" : "pendiente"
+  return salidaEn || fechaPasada ? "finalizado" : "adentro"
 }
 
-/// El estado de la reserva sale del de sus personas: nadie llegó (por llegar, o no vino
-/// si la fecha ya pasó), faltan llegar algunos, están todos adentro, o ya se fueron.
+/// El estado de la reserva sale del de sus personas: nadie llegó, faltan llegar algunos,
+/// están todos adentro, o ya terminó. Pasada la fecha, toda reserva a la que entró alguien
+/// queda finalizada sola, sin tener que marcar las salidas.
 export function asistenciaDe(estados: EstadoPersona[], fechaPasada: boolean): Asistencia {
-  const vinieron = estados.filter((estado) => estado !== "pendiente").length
-  if (vinieron === 0) return fechaPasada ? "no-vino" : "por-llegar"
-  if (!estados.includes("adentro")) return "finalizada"
-  return estados.includes("pendiente") ? "parcial" : "adentro"
+  const llegaron = estados.filter((estado) => estado === "adentro" || estado === "finalizado").length
+  if (llegaron === 0) return fechaPasada ? "no-vino" : "por-llegar"
+  if (fechaPasada) return "finalizada"
+  if (estados.includes("pendiente")) return "parcial"
+  return estados.includes("adentro") ? "adentro" : "finalizada"
 }
 
 /// Si la reserva tiene a cada persona cargada se registra persona por persona; si no
@@ -42,14 +47,15 @@ export type ReservaConAsistencia = ConHoras & { adultos: number; menores: number
 export function resumenDeAsistencia(reserva: ReservaConAsistencia, hoy: string) {
   const total = reserva.adultos + reserva.menores + reserva.sinCargo
   const individual = porPersona(reserva)
-  const estados = individual ? reserva.personas.map(estadoDe) : [estadoDe(reserva)]
+  const pasada = reserva.hasta < hoy
+  const estados = individual ? reserva.personas.map((persona) => estadoDe(persona, pasada)) : [estadoDe(reserva, pasada)]
   const cuenta = (estado: EstadoPersona) => (individual ? estados.filter((item) => item === estado).length : estados[0] === estado ? total : 0)
   return {
     porPersona: individual,
-    asistencia: asistenciaDe(estados, reserva.hasta < hoy),
-    pendientes: cuenta("pendiente"),
+    asistencia: asistenciaDe(estados, pasada),
+    pendientes: cuenta("pendiente") + cuenta("no-vino"),
     adentro: cuenta("adentro"),
-    salieron: cuenta("salio"),
+    salieron: cuenta("finalizado"),
     total,
   }
 }

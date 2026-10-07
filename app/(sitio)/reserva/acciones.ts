@@ -27,7 +27,6 @@ const grupoFamiliar = {
   familias,
   contacto,
   unidades: z.array(z.string().max(24)).min(1, "Elegí el lugar.").max(10),
-  formaPago: z.enum(["EFECTIVO", "DEBITO"]),
 }
 
 const MAX_PERSONAS = 99
@@ -144,7 +143,6 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
         cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
         cotizacion: cotizarDia(grupo),
-        formaPago: datos.formaPago,
         propuesta: datos.lugar === "parrilla" ? "Parrilla" : "Gazebo o palapa",
         personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
@@ -186,7 +184,6 @@ export async function reservarBungalow(pedido: z.input<typeof pedidoDeBungalow>)
         cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
         cotizacion: cotizarBungalows(personas.length, noches, elegidas.length),
-        formaPago: datos.formaPago,
         personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
           const hoy = hoyEnElPredio()

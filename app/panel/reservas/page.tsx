@@ -2,7 +2,9 @@ import { Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { buscarReservas, contarPasadas, POR_PAGINA, type FiltroDeEstado, type FilaDeBusqueda } from "@/lib/panel/busqueda"
+import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel, rangoConMesPanel } from "@/lib/panel/formato"
 import { esLinea, lineas, nombreDelModulo } from "@/lib/panel/reservas"
 import { exigirPanel } from "@/lib/panel/sesion"
@@ -116,6 +118,10 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
         </div>
       </form>
 
+      <div className="mt-4">
+        <LeyendaDeEstados />
+      </div>
+
       <section aria-label="Resultados" className="mt-6">
         <p className="text-sm text-panel-muted" role="status">
           {resumen}
@@ -155,7 +161,7 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
                 </thead>
                 <tbody className="divide-y divide-panel-line">
                   {filas.map((fila) => (
-                    <tr key={fila.id} className="relative hover:bg-panel/60">
+                    <tr key={fila.id} className={cn("relative border-l-8 hover:brightness-95", estilosDeEstado[fila.visible].tarjeta, estilosDeEstado[fila.visible].borde)}>
                       <td className="px-5 py-3 font-semibold tabular-nums">
                         {fila.id}
                         <span className="block text-xs font-normal whitespace-nowrap text-panel-muted">{fila.codigo}</span>
@@ -173,7 +179,7 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
                       </td>
                       <td className="max-w-48 px-3 py-3 text-panel-muted">{fila.lugares.join(", ") || "—"}</td>
                       <td className="px-3 py-3">
-                        <Estado fila={fila} />
+                        <InsigniaDeEstado estado={fila.visible} />
                       </td>
                       <td className="px-5 py-3 text-right font-semibold whitespace-nowrap tabular-nums">
                         <Saldo fila={fila} />
@@ -187,7 +193,7 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
             <ul className="mt-3 space-y-3 lg:hidden">
               {filas.map((fila) => (
                 <li key={fila.id}>
-                  <Link href={`/panel/reservas/${fila.id}`} className="block rounded-2xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] active:bg-panel/60">
+                  <Link href={`/panel/reservas/${fila.id}`} className={cn("block rounded-2xl border-2 border-l-8 p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] active:brightness-95", estilosDeEstado[fila.visible].tarjeta, estilosDeEstado[fila.visible].borde)}>
                     <span className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block truncate font-semibold">{fila.titular}</span>
@@ -202,7 +208,7 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
                     </span>
                     <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
                       <span className="font-semibold">{rangoConMesPanel(fila.desde, fila.hasta)}</span>
-                      <Estado fila={fila} />
+                      <InsigniaDeEstado estado={fila.visible} />
                       <span className="ml-auto font-semibold tabular-nums">
                         <Saldo fila={fila} />
                       </span>
@@ -229,18 +235,6 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
       </section>
     </main>
   )
-}
-
-function Estado({ fila }: { fila: FilaDeBusqueda }) {
-  const [texto, clases] =
-    fila.estado === "CANCELADA"
-      ? ["Cancelada", "bg-panel text-panel-muted"]
-      : fila.ingreso
-        ? ["Ingresó", "bg-[#e8f4e3] text-[#3f6b12]"]
-        : fila.estado === "PENDIENTE"
-          ? ["A confirmar", "border border-dashed border-panel-ambar bg-panel-claro text-panel-tostado"]
-          : ["Confirmada", "bg-panel-naranja text-white"]
-  return <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap", clases)}>{texto}</span>
 }
 
 function Saldo({ fila }: { fila: FilaDeBusqueda }) {

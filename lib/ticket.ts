@@ -1,13 +1,6 @@
-import type { FormaPago } from "@/generated/prisma/enums"
 import { fechaLarga } from "@/lib/predio/fechas"
 import { lineas, nombreDeUnidad, nombreDelModulo } from "@/lib/predio/nombres"
 import type { TicketDatos } from "@/lib/reservas"
-
-const nombreDeForma: Record<FormaPago, string> = {
-  EFECTIVO: "Efectivo (10 % menos)",
-  DEBITO: "Débito",
-  TRANSFERENCIA: "Transferencia",
-}
 
 export function esGrupo(ticket: TicketDatos) {
   return !lineas[0].modulos.some((modulo) => modulo === ticket.modulo)
@@ -39,7 +32,6 @@ export function filasDelTicket(ticket: TicketDatos) {
         ? "Lo organiza el predio con la institución"
         : "Lo asigna el predio",
   ])
-  if (ticket.formaPago) filas.push(["Forma de pago", nombreDeForma[ticket.formaPago]])
   return filas
 }
 
