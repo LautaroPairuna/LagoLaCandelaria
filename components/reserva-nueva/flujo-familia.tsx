@@ -16,7 +16,7 @@ import { asignarBungalows, bungalowsPara } from "@/lib/predio/bungalows"
 import { cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
 import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
 import { fechaLarga, fechasEntre, hoyEnElPredio } from "@/lib/predio/fechas"
-import { inventario } from "@/lib/predio/inventario"
+import { inventario, MAX_PERSONAS_RESTAURANTE } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { pesos } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto, familias as esquemaDeFamilias } from "@/lib/reserva-familia"
@@ -43,7 +43,7 @@ function pasoDelCampo(campo: string) {
   return 3
 }
 
-export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?: "parrilla" | "playa" }) {
+export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?: "parrilla" | "playa" | "restaurante" }) {
   const router = useRouter()
   const tipo: TipoDeLugar = modo === "bungalow" ? "bungalow" : (lugar ?? "parrilla")
   const [paso, setPaso] = useState(0)
@@ -88,6 +88,10 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
       if (!revision.success) {
         avisarError("Hay datos para revisar. Te los marcamos en rojo.")
         marcar(camposDe(revision.error, "familias"))
+        return
+      }
+      if (tipo === "restaurante" && personas > MAX_PERSONAS_RESTAURANTE) {
+        avisarRevisar(`En el restaurante entran hasta ${MAX_PERSONAS_RESTAURANTE} personas: para un grupo más grande escribinos por WhatsApp.`)
         return
       }
       if (modo === "bungalow" && personas > MAX_PERSONAS_BUNGALOW) {
@@ -179,7 +183,9 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
                     ? "Elegí la parrilla"
                     : tipo === "playa"
                       ? "Elegí los lugares en la playa"
-                      : "Elegí los bungalows"
+                      : tipo === "restaurante"
+                        ? "Elegí la mesa"
+                        : "Elegí los bungalows"
                   : "Revisá y confirmá"}
           </h2>
 

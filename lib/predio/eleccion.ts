@@ -5,18 +5,20 @@ import { MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventari
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { bandaDeEdad } from "@/lib/predio/tarifas"
 
-export type TipoDeLugar = "parrilla" | "playa" | "bungalow"
+export type TipoDeLugar = "parrilla" | "playa" | "bungalow" | "restaurante"
 
 export type Regla =
-  | { modo: "capacidad"; personas: number }
+  | { modo: "capacidad"; personas: number; tipo: "PARRILLA" | "MESA_RESTAURANTE" }
   | { modo: "quincho" }
   | { modo: "cantidad"; cantidad: number; tipos: UnidadPredio["tipo"][] }
 
 /// Lo que tiene que elegir el grupo según la especificación: una o más parrillas que
 /// sumen la capacidad (más de 18 personas, un quincho), 1 a 3 lugares de playa según el
-/// tamaño del grupo, y un bungalow cada 4 personas.
+/// tamaño del grupo, un bungalow cada 4 personas, y en el restaurante una o más mesas
+/// que sumen la capacidad.
 export function reglaDe(tipo: TipoDeLugar, personas: number): Regla {
-  if (tipo === "parrilla") return personas > MAX_PERSONAS_PARRILLA ? { modo: "quincho" } : { modo: "capacidad", personas }
+  if (tipo === "parrilla") return personas > MAX_PERSONAS_PARRILLA ? { modo: "quincho" } : { modo: "capacidad", personas, tipo: "PARRILLA" }
+  if (tipo === "restaurante") return { modo: "capacidad", personas, tipo: "MESA_RESTAURANTE" }
   if (tipo === "playa") return { modo: "cantidad", cantidad: lugaresDePlayaPara(personas), tipos: ["GAZEBO", "PALAPA"] }
   return { modo: "cantidad", cantidad: bungalowsPara(personas), tipos: ["BUNGALOW"] }
 }
@@ -26,6 +28,7 @@ const nombre = (unidad: UnidadPredio) => `${nombreDeUnidad[unidad.tipo].toLowerC
 function palabra(tipo: TipoDeLugar, cantidad: number) {
   if (tipo === "bungalow") return cantidad === 1 ? "bungalow" : "bungalows"
   if (tipo === "playa") return cantidad === 1 ? "lugar" : "lugares"
+  if (tipo === "restaurante") return cantidad === 1 ? "mesa" : "mesas"
   return cantidad === 1 ? "parrilla" : "parrillas"
 }
 
@@ -40,15 +43,15 @@ export function revisarEleccion(tipo: TipoDeLugar, personas: number, elegidas: U
   }
 
   if (regla.modo === "capacidad") {
-    if (elegidas.some((unidad) => unidad.tipo !== "PARRILLA")) return { ok: false, faltan: false, mensaje: "Elegí solo parrillas." }
+    if (elegidas.some((unidad) => unidad.tipo !== regla.tipo)) return { ok: false, faltan: false, mensaje: `Elegí solo ${palabra(tipo, 2)}.` }
     const capacidad = elegidas.reduce((suma, unidad) => suma + (unidad.capacidad ?? 0), 0)
     if (capacidad < personas) {
       return {
         ok: false,
         faltan: true,
         mensaje: elegidas.length
-          ? `Con lo que elegiste entran ${capacidad} personas y son ${personas}: sumá otra parrilla.`
-          : `Elegí una parrilla para ${personas} ${personas === 1 ? "persona" : "personas"}, o varias que sumen.`,
+          ? `Con lo que elegiste entran ${capacidad} personas y son ${personas}: sumá otra ${palabra(tipo, 1)}.`
+          : `Elegí una ${palabra(tipo, 1)} para ${personas} ${personas === 1 ? "persona" : "personas"}, o varias que sumen.`,
       }
     }
     const sobrante = elegidas.find((unidad) => capacidad - (unidad.capacidad ?? 0) >= personas)
@@ -76,13 +79,13 @@ export function hayLugarPara(tipo: TipoDeLugar, personas: number, libres: Unidad
   const regla = reglaDe(tipo, personas)
   if (regla.modo === "quincho") return libres.some((unidad) => unidad.tipo === "QUINCHO")
   if (regla.modo === "capacidad") {
-    return libres.filter((unidad) => unidad.tipo === "PARRILLA").reduce((suma, unidad) => suma + (unidad.capacidad ?? 0), 0) >= personas
+    return libres.filter((unidad) => unidad.tipo === regla.tipo).reduce((suma, unidad) => suma + (unidad.capacidad ?? 0), 0) >= personas
   }
   return libres.filter((unidad) => regla.tipos.includes(unidad.tipo)).length >= regla.cantidad
 }
 
-/// Una elección razonable para el botón "Elegir por mí": la parrilla más chica que
-/// alcance o, si no hay, las más grandes que sumen; en la playa y los bungalows, los
+/// Una elección razonable para el botón "Elegir por mí": la parrilla (o mesa) más chica
+/// que alcance o, si no hay, las más grandes que sumen; en la playa y los bungalows, los
 /// primeros libres.
 export function sugerir(tipo: TipoDeLugar, personas: number, libres: UnidadPredio[]): UnidadPredio[] | null {
   const regla = reglaDe(tipo, personas)
@@ -92,17 +95,22 @@ export function sugerir(tipo: TipoDeLugar, personas: number, libres: UnidadPredi
     return quincho ? [quincho] : null
   }
   if (regla.modo === "capacidad") {
-    const parrillas = ordenadas.filter((unidad) => unidad.tipo === "PARRILLA")
+    const parrillas = ordenadas.filter((unidad) => unidad.tipo === regla.tipo)
     const justa = [...parrillas].sort((a, b) => (a.capacidad ?? 0) - (b.capacidad ?? 0)).find((unidad) => (unidad.capacidad ?? 0) >= personas)
     if (justa) return [justa]
+    // Se van tomando las más grandes y, cuando una sola alcanza para los que faltan,
+    // la más chica de esas: así no se ocupa una mesa grande para dos personas.
     const elegidas: UnidadPredio[] = []
-    let capacidad = 0
-    for (const unidad of [...parrillas].sort((a, b) => (b.capacidad ?? 0) - (a.capacidad ?? 0))) {
-      if (capacidad >= personas) break
+    const quedan = [...parrillas].sort((a, b) => (a.capacidad ?? 0) - (b.capacidad ?? 0))
+    let faltan = personas
+    while (faltan > 0 && quedan.length) {
+      const alcanza = quedan.findIndex((unidad) => (unidad.capacidad ?? 0) >= faltan)
+      const mayor = quedan.findIndex((unidad) => unidad.capacidad === quedan.at(-1)!.capacidad)
+      const unidad = quedan.splice(alcanza === -1 ? mayor : alcanza, 1)[0]
       elegidas.push(unidad)
-      capacidad += unidad.capacidad ?? 0
+      faltan -= unidad.capacidad ?? 0
     }
-    return capacidad >= personas ? elegidas : null
+    return faltan <= 0 ? elegidas : null
   }
   const delTipo = ordenadas.filter((unidad) => regla.tipos.includes(unidad.tipo))
   if (tipo === "playa") {

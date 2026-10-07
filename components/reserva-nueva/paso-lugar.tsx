@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { avisarError, falloDeRed } from "@/lib/avisos"
 import type { LugarDisponible } from "@/lib/disponibilidad"
 import { revisarEleccion, sugerir, type TipoDeLugar } from "@/lib/predio/eleccion"
-import { gruposDeParrillas, MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
+import { gruposDeMesas, gruposDeParrillas, MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { cn } from "cn"
 
@@ -29,6 +29,13 @@ function secciones(tipo: TipoDeLugar, personas: number, lugares: LugarDisponible
       { titulo: "Gazebos", detalle: "Hasta 8 personas cada uno", lugares: delTipo("GAZEBO") },
       { titulo: "Palapas", detalle: "Hasta 6 personas cada una", lugares: delTipo("PALAPA") },
     ]
+  }
+  if (tipo === "restaurante") {
+    return gruposDeMesas.map((grupo) => ({
+      titulo: `Mesas para ${grupo.capacidad} personas`,
+      detalle: "Se pueden juntar varias",
+      lugares: delTipo("MESA_RESTAURANTE").filter((lugar) => (grupo.numeros as readonly number[]).includes(lugar.numero)),
+    }))
   }
   return [{ titulo: "Bungalows", detalle: "Hasta 4 personas cada uno", lugares: delTipo("BUNGALOW") }]
 }

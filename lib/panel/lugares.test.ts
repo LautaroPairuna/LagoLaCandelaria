@@ -14,6 +14,6 @@ describe("seccionesDe", () => {
 
   it("cubre todos los lugares reservables del predio", () => {
     const enPantalla = zonas.flatMap((zona) => seccionesDe(zona.id).flatMap((seccion) => seccion.unidades.map((unidad) => unidad.tipo)))
-    expect(new Set(enPantalla)).toEqual(new Set(["PARRILLA", "QUINCHO", "GAZEBO", "PALAPA", "BUNGALOW"]))
+    expect(new Set(enPantalla)).toEqual(new Set(["PARRILLA", "QUINCHO", "GAZEBO", "PALAPA", "BUNGALOW", "MESA_RESTAURANTE"]))
   })
 })

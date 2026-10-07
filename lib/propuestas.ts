@@ -6,7 +6,7 @@ export type Opcion = {
   detalle: string
   foto: string
   flujo: "dia" | "bungalow" | "grupo" | "whatsapp"
-  lugar?: "parrilla" | "playa"
+  lugar?: "parrilla" | "playa" | "restaurante"
   modulo?: Modulo
   modalidad?: string
 }
@@ -23,7 +23,7 @@ export const propuestas: Propuesta[] = [
       { id: "parrilla", nombre: "Parrilla", detalle: "Banco de madera con parrilla para el día. Más de 18 personas, quincho.", foto: "/covers/parrillas.jpg", flujo: "dia", lugar: "parrilla" },
       { id: "playa", nombre: "Gazebo o palapa", detalle: "Sombra en la playa, junto al agua. Según el grupo, uno, dos o tres lugares.", foto: "/covers/playa.jpg", flujo: "dia", lugar: "playa" },
       { id: "bungalow", nombre: "Bungalow", detalle: "Alojamiento por noche para hasta 4 personas por bungalow.", foto: "/bungalow.jpg", flujo: "bungalow" },
-      { id: "restaurante", nombre: "Restaurante", detalle: "La mesa se reserva por WhatsApp, por día y franja horaria.", foto: "/covers/restaurante.jpg", flujo: "whatsapp" },
+      { id: "restaurante", nombre: "Restaurante", detalle: "Mesa para el día en el restaurante del predio, para 2, 4 o 6 personas, o varias juntas.", foto: "/covers/restaurante.jpg", flujo: "dia", lugar: "restaurante" },
     ],
   },
   {

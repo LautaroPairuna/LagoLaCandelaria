@@ -50,8 +50,11 @@ Paneles:
 
 - **Ocupación** (rol reservas): calendario del mes con el porcentaje de ocupación de cada día, las personas sobre la capacidad del predio y las reservas por propuesta. La capacidad (`AFORO_DEL_PREDIO` en `lib/predio/inventario.ts`) es provisoria hasta que el predio dé el número real.
 - **Reservas** (rol reservas): buscador por nombre, institución, DNI, teléfono, número o código, con filtros de fecha, estado y propuesta; por defecto solo de hoy en adelante. El detalle agrupa a las personas por familia y destaca alergias y condiciones.
-- **Lugares** (rol reservas): para un día, cada parrilla, quincho, gazebo, palapa y bungalow libre u ocupado, y de quién es.
+- **Lugares** (rol reservas): para un día, cada parrilla, quincho, gazebo, palapa, bungalow y mesa del restaurante libre u ocupado, y de quién es.
 - **Puerta** (rol puerta): ingreso y cobranza del día elegido, con cobro del saldo (10 % menos en efectivo) y quiénes no vinieron. El ingreso se marca por persona, por familia o para todo el grupo.
+- **Caja** (solo administración): cobros del período por forma de pago, con descarga en CSV.
+- **General** (solo administración): resumen de hoy, reportes por período y usuarios.
+- Bar y Restaurante aparecen como "Pronto".
 
 ### Estados de una reserva
 
@@ -60,9 +63,12 @@ Cada reserva se muestra con un color y un texto (`lib/panel/estados.ts`), iguale
 Pasado el día de la reserva, si ingresó alguien queda **Finalizada** sola (sin marcar salidas); si no ingresó nadie, **No vino**. Se calcula al leer, no hay tareas programadas.
 
 La web no cobra ni pregunta la forma de pago: se decide en la puerta del predio.
-- **Caja** (solo administración): cobros del período por forma de pago, con descarga en CSV.
-- **General** (solo administración): resumen de hoy, reportes por período y usuarios.
-- Bar y Restaurante aparecen como "Pronto".
+
+### Restaurante
+
+La mesa se reserva desde la web con el mismo flujo que la parrilla (personas, día, mesa, confirmar) y queda como reserva de módulo Restaurante, con las tarifas del día.
+Son 9 mesas según la planilla del predio: de 2 personas la 1, 5 y 7; de 4 la 2, 6 y 8; de 6 la 3, 4 y 9 (36 lugares). Un grupo puede juntar varias mesas, y para más de 36 personas se deriva a WhatsApp. Cada mesa se ocupa por día, igual que los demás lugares.
+El bar no tiene mesas reservables: la planilla no las lista, así que las que había quedaron inactivas (migración `mesas_del_restaurante`).
 
 ### Errores y avisos
 

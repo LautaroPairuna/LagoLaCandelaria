@@ -11,7 +11,7 @@ import { estadoDelDia } from "@/lib/predio/calendario"
 import { cotizacionAConfirmar, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
 import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
 import { esFechaIso, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
-import { inventario, type UnidadPredio } from "@/lib/predio/inventario"
+import { inventario, MAX_PERSONAS_RESTAURANTE, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { contacto, email, familias, nombre, personasDe, telefono, type FamiliaValida } from "@/lib/reserva-familia"
 import { crearReserva, libreEn, type NuevaReserva } from "@/lib/reservas"
@@ -121,7 +121,9 @@ function reservar(nombre: string, tarea: () => Promise<ResultadoReserva>) {
   )
 }
 
-const pedidoDeDia = z.object({ fecha: z.string(), lugar: z.enum(["parrilla", "playa"]), ...grupoFamiliar })
+const pedidoDeDia = z.object({ fecha: z.string(), lugar: z.enum(["parrilla", "playa", "restaurante"]), ...grupoFamiliar })
+
+const propuestaDelLugar = { parrilla: "Parrilla", playa: "Gazebo o palapa", restaurante: "Restaurante" } as const
 
 export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<ResultadoReserva> {
   return reservar("reservarDia", async () => {
@@ -129,6 +131,10 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
     exigir(fechaReservable(datos.fecha), "Elegí un día de hoy en adelante, dentro del próximo año.")
     const personas = personasDe(datos.familias)
     exigir(personas.length <= MAX_PERSONAS, `Para más de ${MAX_PERSONAS} personas escribinos por WhatsApp.`)
+    exigir(
+      datos.lugar !== "restaurante" || personas.length <= MAX_PERSONAS_RESTAURANTE,
+      `En el restaurante entran hasta ${MAX_PERSONAS_RESTAURANTE} personas: para un grupo más grande escribinos por WhatsApp.`,
+    )
     await exigirAbierto(datos.fecha, datos.fecha, "Ese día")
     const elegidas = lugaresElegidos(datos.lugar, datos.unidades, personas.length)
     const grupo = grupoPorEdades(personas.map((persona) => persona.edad))
@@ -136,14 +142,14 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
 
     return guardar(
       {
-        modulo: "FINDE_FAMILIA",
+        modulo: datos.lugar === "restaurante" ? "RESTAURANTE" : "FINDE_FAMILIA",
         desde: datos.fecha,
         hasta: datos.fecha,
         ...HORARIO,
         cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
         cotizacion: cotizarDia(grupo),
-        propuesta: datos.lugar === "parrilla" ? "Parrilla" : "Gazebo o palapa",
+        propuesta: propuestaDelLugar[datos.lugar],
         personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
           const libre = libreEn(ocupacion, datos.fecha, datos.fecha)

@@ -10,6 +10,7 @@ export const categorias = {
   parrilla: ["PARRILLA", "QUINCHO"],
   playa: ["GAZEBO", "PALAPA"],
   bungalow: ["BUNGALOW"],
+  restaurante: ["MESA_RESTAURANTE"],
 } as const satisfies Record<string, readonly TipoUnidad[]>
 
 export type Categoria = keyof typeof categorias

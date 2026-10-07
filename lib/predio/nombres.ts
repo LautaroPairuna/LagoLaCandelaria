@@ -24,6 +24,6 @@ export const nombreDeUnidad: Record<TipoUnidad, string> = {
   GAZEBO: "Gazebo",
   PALAPA: "Palapa",
   BUNGALOW: "Bungalow",
-  MESA_RESTAURANTE: "Mesa restaurante",
+  MESA_RESTAURANTE: "Mesa",
   MESA_BAR: "Mesa bar",
 }

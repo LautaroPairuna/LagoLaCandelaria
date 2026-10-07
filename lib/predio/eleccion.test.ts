@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { grupoPorEdades, hayLugarPara, revisarEleccion, sugerir } from "@/lib/predio/eleccion"
-import { idDeUnidad, inventario, type TipoUnidad } from "@/lib/predio/inventario"
+import { idDeUnidad, inventario, MAX_PERSONAS_RESTAURANTE, type TipoUnidad } from "@/lib/predio/inventario"
 
 const u = (tipo: TipoUnidad, numero: number) => inventario.find((item) => item.id === idDeUnidad(tipo, numero))!
 const P6 = u("PARRILLA", 4)
@@ -66,5 +66,37 @@ describe("hayLugarPara y sugerir", () => {
 describe("grupoPorEdades", () => {
   it("reparte en las franjas de la tarifa", () => {
     expect(grupoPorEdades([40, 38, 12, 5, 4, 13])).toEqual({ adultos: 3, menores: 2, sinCargo: 1 })
+  })
+})
+
+describe("mesas del restaurante", () => {
+  const mesa = (numero: number) => u("MESA_RESTAURANTE", numero)
+
+  it("son las 9 de la planilla: de 2, 4 y 6 personas", () => {
+    const capacidades = Object.fromEntries(inventario.filter((item) => item.tipo === "MESA_RESTAURANTE").map((item) => [item.numero, item.capacidad]))
+    expect(capacidades).toEqual({ 1: 2, 2: 4, 3: 6, 4: 6, 5: 2, 6: 4, 7: 2, 8: 4, 9: 6 })
+    expect(MAX_PERSONAS_RESTAURANTE).toBe(36)
+    expect(inventario.some((item) => item.tipo === "MESA_BAR")).toBe(false)
+  })
+
+  it("acepta una mesa que alcanza y pide juntar otra si no", () => {
+    expect(revisarEleccion("restaurante", 4, [mesa(2)])).toEqual({ ok: true })
+    expect(revisarEleccion("restaurante", 8, [mesa(3)])).toMatchObject({ ok: false, faltan: true, mensaje: expect.stringContaining("sumá otra mesa") })
+    expect(revisarEleccion("restaurante", 8, [mesa(3), mesa(1)])).toEqual({ ok: true })
+  })
+
+  it("no acepta parrillas ni mesas de más", () => {
+    expect(revisarEleccion("restaurante", 4, [P6])).toMatchObject({ ok: false, mensaje: "Elegí solo mesas." })
+    expect(revisarEleccion("restaurante", 2, [mesa(1), mesa(5)])).toMatchObject({ ok: false, faltan: false })
+  })
+
+  it("sugiere la mesa más chica que alcanza, o juntar las más grandes", () => {
+    const libres = inventario.filter((item) => item.tipo === "MESA_RESTAURANTE")
+    expect(sugerir("restaurante", 3, libres)?.map((item) => item.numero)).toEqual([2])
+    expect(sugerir("restaurante", 8, libres)?.map((item) => item.capacidad)).toEqual([6, 2])
+    expect(sugerir("restaurante", 10, libres)?.map((item) => item.capacidad)).toEqual([6, 4])
+    expect(sugerir("restaurante", 36, libres)).toHaveLength(9)
+    expect(hayLugarPara("restaurante", 36, libres)).toBe(true)
+    expect(hayLugarPara("restaurante", 37, libres)).toBe(false)
   })
 })
