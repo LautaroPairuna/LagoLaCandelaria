@@ -1,36 +1,38 @@
 import { describe, expect, it } from "vitest"
 
-import { cobrosEnCsv, porForma, type Cobro } from "@/lib/panel/caja"
+import { cajaEnCsv } from "@/lib/panel/caja"
+import { renglonesDeMovimiento, type Renglon } from "@/lib/panel/libro-caja"
 
-const cobro = (id: number, forma: Cobro["forma"], importe: number, descuento = 0): Cobro => ({
-  id,
-  fecha: "2026-10-07",
-  hora: new Date("2026-10-07T13:00:00Z"),
-  forma,
-  importe,
-  descuento,
-  reservaId: id * 10,
-  titular: `Titular ${id}`,
-  detalle: "Saldo en puerta",
+const cobro: Renglon = {
+  origen: "cobro",
+  clave: "c1",
+  fecha: "2026-10-05",
+  hora: new Date(),
+  cajon: "EFECTIVO",
+  sentido: "ingreso",
+  monto: 90_000,
+  concepto: 'Escuela "N.º 5"; turno tarde',
   registradoPor: "Puerta",
-})
+  reservaId: 12,
+  codigo: "LC-ABC123",
+  forma: "EFECTIVO",
+  descuento: 10_000,
+}
 
-describe("porForma", () => {
-  it("suma cada forma de pago por separado", () => {
-    const grupos = porForma([cobro(1, "EFECTIVO", 70_000, 7_778), cobro(2, "TRANSFERENCIA", 80_000), cobro(3, "EFECTIVO", 120_000)])
-    expect(grupos.map((grupo) => [grupo.id, grupo.total, grupo.cobros.length, grupo.descuentos])).toEqual([
-      ["EFECTIVO", 190_000, 2, 7_778],
-      ["TRANSFERENCIA", 80_000, 1, 0],
-      ["DEBITO", 0, 0, 0],
-    ])
-  })
-})
-
-describe("cobrosEnCsv", () => {
-  it("arma un CSV para Excel en español y escapa lo que hace falta", () => {
-    const csv = cobrosEnCsv([{ ...cobro(1, "EFECTIVO", 70_000), titular: 'Escuela "N.º 5"; turno tarde' }], () => "10:00")
-    const [encabezado, fila] = csv.replace("﻿", "").trim().split("\r\n")
-    expect(encabezado).toBe("Fecha;Hora;Forma;Importe;Descuento;Reserva;Titular;Detalle;Cargó")
-    expect(fila).toBe('07/10/2026;10:00;Efectivo;70000;0;10;"Escuela ""N.º 5""; turno tarde";Saldo en puerta;Puerta')
+describe("cajaEnCsv", () => {
+  it("lista los renglones y cierra con el resumen de cada cajón", () => {
+    const pase = renglonesDeMovimiento({ id: 3, tipo: "TRANSFERENCIA", cajon: "EFECTIVO", fecha: "2026-10-06", concepto: "Depósito", monto: 50_000, registradoPor: "Ana", creadoEn: new Date() })
+    const resumen = [
+      { id: "EFECTIVO" as const, nombre: "Caja · Efectivo", detalle: "", ingreso: 90_000, egreso: 50_000, balance: 40_000 },
+      { id: "BANCO" as const, nombre: "Banco · Transferencia", detalle: "", ingreso: 50_000, egreso: 0, balance: 50_000 },
+    ]
+    const lineas = cajaEnCsv([cobro, ...pase], resumen, "2026-10-07", () => "10:00").replace(/^﻿/, "").trim().split("\r\n")
+    expect(lineas[0]).toBe("Fecha;Hora;Cajón;Tipo;Concepto;Reserva;Ingreso;Egreso;Cargó")
+    expect(lineas[1]).toBe('05/10/2026;10:00;Efectivo;Cobro de reserva;"Escuela ""N.º 5""; turno tarde";12 (LC-ABC123);90000;;Puerta')
+    expect(lineas[2]).toBe("06/10/2026;10:00;Efectivo;Pase entre cajones;Depósito;;;50000;Ana")
+    expect(lineas[3]).toBe("06/10/2026;10:00;Banco;Pase entre cajones;Depósito;;50000;;Ana")
+    expect(lineas.at(-3)).toBe(";;Cajón;;;;Ingreso;Egreso;Balance al 07/10/2026".replace(/^/, "Resumen"))
+    expect(lineas.at(-2)).toBe(";;Caja · Efectivo;;;;90000;50000;40000")
+    expect(lineas.at(-1)).toBe(";;Banco · Transferencia;;;;50000;0;50000")
   })
 })

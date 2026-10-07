@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { avisarRevisar, conAviso } from "@/lib/avisos"
 import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
 import type { Asistencia, Movimiento } from "@/lib/panel/asistencia"
-import { cobroDelSaldo, type FormaDeCobro } from "@/lib/panel/cobros"
+import type { FormaDeCobro } from "@/lib/panel/cobros"
 import type { EstadoVisible } from "@/lib/panel/estados"
 import { pesos } from "@/lib/predio/tarifas"
 
@@ -26,6 +26,7 @@ export function AccionesLlegada({
   integrantes,
   ingreso,
   saldo,
+  efectivo,
 }: {
   id: number
   titular: string
@@ -34,6 +35,8 @@ export function AccionesLlegada({
   integrantes: Integrante[]
   ingreso: { hora: string; por: string | null } | null
   saldo: number | null
+  /// Lo que se cobra si el resto se paga en efectivo (con descuento, si corresponde).
+  efectivo: number | null
 }) {
   const [pendiente, iniciar] = useTransition()
   const [otroImporte, setOtroImporte] = useState(false)
@@ -43,7 +46,7 @@ export function AccionesLlegada({
   }
 
   function cobrarAhora(forma: FormaDeCobro, importe?: number) {
-    const monto = importe ?? (saldo ? cobroDelSaldo(saldo, forma).importe : 0)
+    const monto = importe ?? (forma === "EFECTIVO" ? (efectivo ?? 0) : (saldo ?? 0))
     if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]}?`)) return
     iniciar(async () => {
       const resultado = await conAviso(
@@ -93,7 +96,7 @@ export function AccionesLlegada({
         {saldo ? (
           <>
             <Button type="button" variant="outline" disabled={pendiente} className="h-10" onClick={() => cobrarAhora("EFECTIVO")}>
-              Efectivo {pesos(cobroDelSaldo(saldo, "EFECTIVO").importe)}
+              Efectivo {pesos(efectivo ?? saldo)}
             </Button>
             <Button type="button" variant="outline" disabled={pendiente} className="h-10" onClick={() => cobrarAhora("DEBITO")}>
               Débito {pesos(saldo)}

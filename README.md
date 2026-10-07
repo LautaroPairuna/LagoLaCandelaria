@@ -52,7 +52,7 @@ Paneles:
 - **Reservas** (rol reservas): buscador por nombre, institución, DNI, teléfono, número o código, con filtros de fecha, estado y propuesta; por defecto solo de hoy en adelante. El detalle agrupa a las personas por familia y destaca alergias y condiciones.
 - **Lugares** (rol reservas): para un día, cada parrilla, quincho, gazebo, palapa, bungalow y mesa del restaurante libre u ocupado, y de quién es.
 - **Puerta** (rol puerta): ingreso y cobranza del día elegido, con cobro del saldo (10 % menos en efectivo) y quiénes no vinieron. El ingreso se marca por persona, por familia o para todo el grupo.
-- **Caja** (solo administración): cobros del período por forma de pago, con descarga en CSV.
+- **Caja** (rol caja): la plata del predio en dos cajones, **Caja · Efectivo** (el mostrador) y **Banco · Transferencia** (transferencia, tarjeta y otros medios). Ver "Caja" más abajo.
 - **General** (solo administración): resumen de hoy, reportes por período y usuarios.
 - **Restaurante** (rol restaurante): el salón del día por horario (cada mesa es una fila y cada reserva un bloque con el color de su estado, con la hora actual marcada) y las reservas de mesa ordenadas por horario, con alergias y condiciones a la vista. Se marca la llegada y la salida por persona, por familia o la mesa entera; ese rol solo puede marcar reservas de mesa.
 - Bar aparece como "Pronto".
@@ -72,6 +72,16 @@ La reserva no tiene costo: se paga lo que consumen, en el restaurante (`cotizaci
 Son 9 mesas según la planilla del predio: de 2 personas la 1, 5 y 7; de 4 la 2, 6 y 8; de 6 la 3, 4 y 9 (36 lugares). Un grupo puede juntar varias mesas, y para más de 36 personas se deriva a WhatsApp.
 Las mesas se ocupan por hora, de 10 a 19 (`lib/predio/horario.ts`): cada reserva guarda una fila de `ocupaciones` por hora (`hora`; 0 es el día entero, como en los demás lugares), así la misma mesa puede tener una reserva de 12 a 14 y otra de 15 a 17, y el índice único frena a dos reservas que se pisan.
 El bar no tiene mesas reservables: la planilla no las lista, así que las que había quedaron inactivas (migración `mesas_del_restaurante`).
+
+### Caja
+
+- **Cobros de reservas**: entran solos, pero recién cuando el grupo llegó al predio (la reserva tiene un ingreso marcado). Mientras no llegó no figuran, y si se cancela nunca. Cada cobro es un renglón con su fecha, su cajón y el titular con el N.º de reserva; una seña por transferencia y el resto en efectivo son dos renglones. Desde la Caja no se borran: se dan de baja desde la reserva ("Dar de baja" en Cobros).
+- **Movimientos manuales** (`movimientos_caja`): ingreso, egreso o pase entre cajones (sale de uno y entra al otro), con fecha, concepto y monto. Se borran con el tacho.
+- **Tarjetas**: por cajón, ingreso y egreso del período, y el balance a la fecha "Hasta" sumando toda la historia.
+- **Pendiente de cobro**: reservas confirmadas con saldo, de cualquier fecha, primero las que ya vinieron. Regla del descuento (`lib/panel/libro-caja.ts`): si todo se paga en efectivo, se cobra con el 10 % menos; si una parte entró por banco, se pierde el descuento y se cobra el precio de lista. Puerta usa la misma regla.
+- Por defecto se ven los últimos 30 días. "Exportar a Excel" baja la lista visible (Todos, Efectivo o Banco) con el resumen de cada cajón al final.
+- **Actividad** (`/panel/caja/actividad`): cada cobro, cobro dado de baja y movimiento cargado o borrado, con quién y cuándo.
+- Pueden operar la administración y el rol `caja`. Puerta cobra y da de baja cobros, pero no ve la Caja.
 
 ### Errores y avisos
 

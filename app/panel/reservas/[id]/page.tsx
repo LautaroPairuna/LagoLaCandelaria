@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import type { ReactNode } from "react"
 
 import { AccionesReserva } from "@/components/panel/acciones-reserva"
+import { AnularCobro } from "@/components/panel/anular-cobro"
 import { saldoDe } from "@/lib/panel/cobros"
 import { normalizarTelefono } from "@/lib/predio/contacto"
 import { deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
@@ -24,9 +25,15 @@ import { urlSitio } from "@/lib/url-sitio"
 export const metadata: Metadata = { title: "Reserva" }
 
 export default async function DetalleReserva({ params }: PageProps<"/panel/reservas/[id]">) {
-  const sesion = await exigirPanel("reservas", "puerta")
+  const sesion = await exigirPanel("reservas", "puerta", "caja")
   const veReservas = puedeVer(sesion.user.role, "reservas")
   const marcaIngresos = puedeVer(sesion.user.role, "puerta")
+  const anulaCobros = marcaIngresos || puedeVer(sesion.user.role, "caja")
+  const volver = veReservas
+    ? { href: "/panel/reservas", texto: "Volver a Reservas" }
+    : marcaIngresos
+      ? { href: "/panel/puerta", texto: "Volver a Puerta" }
+      : { href: "/panel/caja", texto: "Volver a la Caja" }
   const { id } = await params
   const numero = Number(id)
   if (!Number.isInteger(numero) || numero < 1) notFound()
@@ -61,9 +68,9 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
-        <Link href={veReservas ? "/panel/reservas" : "/panel/puerta"} className="inline-flex items-center gap-2 text-panel-muted hover:text-panel-ink">
+        <Link href={volver.href} className="inline-flex items-center gap-2 text-panel-muted hover:text-panel-ink">
           <ArrowLeft className="size-4" aria-hidden />
-          {veReservas ? "Volver a Reservas" : "Volver a Puerta"}
+          {volver.texto}
         </Link>
         {veReservas ? (
           <Link href={`/panel/ocupacion?mes=${desde.slice(0, 7)}&dia=${desde}`} className="text-panel-tostado underline-offset-4 hover:underline">
@@ -170,10 +177,26 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           <Dato termino="Total">{textoDelTotal(detalle.cotizacion)}</Dato>
           {textoDelEfectivo(detalle.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(detalle.cotizacion)}</Dato> : null}
           {reserva.pagos.length ? (
-            <Dato termino="Pagos">
-              {reserva.pagos
-                .map((pago) => `${pesos(pago.importe)} en ${pago.forma === "DEBITO" ? "débito" : pago.forma.toLowerCase()}${pago.descuento ? ` (−${pesos(pago.descuento)})` : ""}`)
-                .join(" · ")}
+            <Dato termino="Cobros">
+              <ul className="space-y-1.5">
+                {reserva.pagos.map((pago) => {
+                  const texto = `${pesos(pago.importe)} en ${pago.forma === "DEBITO" ? "débito" : pago.forma.toLowerCase()}`
+                  return (
+                    <li key={pago.id} className="flex flex-wrap items-baseline gap-x-3">
+                      <span>
+                        {texto}
+                        {pago.descuento ? ` (−${pesos(pago.descuento)} desc.)` : ""}
+                        <span className="text-panel-muted">
+                          {" "}
+                          · {deFechaDb(pago.fecha).split("-").reverse().join("/")}
+                          {pago.registradoPor ? ` · ${pago.registradoPor}` : ""}
+                        </span>
+                      </span>
+                      {anulaCobros ? <AnularCobro pagoId={pago.id} descripcion={texto} /> : null}
+                    </li>
+                  )
+                })}
+              </ul>
             </Dato>
           ) : null}
           {!detalle.cotizacion.aConfirmar && !detalle.cotizacion.consumo ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}

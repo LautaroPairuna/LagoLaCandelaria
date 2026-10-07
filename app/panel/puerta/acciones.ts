@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { accion, exigir, ErrorHumano, mensajes, type Resultado } from "@/lib/errores"
-import { cobroDelSaldo, saldoDe } from "@/lib/panel/cobros"
+import { registrarActividad } from "@/lib/panel/actividad"
+import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
 import { aplicar, porPersona } from "@/lib/panel/asistencia"
 import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
+import { pesos } from "@/lib/predio/tarifas"
 import { detalleDe } from "@/lib/reservas"
 
 const idDeReserva = z.number().int().positive()
@@ -17,6 +19,7 @@ const idDeReserva = z.number().int().positive()
 function refrescar() {
   revalidatePath("/panel/puerta")
   revalidatePath("/panel/restaurante")
+  revalidatePath("/panel/caja", "layout")
   revalidatePath("/panel", "layout")
 }
 
@@ -108,29 +111,34 @@ const pedidoDeCobro = z.object({
   importe: z.number().int().positive().max(50_000_000).optional(),
 })
 
+const nombreDeForma = { EFECTIVO: "efectivo", DEBITO: "débito", TRANSFERENCIA: "transferencia" } as const
+
+/// Cobra a una reserva. Sin importe, cobra el saldo; con un importe igual al saldo
+/// propuesto para esa forma, también aplica el descuento del efectivo.
 export async function cobrar(pedido: z.input<typeof pedidoDeCobro>): Promise<Resultado<{ importe: number }>> {
   return accion("cobrar", async () => {
-    const sesion = await permisoParaAccion("puerta")
+    const sesion = await permisoParaAccion("puerta", "caja")
     const entrada = pedidoDeCobro.safeParse(pedido)
     exigir(entrada.success, "Ese importe no se puede cobrar. Escribilo en pesos, sin puntos ni centavos.")
     const { id, forma, importe } = entrada.data
+    const quien = sesion.user.name.slice(0, 80)
 
     const cobrado = await db().$transaction(async (tx) => {
       const reserva = await tx.reserva.findUnique({
         where: { id },
-        select: { estado: true, total: true, detalle: true, pagos: { select: { importe: true, descuento: true } } },
+        select: { estado: true, total: true, detalle: true, codigo: true, pagos: { select: { importe: true, descuento: true, forma: true } } },
       })
       if (!reserva || reserva.estado === "CANCELADA") throw new ErrorHumano("Esta reserva se canceló, así que no se le puede cobrar. Revisala en Reservas.")
 
       const aConfirmar = Boolean(detalleDe(reserva.detalle).cotizacion?.aConfirmar)
+      const propuesto = cobroPropuesto(reserva.total, reserva.pagos, forma)
       let cobro: { importe: number; descuento: number }
       if (importe) {
-        cobro = { importe, descuento: 0 }
+        cobro = !aConfirmar && importe === propuesto.importe ? propuesto : { importe, descuento: 0 }
       } else {
-        const saldo = saldoDe(reserva.total, reserva.pagos)
         if (aConfirmar) throw new ErrorHumano("El total de esta reserva todavía no está cerrado. Cobrá con «Otro importe» y escribí el monto.")
-        if (saldo === 0) throw new ErrorHumano("Esta reserva ya está paga. Si hay que cobrar algo más, usá «Otro importe».")
-        cobro = cobroDelSaldo(saldo, forma)
+        if (propuesto.importe === 0) throw new ErrorHumano("Esta reserva ya está paga. Si hay que cobrar algo más, usá «Otro importe».")
+        cobro = propuesto
       }
 
       await tx.pago.create({
@@ -139,14 +147,49 @@ export async function cobrar(pedido: z.input<typeof pedidoDeCobro>): Promise<Res
           fecha: aFechaDb(hoyEnElPredio()),
           forma,
           ...cobro,
-          detalle: importe ? "Cobro en puerta" : "Saldo en puerta",
-          registradoPor: sesion.user.name.slice(0, 80),
+          detalle: importe ? "Cobro" : "Saldo",
+          registradoPor: quien,
         },
+      })
+      await registrarActividad(tx, {
+        usuario: quien,
+        accion: "cobro",
+        detalle: `Cobró ${pesos(cobro.importe)} en ${nombreDeForma[forma]} a la reserva ${id} (${reserva.codigo})${cobro.descuento ? `, con ${pesos(cobro.descuento)} de descuento` : ""}`,
+        reservaId: id,
+        monto: cobro.importe,
       })
       return cobro.importe
     })
 
     refrescar()
     return { ok: true, importe: cobrado }
+  })
+}
+
+const pedidoDeAnulacion = z.object({ pagoId: z.number().int().positive() })
+
+/// Da de baja un cobro mal cargado. Es la única forma de corregir los cobros: desde la
+/// Caja no se borran.
+export async function anularCobro(pedido: z.input<typeof pedidoDeAnulacion>): Promise<Resultado<{ importe: number }>> {
+  return accion("anularCobro", async () => {
+    const sesion = await permisoParaAccion("puerta", "caja")
+    const { pagoId } = pedidoDeAnulacion.parse(pedido)
+    const quien = sesion.user.name.slice(0, 80)
+    const importe = await db().$transaction(async (tx) => {
+      const pago = await tx.pago.findUnique({ where: { id: pagoId }, select: { importe: true, forma: true, fecha: true, reservaId: true, reserva: { select: { codigo: true } } } })
+      if (!pago) throw new ErrorHumano("Ese cobro ya no estaba: alguien lo anuló antes. Te mostramos cómo quedó.")
+      await tx.pago.delete({ where: { id: pagoId } })
+      await registrarActividad(tx, {
+        usuario: quien,
+        accion: "cobro anulado",
+        detalle: `Anuló el cobro de ${pesos(pago.importe)} en ${nombreDeForma[pago.forma]} del ${deFechaDb(pago.fecha).split("-").reverse().join("/")} de la reserva ${pago.reservaId} (${pago.reserva.codigo})`,
+        reservaId: pago.reservaId,
+        monto: pago.importe,
+      })
+      return pago.importe
+    })
+    refrescar()
+    revalidatePath("/panel/reservas", "layout")
+    return { ok: true, importe }
   })
 }

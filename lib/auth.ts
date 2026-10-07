@@ -26,6 +26,7 @@ function crearAuth() {
           puerta: ac.newRole({}),
           bar: ac.newRole({}),
           restaurante: ac.newRole({}),
+          caja: ac.newRole({}),
         },
         adminRoles: ["admin"],
         defaultRole: "reservas",

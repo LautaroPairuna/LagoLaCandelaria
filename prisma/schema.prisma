@@ -282,3 +282,48 @@ model Verification {
   @@index([identifier(length: 191)])
   @@map("verification")
 }
+
+enum TipoMovimiento {
+  INGRESO
+  EGRESO
+  TRANSFERENCIA
+}
+
+/// Los dos cajones de la caja: lo que está en el mostrador y lo que entra por banco
+/// (transferencias, tarjeta y otros medios).
+enum Cajon {
+  EFECTIVO
+  BANCO
+}
+
+/// Lo que entra o sale de la caja sin ser el cobro de una reserva: gastos, retiros,
+/// ingresos extra. Una transferencia pasa plata de un cajón al otro: `cajon` es de
+/// dónde sale.
+model MovimientoCaja {
+  id            Int            @id @default(autoincrement())
+  tipo          TipoMovimiento
+  cajon         Cajon
+  fecha         DateTime       @db.Date
+  concepto      String         @db.VarChar(160)
+  monto         Int
+  registradoPor String?        @db.VarChar(80)
+  creadoEn      DateTime       @default(now())
+
+  @@index([fecha])
+  @@map("movimientos_caja")
+}
+
+/// Quién hizo qué con la plata: cobros, cobros anulados y movimientos de caja.
+model Actividad {
+  id        Int      @id @default(autoincrement())
+  creadoEn  DateTime @default(now())
+  usuario   String   @db.VarChar(80)
+  accion    String   @db.VarChar(40)
+  detalle   String   @db.VarChar(255)
+  reservaId Int?
+  monto     Int?
+
+  @@index([creadoEn])
+  @@map("actividad")
+}
+

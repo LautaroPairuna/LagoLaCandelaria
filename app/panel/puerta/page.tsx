@@ -231,6 +231,7 @@ function ListaLlegadas({
                 asistencia={{ porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total }}
                 integrantes={llegada.integrantes}
                 saldo={llegada.saldo}
+                efectivo={llegada.efectivo}
               />
               )}
             </li>

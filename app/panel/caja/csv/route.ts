@@ -2,7 +2,7 @@ import { headers } from "next/headers"
 
 import { periodoDeCaja } from "@/app/panel/caja/periodo"
 import { auth } from "@/lib/auth"
-import { cobrosEnCsv, cobrosEntre } from "@/lib/panel/caja"
+import { cajaEnCsv, esFiltroDeCajon, libroDeCaja } from "@/lib/panel/caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { hoyEnElPredio } from "@/lib/predio/fechas"
 
@@ -15,11 +15,15 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url)
   const { desde, hasta } = periodoDeCaja(url.searchParams.get("desde") ?? undefined, url.searchParams.get("hasta") ?? undefined, hoyEnElPredio())
-  const csv = cobrosEnCsv(await cobrosEntre(desde, hasta), (fecha) => hora.format(fecha))
+  const pedido = url.searchParams.get("cajon") ?? undefined
+  const cajon = esFiltroDeCajon(pedido) ? pedido : "todos"
+  const { renglones, resumen } = await libroDeCaja(desde, hasta)
+  const visibles = cajon === "todos" ? renglones : renglones.filter((renglon) => renglon.cajon === cajon)
+  const csv = cajaEnCsv(visibles, resumen, hasta, (fecha) => hora.format(fecha))
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="caja-${desde}${hasta === desde ? "" : `-al-${hasta}`}.csv"`,
+      "Content-Disposition": `attachment; filename="caja-${desde}${hasta === desde ? "" : `-al-${hasta}`}${cajon === "todos" ? "" : `-${cajon.toLowerCase()}`}.csv"`,
       "Cache-Control": "no-store",
     },
   })

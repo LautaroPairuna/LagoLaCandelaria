@@ -2,6 +2,7 @@ import type { Modulo } from "@/generated/prisma/enums"
 import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
 import { estadoVisible } from "@/lib/panel/estados"
+import { deudaDe } from "@/lib/panel/libro-caja"
 import { nombreDeUnidad } from "@/lib/panel/reservas"
 import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
@@ -34,7 +35,7 @@ export async function llegadasDelDia(dia: string, busqueda = "", modulo?: Modulo
       },
       cliente: { select: { nombre: true, apellido: true, dni: true } },
       ocupaciones: { distinct: ["unidadId"], select: { unidad: { select: { tipo: true, etiqueta: true } } } },
-      pagos: { select: { importe: true, descuento: true } },
+      pagos: { select: { importe: true, descuento: true, forma: true } },
     },
   })
 
@@ -65,6 +66,7 @@ export async function llegadasDelDia(dia: string, busqueda = "", modulo?: Modulo
         aConfirmar,
         consumo: Boolean(cotizacion?.consumo),
         saldo: aConfirmar ? null : saldoDe(fila.total, fila.pagos),
+        efectivo: aConfirmar ? null : deudaDe(fila.total, fila.pagos).efectivo,
         buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido, ...fila.personas.map((persona) => `${persona.nombre} ${persona.apellido} ${persona.dni ?? ""}`)]
           .join(" ")
           .toLowerCase(),

@@ -14,6 +14,7 @@ const nombreDeRol: Record<Rol, string> = {
   puerta: "Puerta",
   bar: "Bar",
   restaurante: "Restaurante",
+  caja: "Caja (cobros y movimientos)",
 }
 
 function ElegirRoles({ elegidos, onChange, prefijo }: { elegidos: Rol[]; onChange: (roles: Rol[]) => void; prefijo: string }) {

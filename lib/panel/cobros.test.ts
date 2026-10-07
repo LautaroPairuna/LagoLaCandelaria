@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import { cobroDelSaldo, saldoDe, totalesPorForma } from "@/lib/panel/cobros"
+import { saldoDe, totalesPorForma } from "@/lib/panel/cobros"
+import { cobroPropuesto } from "@/lib/panel/libro-caja"
 
 describe("cobro en puerta", () => {
   it("el saldo descuenta lo cobrado y el descuento ya aplicado", () => {
@@ -10,8 +11,8 @@ describe("cobro en puerta", () => {
   })
 
   it("el saldo completo en efectivo tiene 10 % de descuento", () => {
-    expect(cobroDelSaldo(130_000, "EFECTIVO")).toEqual({ importe: 117_000, descuento: 13_000 })
-    expect(cobroDelSaldo(130_000, "DEBITO")).toEqual({ importe: 130_000, descuento: 0 })
+    expect(cobroPropuesto(130_000, [], "EFECTIVO")).toEqual({ importe: 117_000, descuento: 13_000 })
+    expect(cobroPropuesto(130_000, [], "DEBITO")).toEqual({ importe: 130_000, descuento: 0 })
   })
 
   it("suma la caja del día por forma de pago", () => {
