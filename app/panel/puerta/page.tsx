@@ -3,7 +3,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { AccionesLlegada } from "@/components/panel/acciones-llegada"
-import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
+import { LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
+import { NuevaReserva } from "@/components/panel/nueva-reserva"
 import { totalesPorForma } from "@/lib/panel/cobros"
 import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel } from "@/lib/panel/formato"
@@ -98,6 +99,8 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
               className="h-12 w-full rounded-2xl border border-panel-line bg-white pr-4 pl-11"
             />
           </form>
+
+          {momento === "hoy" ? <NuevaReserva hoy={hoy} enPuerta puedeCobrar /> : null}
 
           <LeyendaDeEstados />
 
@@ -217,12 +220,6 @@ function ListaLlegadas({
                         : "Pagado"}
                 </p>
               </div>
-              {bloqueado ? (
-                <div className="space-y-2">
-                  <InsigniaDeEstado estado={llegada.visible} grande />
-                  <p className="text-sm text-panel-ink/70">El ingreso y el cobro se marcan ese día.</p>
-                </div>
-              ) : (
               <AccionesLlegada
                 id={llegada.id}
                 titular={llegada.titular}
@@ -232,8 +229,8 @@ function ListaLlegadas({
                 integrantes={llegada.integrantes}
                 saldo={llegada.saldo}
                 efectivo={llegada.efectivo}
+                soloCobro={bloqueado}
               />
-              )}
             </li>
           ))}
         </ul>

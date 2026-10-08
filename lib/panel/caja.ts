@@ -142,6 +142,37 @@ export async function pendientesDeCobro() {
 
 export type Pendiente = Awaited<ReturnType<typeof pendientesDeCobro>>[number]
 
+/// Cobros de reservas que todavía no llegaron (señas, pagos por adelantado). No entran a
+/// la caja hasta que el grupo llega, pero se muestran aparte para que ninguno se pierda.
+export async function cobrosAnticipados() {
+  const pagos = await db().pago.findMany({
+    where: { reserva: { estado: { not: "CANCELADA" }, ingresoEn: null } },
+    orderBy: [{ fecha: "desc" }, { creadoEn: "desc" }],
+    select: {
+      id: true,
+      fecha: true,
+      forma: true,
+      importe: true,
+      registradoPor: true,
+      reserva: { select: { id: true, codigo: true, desde: true, institucion: true, cliente: { select: { nombre: true, apellido: true } } } },
+    },
+  })
+  return pagos.map((pago) => ({
+    id: pago.id,
+    fecha: deFechaDb(pago.fecha),
+    cajon: cajonDe(pago.forma),
+    forma: pago.forma,
+    importe: pago.importe,
+    registradoPor: pago.registradoPor,
+    reservaId: pago.reserva.id,
+    codigo: pago.reserva.codigo,
+    llega: deFechaDb(pago.reserva.desde),
+    titular: titularDe(pago.reserva),
+  }))
+}
+
+export type Anticipado = Awaited<ReturnType<typeof cobrosAnticipados>>[number]
+
 function celda(valor: string | number) {
   const texto = String(valor)
   return /[";\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto

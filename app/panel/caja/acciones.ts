@@ -12,10 +12,11 @@ import { pesos } from "@/lib/predio/tarifas"
 import { db } from "@/lib/prisma"
 
 const nuevoMovimiento = z.object({
-  tipo: z.enum(["INGRESO", "EGRESO", "TRANSFERENCIA"], "Elegí si es un ingreso, un egreso o un pase entre cajones."),
+  // Los ingresos entran solo por el cobro de una reserva.
+  tipo: z.enum(["EGRESO", "TRANSFERENCIA"], "Elegí si es un egreso o un pase entre cajones."),
   cajon: z.enum(["EFECTIVO", "BANCO"], "Elegí el cajón."),
   fecha: z.string(),
-  concepto: z.string().trim().min(3, "Contá de qué es: «Combustible», «Retiro», «Depósito en el banco».").max(160, "Es muy largo: dejalo en 160 letras o menos."),
+  concepto: z.string().trim().min(2, "Contá de qué es: «Combustible», «Retiro», «Depósito en el banco».").max(160, "Es muy largo: dejalo en 160 letras o menos."),
   monto: z.number("Escribí el monto en pesos, sin puntos.").int("Escribí el monto en pesos, sin centavos.").positive("El monto tiene que ser mayor a cero.").max(500_000_000, "Ese monto es demasiado grande. Revisalo."),
 })
 

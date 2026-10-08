@@ -11,7 +11,7 @@ type Forma = "EFECTIVO" | "TRANSFERENCIA" | "DEBITO"
 const nombreDeForma: Record<Forma, string> = { EFECTIVO: "efectivo", TRANSFERENCIA: "transferencia", DEBITO: "débito" }
 
 /// Abre el cobro de una reserva con el saldo ya propuesto según la forma de pago.
-export function CobrarPendiente({ id, titular, saldo, efectivo }: { id: number; titular: string; saldo: number; efectivo: number }) {
+export function CobrarPendiente({ id, titular, saldo, efectivo, vino }: { id: number; titular: string; saldo: number; efectivo: number; vino: boolean }) {
   const [abierto, setAbierto] = useState(false)
   const [forma, setForma] = useState<Forma>("EFECTIVO")
   const propuesto = forma === "EFECTIVO" ? efectivo : saldo
@@ -38,7 +38,12 @@ export function CobrarPendiente({ id, titular, saldo, efectivo }: { id: number; 
         }
         if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]} a ${titular}?`)) return
         iniciar(async () => {
-          const resultado = await conAviso(() => cobrar({ id, forma, importe: monto }), `Listo, quedaron cobrados ${pesos(monto)} a ${titular}.`)
+          const resultado = await conAviso(
+            () => cobrar({ id, forma, importe: monto }),
+            vino
+              ? `Listo, quedaron cobrados ${pesos(monto)} a ${titular}.`
+              : `Listo, quedaron cobrados ${pesos(monto)} a ${titular}. Como todavía no llegaron, figura en «Cobrado por adelantado» y entra a la caja el día que lleguen.`,
+          )
           if (resultado.ok) setAbierto(false)
         })
       }}

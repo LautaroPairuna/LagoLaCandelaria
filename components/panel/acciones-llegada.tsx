@@ -27,6 +27,7 @@ export function AccionesLlegada({
   ingreso,
   saldo,
   efectivo,
+  soloCobro = false,
 }: {
   id: number
   titular: string
@@ -37,9 +38,16 @@ export function AccionesLlegada({
   saldo: number | null
   /// Lo que se cobra si el resto se paga en efectivo (con descuento, si corresponde).
   efectivo: number | null
+  /// Reserva de otro día: se puede cobrar una seña, pero el ingreso se marca ese día.
+  soloCobro?: boolean
 }) {
   const [pendiente, iniciar] = useTransition()
   const [otroImporte, setOtroImporte] = useState(false)
+  // Lo habitual en la entrada: pagan y pasan todos. Si nadie entró todavía, cobrar el
+  // saldo marca también el ingreso del grupo entero, en un solo paso.
+  const nadieEntro = asistencia.adentro + asistencia.salieron === 0
+  const [ingresanAlCobrar, setIngresanAlCobrar] = useState(true)
+  const cobraEIngresa = !soloCobro && nadieEntro && ingresanAlCobrar
 
   function mover(movimiento: Movimiento, exito: string) {
     iniciar(async () => void (await conAviso(() => registrarAsistencia({ reservaId: id, movimiento }), exito)))
@@ -47,13 +55,18 @@ export function AccionesLlegada({
 
   function cobrarAhora(forma: FormaDeCobro, importe?: number) {
     const monto = importe ?? (forma === "EFECTIVO" ? (efectivo ?? 0) : (saldo ?? 0))
-    if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]}?`)) return
+    // Un importe parcial no marca el ingreso: se marca persona por persona.
+    const ingresan = cobraEIngresa && importe === undefined
+    if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]}${ingresan ? " y marcar que ingresaron todos" : ""}?`)) return
     iniciar(async () => {
       const resultado = await conAviso(
         () => cobrar({ id, forma, importe }),
-        (cobro) => `Listo, quedaron cobrados ${pesos(cobro.importe)} en ${nombreDeForma[forma]} a ${titular}.`,
+        (cobro) =>
+          `Listo, quedaron cobrados ${pesos(cobro.importe)} en ${nombreDeForma[forma]} a ${titular}.${soloCobro ? " Entra a la caja el día que lleguen." : ""}`,
       )
-      if (resultado.ok) setOtroImporte(false)
+      if (!resultado.ok) return
+      setOtroImporte(false)
+      if (ingresan) await conAviso(() => registrarAsistencia({ reservaId: id, movimiento: "ingreso" }), `Y ya figuran adentro.`)
     })
   }
 
@@ -70,7 +83,9 @@ export function AccionesLlegada({
         ) : null}
       </p>
 
-      {asistencia.porPersona ? (
+      {soloCobro ? (
+        <p className="text-sm text-panel-ink/70">El ingreso se marca el día que llegan. Si dejan una seña, la podés cobrar ahora.</p>
+      ) : asistencia.porPersona ? (
         <AsistenciaDelGrupo reservaId={id} integrantes={integrantes} puedeMarcar plegado />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
@@ -92,6 +107,12 @@ export function AccionesLlegada({
         </div>
       )}
 
+      {saldo && !soloCobro && nadieEntro ? (
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={ingresanAlCobrar} onChange={(evento) => setIngresanAlCobrar(evento.target.checked)} className="size-5 accent-[#3a2a18]" />
+          Al cobrar el total, marcar que ingresaron todos
+        </label>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         {saldo ? (
           <>
@@ -111,7 +132,7 @@ export function AccionesLlegada({
           className="text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline"
           onClick={() => setOtroImporte((actual) => !actual)}
         >
-          {otroImporte ? "Cerrar" : "Otro importe"}
+          {otroImporte ? "Cerrar" : soloCobro ? "Cobrar una seña" : "Otro importe"}
         </button>
       </div>
 

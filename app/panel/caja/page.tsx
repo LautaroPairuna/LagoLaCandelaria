@@ -6,7 +6,7 @@ import { atajosDeCaja, periodoDeCaja } from "@/app/panel/caja/periodo"
 import { BorrarMovimiento } from "@/components/panel/caja/borrar-movimiento"
 import { CargarMovimiento } from "@/components/panel/caja/cargar-movimiento"
 import { CobrarPendiente } from "@/components/panel/caja/cobrar-pendiente"
-import { esFiltroDeCajon, libroDeCaja, pendientesDeCobro, type FiltroDeCajon, type Pendiente } from "@/lib/panel/caja"
+import { cobrosAnticipados, esFiltroDeCajon, libroDeCaja, pendientesDeCobro, type Anticipado, type FiltroDeCajon, type Pendiente } from "@/lib/panel/caja"
 import { fechaLargaPanel, rangoConMesPanel } from "@/lib/panel/formato"
 import { nombreDelCajon, type Renglon } from "@/lib/panel/libro-caja"
 import { exigirPanel } from "@/lib/panel/sesion"
@@ -45,7 +45,7 @@ export default async function PanelCaja({ searchParams }: PageProps<"/panel/caja
   const activo = atajos.find((atajo) => atajo.desde === desde && atajo.hasta === hasta)?.id
   const enlace = (cambios: Record<string, string>) => `/panel/caja?${new URLSearchParams({ desde, hasta, ...(filtro !== "todos" ? { cajon: filtro } : {}), ...cambios })}`
 
-  const [{ renglones, resumen }, pendientes] = await Promise.all([libroDeCaja(desde, hasta), pendientesDeCobro()])
+  const [{ renglones, resumen }, pendientes, anticipados] = await Promise.all([libroDeCaja(desde, hasta), pendientesDeCobro(), cobrosAnticipados()])
   const visibles = filtro === "todos" ? renglones : renglones.filter((renglon) => renglon.cajon === filtro)
   const periodo = desde === hasta ? fechaLargaPanel(desde) : `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`
   const adeudado = pendientes.reduce((suma, item) => suma + item.saldo, 0)
@@ -148,6 +148,8 @@ export default async function PanelCaja({ searchParams }: PageProps<"/panel/caja
 
       <PendientesDeCobro pendientes={pendientes} adeudado={adeudado} urgente={urgente} />
 
+      {anticipados.length ? <CobrosAnticipados anticipados={anticipados} /> : null}
+
       <section aria-label="Movimientos" className={cn("mt-6 rounded-3xl bg-white p-4 md:p-5", sombra)}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl tracking-tight">Movimientos</h2>
@@ -234,12 +236,43 @@ function PendientesDeCobro({ pendientes, adeudado, urgente }: { pendientes: Pend
                     {item.pierdeDescuento ? "Sin descuento: ya pagó una parte por banco" : `En efectivo: ${pesos(item.efectivo)}`}
                   </span>
                 </span>
-                <CobrarPendiente id={item.id} titular={item.titular} saldo={item.saldo} efectivo={item.efectivo} />
+                <CobrarPendiente id={item.id} titular={item.titular} saldo={item.saldo} efectivo={item.efectivo} vino={item.vino} />
               </li>
             ))}
           </ul>
         </>
       )}
+    </section>
+  )
+}
+
+function CobrosAnticipados({ anticipados }: { anticipados: Anticipado[] }) {
+  const total = (cajon: "EFECTIVO" | "BANCO") => anticipados.filter((item) => item.cajon === cajon).reduce((suma, item) => suma + item.importe, 0)
+  return (
+    <section aria-label="Cobrado por adelantado" className={cn("mt-6 rounded-3xl bg-white p-4 md:p-5", sombra)}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="font-display text-2xl tracking-tight">Cobrado por adelantado</h2>
+        <p className="text-sm text-panel-muted">Señas y pagos de grupos que todavía no llegaron. Entran a la caja el día que llegan.</p>
+      </div>
+      <p className="mt-3 text-sm">
+        En efectivo <strong className="tabular-nums">{pesos(total("EFECTIVO"))}</strong> · Por banco <strong className="tabular-nums">{pesos(total("BANCO"))}</strong>
+      </p>
+      <ul className="mt-2 divide-y divide-panel-line">
+        {anticipados.map((item) => (
+          <li key={item.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5">
+            <span className="min-w-0 flex-1">
+              <Link href={`/panel/reservas/${item.reservaId}`} className="font-semibold hover:underline">
+                {item.titular} · N.º {item.reservaId}
+              </Link>
+              <span className="block text-xs text-panel-muted">
+                Cobrado el {fechaCorta(item.fecha)} en {item.forma === "DEBITO" ? "débito" : item.forma.toLowerCase()}
+                {item.registradoPor ? ` por ${item.registradoPor}` : ""} · llega el {fechaCorta(item.llega)}
+              </span>
+            </span>
+            <span className="font-semibold tabular-nums">{pesos(item.importe)}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
