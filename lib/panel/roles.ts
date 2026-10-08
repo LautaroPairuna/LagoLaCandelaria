@@ -8,7 +8,7 @@ export const paneles = [
   { id: "lugares", nombre: "Lugares", href: "/panel/lugares", listo: true, rol: "reservas" },
   { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: true, rol: "puerta" },
   { id: "caja", nombre: "Caja", href: "/panel/caja", listo: true, rol: "caja" },
-  { id: "bar", nombre: "Bar", href: "/panel/bar", listo: false, rol: "bar" },
+  { id: "bar", nombre: "Bar", href: "/panel/bar", listo: true, rol: "bar" },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: true, rol: "restaurante" },
   { id: "general", nombre: "General", href: "/panel/general", listo: true, rol: "admin" },
 ] as const satisfies readonly { id: string; nombre: string; href: string; listo: boolean; rol: Rol }[]

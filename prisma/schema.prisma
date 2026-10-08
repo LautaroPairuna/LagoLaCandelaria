@@ -327,3 +327,68 @@ model Actividad {
   @@map("actividad")
 }
 
+
+/// Los locales de comida: tienen su menú y sus cuentas, aparte de la caja del predio.
+enum Local {
+  RESTAURANTE
+  BAR
+}
+
+enum EstadoCuenta {
+  ABIERTA
+  COBRADA
+}
+
+/// Lo que se ofrece en la carta de cada local. Se muestra en el menú digital (QR) solo
+/// si está disponible.
+model ItemDeMenu {
+  id          Int      @id @default(autoincrement())
+  local       Local
+  categoria   String   @db.VarChar(60)
+  nombre      String   @db.VarChar(80)
+  descripcion String?  @db.VarChar(200)
+  precio      Int
+  disponible  Boolean  @default(true)
+  orden       Int      @default(0)
+  creadoEn    DateTime @default(now())
+
+  @@index([local, categoria])
+  @@map("menu_items")
+}
+
+/// La cuenta de una mesa: lo que pidieron y si ya está cobrada. Es la caja propia del
+/// local, separada de la del predio.
+model CuentaDeMesa {
+  id         Int            @id @default(autoincrement())
+  local      Local
+  fecha      DateTime       @db.Date
+  mesa       String         @db.VarChar(30)
+  titular    String?        @db.VarChar(80)
+  reservaId  Int?
+  estado     EstadoCuenta   @default(ABIERTA)
+  forma      FormaPago?
+  cobradaEn  DateTime?
+  cobradaPor String?        @db.VarChar(80)
+  abiertaPor String?        @db.VarChar(80)
+  creadoEn   DateTime       @default(now())
+  items      ItemDeCuenta[]
+
+  @@index([local, fecha])
+  @@map("cuentas_de_mesa")
+}
+
+/// Un renglón del pedido. Nombre y precio se copian del menú al pedir: si después cambia
+/// la carta, la cuenta no se mueve.
+model ItemDeCuenta {
+  id         Int          @id @default(autoincrement())
+  cuentaId   Int
+  cuenta     CuentaDeMesa @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  menuItemId Int?
+  nombre     String       @db.VarChar(80)
+  precio     Int
+  cantidad   Int          @default(1) @db.SmallInt
+  creadoEn   DateTime     @default(now())
+
+  @@index([cuentaId])
+  @@map("cuenta_items")
+}

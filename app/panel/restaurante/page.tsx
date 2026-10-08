@@ -4,6 +4,8 @@ import Link from "next/link"
 
 import { AccionesMesa } from "@/components/panel/acciones-mesa"
 import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
+import { PestanasDelLocal } from "@/components/panel/local/pestanas"
+import { locales } from "@/lib/panel/local"
 import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { restauranteDelDia, type ReservaDeMesa } from "@/lib/panel/restaurante"
@@ -66,6 +68,7 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
             </button>
           </form>
         </div>
+        <PestanasDelLocal local={locales.RESTAURANTE} activa="salon" />
       </header>
 
       <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">

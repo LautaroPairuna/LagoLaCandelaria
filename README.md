@@ -55,7 +55,7 @@ Paneles:
 - **Caja** (rol caja): la plata del predio en dos cajones, **Caja · Efectivo** (el mostrador) y **Banco · Transferencia** (transferencia, tarjeta y otros medios). Ver "Caja" más abajo.
 - **General** (solo administración): resumen de hoy, reportes por período y usuarios.
 - **Restaurante** (rol restaurante): el salón del día por horario (cada mesa es una fila y cada reserva un bloque con el color de su estado, con la hora actual marcada) y las reservas de mesa ordenadas por horario, con alergias y condiciones a la vista. Se marca la llegada y la salida por persona, por familia o la mesa entera; ese rol solo puede marcar reservas de mesa.
-- Bar aparece como "Pronto".
+- **Bar** (rol bar): cuentas y menú, igual que el restaurante pero sin salón (el bar no tiene mesas reservables).
 
 ### Estados de una reserva
 
@@ -72,6 +72,15 @@ La reserva no tiene costo: se paga lo que consumen, en el restaurante (`cotizaci
 Son 9 mesas según la planilla del predio: de 2 personas la 1, 5 y 7; de 4 la 2, 6 y 8; de 6 la 3, 4 y 9 (36 lugares). Un grupo puede juntar varias mesas, y para más de 36 personas se deriva a WhatsApp.
 Las mesas se ocupan por hora, de 10 a 19 (`lib/predio/horario.ts`): cada reserva guarda una fila de `ocupaciones` por hora (`hora`; 0 es el día entero, como en los demás lugares), así la misma mesa puede tener una reserva de 12 a 14 y otra de 15 a 17, y el índice único frena a dos reservas que se pisan.
 El bar no tiene mesas reservables: la planilla no las lista, así que las que había quedaron inactivas (migración `mesas_del_restaurante`).
+
+### Restaurante y bar: menú y cuentas
+
+Cada local tiene pestañas propias: el restaurante **Salón y reservas**, **Cuentas** y **Menú**; el bar **Cuentas** y **Menú** (`lib/panel/local.ts`).
+
+- **Menú** (`menu_items`): categoría, nombre, descripción y precio. "Hay" destildado lo saca del menú digital sin borrarlo. Al lado está el QR para imprimir.
+- **Menú digital** (`/menu/restaurante`, `/menu/bar`): la página pública a la que lleva el QR. Muestra solo lo que hay.
+- **Cuentas** (`cuentas_de_mesa`, `cuenta_items`): se abre una cuenta por mesa (en el restaurante, con un toque desde las reservas del día), se suman platos de la carta o algo fuera de la carta, y se cobra en efectivo, débito o transferencia. Nombre y precio se copian al pedir: si cambia la carta, la cuenta no se mueve. Una cuenta cobrada se puede reabrir.
+- Arriba, lo cobrado del día por forma de pago y lo pendiente. Es la caja propia del local: no se mezcla con la Caja del predio.
 
 ### Caja
 
