@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { cajonDe, cobroPropuesto, deudaDe, renglonesDeMovimiento, totalesPorCajon } from "@/lib/panel/libro-caja"
+import { cajonDe, cobroPropuesto, deudaDe, ingresosPorSeccion, renglonesDeMovimiento, totalesPorCajon } from "@/lib/panel/libro-caja"
 
 const movimiento = { id: 1, fecha: "2026-10-07", concepto: "Depósito", monto: 50_000, registradoPor: "Ana", creadoEn: new Date() }
 
@@ -51,5 +51,22 @@ describe("regla del descuento", () => {
   it("pagada en efectivo con descuento, no debe nada", () => {
     const pagos = [{ importe: 90_000, descuento: 10_000, forma: "EFECTIVO" as const }]
     expect(deudaDe(100_000, pagos)).toEqual({ saldo: 0, efectivo: 0, pierdeDescuento: false })
+  })
+})
+
+describe("ingresos por sección", () => {
+  it("separa reservas, locales y predio, con los pases restando y sumando", () => {
+    const tabla = ingresosPorSeccion([
+      { seccion: "reservas", cajon: "EFECTIVO", sentido: "ingreso", monto: 90_000 },
+      { seccion: "restaurante", cajon: "BANCO", sentido: "ingreso", monto: 29_000 },
+      { seccion: "bar", cajon: "EFECTIVO", sentido: "ingreso", monto: 5_000 },
+      { seccion: "predio", cajon: "EFECTIVO", sentido: "egreso", monto: 8_000 },
+    ])
+    expect(tabla).toEqual({
+      reservas: { EFECTIVO: 90_000, BANCO: 0 },
+      restaurante: { EFECTIVO: 0, BANCO: 29_000 },
+      bar: { EFECTIVO: 5_000, BANCO: 0 },
+      predio: { EFECTIVO: -8_000, BANCO: 0 },
+    })
   })
 })

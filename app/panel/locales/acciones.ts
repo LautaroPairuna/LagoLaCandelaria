@@ -5,7 +5,9 @@ import { z } from "zod"
 
 import type { Local } from "@/generated/prisma/enums"
 import { accion, ErrorHumano, exigir, type Resultado } from "@/lib/errores"
-import { locales } from "@/lib/panel/local"
+import { registrarActividad } from "@/lib/panel/actividad"
+import { locales, totalDeCuenta } from "@/lib/panel/local"
+import { pesos } from "@/lib/predio/tarifas"
 import { permisoParaAccion } from "@/lib/panel/sesion"
 import { aFechaDb, esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
@@ -23,6 +25,8 @@ function refrescar(cual: Local) {
 }
 
 const quien = (sesion: { user: { name: string } }) => sesion.user.name.slice(0, 80)
+
+const nombreDeForma = { EFECTIVO: "efectivo", DEBITO: "débito", TRANSFERENCIA: "transferencia" } as const
 
 // —— Menú ——
 
@@ -167,9 +171,18 @@ export async function cobrarCuenta(pedido: { cuentaId: number; forma: "EFECTIVO"
   return accion("cobrarCuenta", async () => {
     const { cuenta, sesion } = await cuentaParaCambiar(id.parse(pedido.cuentaId))
     const forma = z.enum(["EFECTIVO", "DEBITO", "TRANSFERENCIA"]).parse(pedido.forma)
-    const items = await db().itemDeCuenta.count({ where: { cuentaId: cuenta.id } })
-    exigir(items > 0, `La cuenta de ${cuenta.mesa} está vacía: cargá el pedido antes de cobrar.`)
-    await db().cuentaDeMesa.update({ where: { id: cuenta.id }, data: { estado: "COBRADA", forma, cobradaEn: new Date(), cobradaPor: quien(sesion) } })
+    const items = await db().itemDeCuenta.findMany({ where: { cuentaId: cuenta.id }, select: { precio: true, cantidad: true } })
+    exigir(items.length > 0, `La cuenta de ${cuenta.mesa} está vacía: cargá el pedido antes de cobrar.`)
+    const total = totalDeCuenta(items)
+    await db().$transaction(async (tx) => {
+      await tx.cuentaDeMesa.update({ where: { id: cuenta.id }, data: { estado: "COBRADA", forma, cobradaEn: new Date(), cobradaPor: quien(sesion) } })
+      await registrarActividad(tx, {
+        usuario: quien(sesion),
+        accion: "cobro",
+        detalle: `${locales[cuenta.local].nombre}: cobró ${pesos(total)} en ${nombreDeForma[forma]} a ${cuenta.mesa}`,
+        monto: total,
+      })
+    })
     refrescar(cuenta.local)
     return { ok: true, id: cuenta.id }
   })
@@ -177,8 +190,19 @@ export async function cobrarCuenta(pedido: { cuentaId: number; forma: "EFECTIVO"
 
 export async function reabrirCuenta(pedido: { cuentaId: number }): Promise<Resultado<{ id: number }>> {
   return accion("reabrirCuenta", async () => {
-    const { cuenta } = await cuentaParaCambiar(id.parse(pedido.cuentaId), false)
-    await db().cuentaDeMesa.update({ where: { id: cuenta.id }, data: { estado: "ABIERTA", forma: null, cobradaEn: null, cobradaPor: null } })
+    const { cuenta, sesion } = await cuentaParaCambiar(id.parse(pedido.cuentaId), false)
+    if (cuenta.estado === "COBRADA") {
+      const items = await db().itemDeCuenta.findMany({ where: { cuentaId: cuenta.id }, select: { precio: true, cantidad: true } })
+      await db().$transaction(async (tx) => {
+        await tx.cuentaDeMesa.update({ where: { id: cuenta.id }, data: { estado: "ABIERTA", forma: null, cobradaEn: null, cobradaPor: null } })
+        await registrarActividad(tx, {
+          usuario: quien(sesion),
+          accion: "cobro anulado",
+          detalle: `${locales[cuenta.local].nombre}: reabrió la cuenta de ${cuenta.mesa}, que estaba cobrada`,
+          monto: totalDeCuenta(items),
+        })
+      })
+    }
     refrescar(cuenta.local)
     return { ok: true, id: cuenta.id }
   })

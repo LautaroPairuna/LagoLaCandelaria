@@ -3,7 +3,7 @@ import Link from "next/link"
 import type { DatosDelLocal } from "@/lib/panel/local"
 import { cn } from "cn"
 
-export type Pestana = "salon" | "cuentas" | "menu"
+export type Pestana = "salon" | "cuentas" | "menu" | "caja"
 
 export function rutasDelLocal(local: DatosDelLocal): { id: Pestana; nombre: string; href: string }[] {
   if (local.id === "RESTAURANTE") {
@@ -11,11 +11,13 @@ export function rutasDelLocal(local: DatosDelLocal): { id: Pestana; nombre: stri
       { id: "salon", nombre: "Salón y reservas", href: local.base },
       { id: "cuentas", nombre: "Cuentas", href: `${local.base}/cuentas` },
       { id: "menu", nombre: "Menú", href: `${local.base}/menu` },
+      { id: "caja", nombre: "Caja", href: `${local.base}/caja` },
     ]
   }
   return [
     { id: "cuentas", nombre: "Cuentas", href: local.base },
     { id: "menu", nombre: "Menú", href: `${local.base}/menu` },
+    { id: "caja", nombre: "Caja", href: `${local.base}/caja` },
   ]
 }
 

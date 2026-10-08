@@ -1,4 +1,4 @@
-import type { Cajon, FormaPago, TipoMovimiento } from "@/generated/prisma/enums"
+import type { Cajon, FormaPago, Local, TipoMovimiento } from "@/generated/prisma/enums"
 import { saldoDe } from "@/lib/panel/cobros"
 import { conDescuentoEfectivo } from "@/lib/predio/tarifas"
 
@@ -11,6 +11,18 @@ export const cajones: { id: Cajon; nombre: string; detalle: string }[] = [
 
 export const nombreDelCajon: Record<Cajon, string> = { EFECTIVO: "Efectivo", BANCO: "Banco" }
 
+/// De dónde viene cada renglón. Reservas, restaurante y bar tienen su caja; los egresos y
+/// los pases entre cajones son del predio y se ven en la caja general.
+export type Seccion = "reservas" | "restaurante" | "bar" | "predio"
+
+export const secciones: Seccion[] = ["reservas", "restaurante", "bar", "predio"]
+
+export const nombreDeSeccion: Record<Seccion, string> = { reservas: "Reservas", restaurante: "Restaurante", bar: "Bar", predio: "Predio" }
+
+export function seccionDelLocal(local: Local): Seccion {
+  return local === "RESTAURANTE" ? "restaurante" : "bar"
+}
+
 /// El efectivo va al cajón del mostrador; todo lo demás (transferencia, débito) al banco.
 export function cajonDe(forma: FormaPago): Cajon {
   return forma === "EFECTIVO" ? "EFECTIVO" : "BANCO"
@@ -18,10 +30,11 @@ export function cajonDe(forma: FormaPago): Cajon {
 
 const otro = (cajon: Cajon): Cajon => (cajon === "EFECTIVO" ? "BANCO" : "EFECTIVO")
 
-/// Un renglón de la caja. Los cobros vienen de las reservas y no se borran desde acá;
-/// los movimientos manuales sí.
+/// Un renglón de la caja. Los cobros de reservas y las cuentas de los locales no se
+/// borran desde la caja (se corrigen donde se cargaron); los movimientos manuales sí.
 export type Renglon = {
   clave: string
+  seccion: Seccion
   fecha: string
   hora: Date
   cajon: Cajon
@@ -29,7 +42,11 @@ export type Renglon = {
   monto: number
   concepto: string
   registradoPor: string | null
-} & ({ origen: "cobro"; reservaId: number; codigo: string; forma: FormaPago; descuento: number } | { origen: "movimiento"; movimientoId: number; tipo: TipoMovimiento })
+} & (
+  | { origen: "cobro"; reservaId: number; codigo: string; forma: FormaPago; descuento: number }
+  | { origen: "cuenta"; local: Local; cuentaId: number; forma: FormaPago }
+  | { origen: "movimiento"; movimientoId: number; tipo: TipoMovimiento }
+)
 
 export type MovimientoLeido = {
   id: number
@@ -47,6 +64,7 @@ export type MovimientoLeido = {
 export function renglonesDeMovimiento(movimiento: MovimientoLeido): Renglon[] {
   const base = {
     origen: "movimiento" as const,
+    seccion: "predio" as const,
     movimientoId: movimiento.id,
     tipo: movimiento.tipo,
     fecha: movimiento.fecha,
@@ -65,6 +83,13 @@ export function renglonesDeMovimiento(movimiento: MovimientoLeido): Renglon[] {
 }
 
 export type TotalesDelCajon = { ingreso: number; egreso: number }
+
+/// Lo que entró en el período por sección y cajón (para la caja general).
+export function ingresosPorSeccion(renglones: Pick<Renglon, "seccion" | "cajon" | "sentido" | "monto">[]) {
+  const tabla = Object.fromEntries(secciones.map((seccion) => [seccion, { EFECTIVO: 0, BANCO: 0 }])) as Record<Seccion, Record<Cajon, number>>
+  for (const renglon of renglones) tabla[renglon.seccion][renglon.cajon] += renglon.sentido === "ingreso" ? renglon.monto : -renglon.monto
+  return tabla
+}
 
 export function totalesPorCajon(renglones: Pick<Renglon, "cajon" | "sentido" | "monto">[]): Record<Cajon, TotalesDelCajon> {
   const totales: Record<Cajon, TotalesDelCajon> = { EFECTIVO: { ingreso: 0, egreso: 0 }, BANCO: { ingreso: 0, egreso: 0 } }

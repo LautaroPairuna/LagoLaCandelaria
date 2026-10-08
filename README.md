@@ -80,18 +80,18 @@ Cada local tiene pestañas propias: el restaurante **Salón y reservas**, **Cuen
 - **Menú** (`menu_items`): categoría, nombre, descripción y precio. "Hay" destildado lo saca del menú digital sin borrarlo. Al lado está el QR para imprimir.
 - **Menú digital** (`/menu/restaurante`, `/menu/bar`): la página pública a la que lleva el QR. Muestra solo lo que hay.
 - **Cuentas** (`cuentas_de_mesa`, `cuenta_items`): se abre una cuenta por mesa (en el restaurante, con un toque desde las reservas del día), se suman platos de la carta o algo fuera de la carta, y se cobra en efectivo, débito o transferencia. Nombre y precio se copian al pedir: si cambia la carta, la cuenta no se mueve. Una cuenta cobrada se puede reabrir.
-- Arriba, lo cobrado del día por forma de pago y lo pendiente. Es la caja propia del local: no se mezcla con la Caja del predio.
+- Arriba, lo cobrado del día por forma de pago y lo pendiente. La pestaña **Caja** muestra lo cobrado por período; en la caja General se suma a las demás.
 
-### Caja
+### Cajas
 
-- **Cobros de reservas**: entran solos, pero recién cuando el grupo llegó al predio (la reserva tiene un ingreso marcado). Mientras no llegó no figuran, y si se cancela nunca. Cada cobro es un renglón con su fecha, su cajón y el titular con el N.º de reserva; una seña por transferencia y el resto en efectivo son dos renglones. Desde la Caja no se borran: se dan de baja desde la reserva ("Dar de baja" en Cobros).
-- **Movimientos manuales** (`movimientos_caja`): egreso o pase entre cajones (sale de uno y entra al otro), con fecha, concepto y monto. Se borran con el tacho. No hay ingresos manuales: la plata entra siempre por el cobro de una reserva (si alguien llega sin avisar, se le carga una reserva en Puerta).
-- **Cobrado por adelantado**: señas y pagos de reservas que todavía no llegaron. No suman a la caja hasta que el grupo llega, pero se listan aparte para que ninguno se pierda.
-- **Tarjetas**: por cajón, ingreso y egreso del período, y el balance a la fecha "Hasta" sumando toda la historia.
-- **Pendiente de cobro**: reservas confirmadas con saldo, de cualquier fecha, primero las que ya vinieron. Regla del descuento (`lib/panel/libro-caja.ts`): si todo se paga en efectivo, se cobra con el 10 % menos; si una parte entró por banco, se pierde el descuento y se cobra el precio de lista. Puerta usa la misma regla.
-- Por defecto se ven los últimos 30 días. "Exportar a Excel" baja la lista visible (Todos, Efectivo o Banco) con el resumen de cada cajón al final.
-- **Actividad** (`/panel/caja/actividad`): cada cobro, cobro dado de baja y movimiento cargado o borrado, con quién y cuándo.
-- Pueden operar la administración y el rol `caja`. Puerta cobra y da de baja cobros, pero no ve la Caja.
+Hay una caja por sección y una general que las junta (`lib/panel/caja.ts`, `lib/panel/libro-caja.ts`). Todas separan la plata en dos cajones: **Efectivo** (el mostrador) y **Banco** (transferencia, débito y otros).
+
+- **General** (`/panel/caja`): suma reservas, restaurante y bar, más los egresos y pases entre cajones del predio. Tarjetas por cajón (ingreso, egreso y balance histórico a la fecha "Hasta"), una tabla **Por sección** (efectivo, banco, total y pendiente de cobro de cada una) y la lista de movimientos con filtros de cajón y de sección. Acá se cargan los **egresos** y los **pases entre cajones** (`movimientos_caja`), que se borran con el tacho. No hay ingresos manuales: la plata entra por una reserva o por una cuenta de los locales.
+- **Reservas** (`/panel/caja/reservas`): los cobros de reservas, que entran cuando el grupo llega al predio (se dan de baja desde la reserva); **Pendiente de cobro** de reservas confirmadas con saldo, con la regla del descuento (todo en efectivo, 10 % menos; si entró algo por banco, precio de lista); y **Cobrado por adelantado**, las señas de grupos que todavía no llegaron.
+- **Restaurante** y **Bar** (`/panel/caja/restaurante`, `/panel/caja/bar`, y la pestaña "Caja" de cada local): las cuentas cobradas por cajón y las que quedaron abiertas. Los encargados de cada local ven la suya; la general, solo administración y el rol caja.
+- Por defecto se ven los últimos 30 días. "Exportar a Excel" baja la lista visible, con la sección de cada renglón y el resumen de los cajones al final.
+- **Actividad** (`/panel/caja/actividad`): cobros, cobros anulados, cuentas cobradas o reabiertas, y movimientos cargados o borrados, con quién y cuándo.
+- Pueden operar la administración y el rol `caja`. Puerta cobra y da de baja cobros, pero no ve la caja.
 
 ### Errores y avisos
 
