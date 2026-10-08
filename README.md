@@ -107,6 +107,8 @@ Los títulos, descripciones e imágenes al compartir de cada página están en `
 
 `npm start` aplica las migraciones pendientes (`prisma migrate deploy`) antes de levantar la app, así cada deploy deja la base al día. Las migraciones son aditivas (columnas e índices nuevos); si alguna llegara a ser destructiva hay que sacar un backup antes. Se corre desde el arranque y no desde el build porque el contenedor de build no ve la red interna de la base. Con más de una réplica conviene sacar este paso del arranque.
 
+Si una migración falla, la app **arranca igual** (el error queda en el log, arriba de "ATENCION: las migraciones no se aplicaron"): así no se pierde el acceso al contenedor ni al resto del sistema mientras se corrige. Lo que dependa de la migración fallida va a dar error hasta resolverla. Para destrabarla: ver el motivo en `_prisma_migrations.logs`, corregir la base y marcarla como aplicada (`npx prisma migrate resolve --applied <nombre>` desde la consola del contenedor, o completando `finished_at` en `_prisma_migrations`).
+
 Si hace falta aplicar una a mano (por ejemplo desde phpMyAdmin), además del SQL de `prisma/migrations/<nombre>/migration.sql` hay que anotarla en `_prisma_migrations` para que Prisma no la repita.
 
 ### Pasar a producción
