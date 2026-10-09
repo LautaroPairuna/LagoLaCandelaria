@@ -85,7 +85,7 @@ model Reserva {
   institucion   String?          @db.VarChar(120)
   cargo         String?          @db.VarChar(80)
   edadesGrupo   String?          @db.VarChar(120)
-  propuesta     String?          @db.VarChar(40)
+  propuesta     String?          @db.VarChar(120)
   /// En grupos familiares salen de reserva_personas y se guardan en la misma
   /// transacción; en grupos estudiantiles son el único dato (no se carga a cada alumno).
   adultos       Int              @default(0) @db.SmallInt

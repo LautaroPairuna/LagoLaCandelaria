@@ -374,7 +374,7 @@ export async function enviarPedidoDeGrupo(pedido: z.input<typeof pedidoDeGrupo>)
         institucion: datos.institucion,
         cargo: datos.responsable.cargo,
         edadesGrupo: datos.edades,
-        propuesta: datos.modalidad || null,
+        propuesta: datos.modalidad.slice(0, 120) || null,
         notas: datos.observaciones || null,
         grupo: { adultos: datos.acompanantes, menores: datos.participantes, sinCargo: 0 },
         cotizacion: cotizacionAConfirmar,
