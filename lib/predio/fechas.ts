@@ -1,0 +1,62 @@
+export function esFechaIso(valor: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false
+  const [anio, mes, dia] = valor.split("-").map(Number)
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia))
+  return fecha.getUTCFullYear() === anio && fecha.getUTCMonth() === mes - 1 && fecha.getUTCDate() === dia
+}
+
+function aUtc(iso: string) {
+  const [anio, mes, dia] = iso.split("-").map(Number)
+  return new Date(Date.UTC(anio, mes - 1, dia))
+}
+
+export function sumarDiasIso(iso: string, dias: number) {
+  const fecha = aUtc(iso)
+  fecha.setUTCDate(fecha.getUTCDate() + dias)
+  return fecha.toISOString().slice(0, 10)
+}
+
+export function diaDeLaSemana(iso: string) {
+  return aUtc(iso).getUTCDay()
+}
+
+export function fechasEntre(desde: string, hasta: string) {
+  const fechas: string[] = []
+  for (let cursor = desde; cursor <= hasta; cursor = sumarDiasIso(cursor, 1)) fechas.push(cursor)
+  return fechas
+}
+
+export function aFechaDb(iso: string) {
+  return aUtc(iso)
+}
+
+export function deFechaDb(fecha: Date) {
+  return fecha.toISOString().slice(0, 10)
+}
+
+const fechaDelPredio = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" })
+
+export function hoyEnElPredio() {
+  return fechaDelPredio.format(new Date())
+}
+
+const horaDelPredio = new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" })
+
+/// La hora en punto en el predio (0 a 23).
+export function horaEnElPredio() {
+  return Number(horaDelPredio.format(new Date()))
+}
+
+const fechaLargaEs = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+})
+
+export function fechaLarga(iso: string) {
+  if (!esFechaIso(iso)) return iso
+  const texto = fechaLargaEs.format(aUtc(iso)).replace(",", "")
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}

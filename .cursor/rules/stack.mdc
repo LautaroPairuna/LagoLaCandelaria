@@ -1,0 +1,27 @@
+---
+description: Stack obligatorio para todo cambio nuevo
+alwaysApply: true
+---
+
+# Stack del proyecto
+
+Todo cambio nuevo usa solo este stack. No reemplazar piezas ni introducir librerías paralelas.
+
+- Next.js 16. Backend solo con Route Handlers en `app/api/**/route.ts`.
+- React 19 y Tailwind CSS 4 para la interfaz.
+- TypeScript 7, con tipos explícitos en entradas y salidas de API.
+- Prisma 7.10 contra MySQL. Acceso a datos solo a través del cliente de Prisma.
+- Zod para validar body, query y params antes de usarlos.
+- Errores de cara al usuario con toasts (sonner) y mensajes en español, concretos y accionables.
+
+```typescript
+const datos = esquema.safeParse(await request.json())
+if (!datos.success) {
+  return NextResponse.json(
+    { ok: false, error: "Revisá los datos: falta el nombre del lugar." },
+    { status: 400 },
+  )
+}
+```
+
+En el cliente, un error de API se muestra con `toast.error(mensaje)`. El mensaje lo escribe el servidor; el cliente no inventa otro texto técnico.

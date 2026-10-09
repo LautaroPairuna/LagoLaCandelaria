@@ -1,0 +1,394 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Modulo {
+  FINDE_FAMILIA
+  BUNGALOW
+  RESTAURANTE
+  CAMPAMENTO
+  SALIDA_EDUCATIVA
+  VIAJE_EGRESADOS
+  ACTIVIDAD_AVENTURA
+}
+
+enum EstadoReserva {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+}
+
+enum OrigenReserva {
+  WEB
+  PREDIO
+  LEGADO
+}
+
+enum FormaPago {
+  EFECTIVO
+  DEBITO
+  TRANSFERENCIA
+}
+
+enum TipoUnidad {
+  PARRILLA
+  QUINCHO
+  GAZEBO
+  PALAPA
+  BUNGALOW
+  MESA_RESTAURANTE
+  MESA_BAR
+}
+
+enum TipoDia {
+  FERIADO
+  NO_LABORABLE
+  CERRADO
+  ABIERTO
+}
+
+model Cliente {
+  id       Int       @id @default(autoincrement())
+  dni      String?   @unique @db.VarChar(8)
+  nombre   String    @db.VarChar(80)
+  apellido String    @db.VarChar(80)
+  email    String?   @db.VarChar(120)
+  telefono String?   @db.VarChar(40)
+  creadoEn DateTime  @default(now())
+  reservas Reserva[]
+
+  @@index([telefono])
+  @@index([email])
+  @@map("clientes")
+}
+
+/// El id es el número de reserva de las planillas. El token es lo que va en el link
+/// público del ticket, para que no se pueda adivinar recorriendo números.
+model Reserva {
+  id            Int              @id @default(autoincrement())
+  token         String           @unique @default(cuid()) @db.VarChar(40)
+  codigo        String           @unique @db.VarChar(12)
+  modulo        Modulo
+  estado        EstadoReserva    @default(PENDIENTE)
+  origen        OrigenReserva    @default(WEB)
+  desde         DateTime         @db.Date
+  hasta         DateTime         @db.Date
+  ingreso       String           @db.VarChar(5)
+  salida        String           @db.VarChar(5)
+  clienteId     Int
+  cliente       Cliente          @relation(fields: [clienteId], references: [id])
+  institucion   String?          @db.VarChar(120)
+  cargo         String?          @db.VarChar(80)
+  edadesGrupo   String?          @db.VarChar(120)
+  propuesta     String?          @db.VarChar(40)
+  /// En grupos familiares salen de reserva_personas y se guardan en la misma
+  /// transacción; en grupos estudiantiles son el único dato (no se carga a cada alumno).
+  adultos       Int              @default(0) @db.SmallInt
+  menores       Int              @default(0) @db.SmallInt
+  sinCargo      Int              @default(0) @db.SmallInt
+  total         Int
+  formaPago     FormaPago?
+  notas         String?          @db.Text
+  /// Primer ingreso al predio. En los grupos sin personas cargadas (estudiantiles) es
+  /// el único registro de asistencia, junto con la salida.
+  ingresoEn     DateTime?
+  ingresoPor    String?          @db.VarChar(80)
+  salidaEn      DateTime?
+  /// La solicitud tal como se emitió (personas, lugares, cotización): es el documento
+  /// del ticket y no se recalcula si después cambian las tarifas.
+  detalle       Json
+  creadaEn      DateTime         @default(now())
+  actualizadaEn DateTime         @updatedAt
+  personas      ReservaPersona[]
+  ocupaciones   Ocupacion[]
+  pagos         Pago[]
+
+  @@index([desde])
+  @@index([estado, desde])
+  @@index([modulo, desde])
+  @@index([clienteId])
+  @@map("reservas")
+}
+
+model ReservaPersona {
+  id          Int     @id @default(autoincrement())
+  reservaId   Int
+  reserva     Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  familia     Int     @default(1) @db.SmallInt
+  responsable Boolean @default(false)
+  nombre      String  @db.VarChar(80)
+  apellido    String  @db.VarChar(80)
+  dni         String? @db.VarChar(8)
+  edad        Int     @db.SmallInt
+  cud         Boolean @default(false)
+  notas       String? @db.VarChar(400)
+  /// Asistencia de cada persona: sin ingreso está pendiente, con ingreso y sin salida
+  /// está adentro, con salida ya se fue.
+  ingresoEn   DateTime?
+  salidaEn    DateTime?
+
+  @@index([reservaId])
+  @@index([dni])
+  @@map("reserva_personas")
+}
+
+model Unidad {
+  id          String      @id @db.VarChar(24)
+  tipo        TipoUnidad
+  numero      Int         @db.SmallInt
+  etiqueta    String      @db.VarChar(20)
+  capacidad   Int?        @db.SmallInt
+  mesas       Int         @default(0) @db.SmallInt
+  activa      Boolean     @default(true)
+  ocupaciones Ocupacion[]
+
+  @@unique([tipo, numero])
+  @@map("unidades")
+}
+
+/// Una fila por unidad y por día (y por hora, en las mesas del restaurante). El índice
+/// único es lo que impide que dos reservas tomen el mismo lugar a la vez; al cancelar una
+/// reserva se borran sus filas.
+model Ocupacion {
+  id        Int      @id @default(autoincrement())
+  reservaId Int
+  reserva   Reserva  @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  unidadId  String   @db.VarChar(24)
+  unidad    Unidad   @relation(fields: [unidadId], references: [id])
+  fecha     DateTime @db.Date
+  /// 0 es el día entero. Las mesas se ocupan por hora: 12 es de 12:00 a 13:00.
+  hora      Int      @default(0) @db.SmallInt
+
+  @@unique([unidadId, fecha, hora])
+  @@index([fecha])
+  @@index([reservaId])
+  @@map("ocupaciones")
+}
+
+model Pago {
+  id            Int       @id @default(autoincrement())
+  reservaId     Int
+  reserva       Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  fecha         DateTime  @db.Date
+  /// Lo que se cobró. El descuento (10 % en efectivo) se guarda aparte para que el
+  /// saldo de la reserva quede en cero aunque se haya cobrado menos que el total.
+  importe       Int
+  descuento     Int       @default(0)
+  forma         FormaPago
+  detalle       String?   @db.VarChar(120)
+  registradoPor String?   @db.VarChar(80)
+  creadoEn      DateTime  @default(now())
+
+  @@index([reservaId])
+  @@index([fecha])
+  @@map("pagos")
+}
+
+model DiaEspecial {
+  fecha  DateTime @id @db.Date
+  tipo   TipoDia
+  motivo String   @db.VarChar(120)
+
+  @@map("dias_especiales")
+}
+
+/// Tabla de la web anterior: la solicitud entera iba como JSON dentro de `message`.
+/// Se conserva hasta comprobar en producción que scripts/migrar-legado.ts pasó todo.
+model ReservationInquiry {
+  id        String    @id @default(cuid())
+  name      String    @db.VarChar(160)
+  contact   String    @db.VarChar(255)
+  groupType String    @db.VarChar(120)
+  date      DateTime? @db.Date
+  message   String    @db.MediumText
+  createdAt DateTime  @default(now())
+
+  @@index([contact, groupType, date])
+  @@index([date])
+  @@map("reservation_inquiries")
+}
+
+/// Tablas de Better Auth (las genera `npx auth generate`). `role` lleva los paneles
+/// a los que entra cada persona, separados por coma: admin, reservas, puerta, bar, restaurante.
+model User {
+  id            String    @id
+  name          String    @db.Text
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          String?   @db.Text
+  banned        Boolean?  @default(false)
+  banReason     String?   @db.Text
+  banExpires    DateTime?
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?  @db.Text
+  userAgent      String?  @db.Text
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?  @db.Text
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String    @db.Text
+  providerId            String    @db.Text
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String   @db.Text
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier(length: 191)])
+  @@map("verification")
+}
+
+enum TipoMovimiento {
+  INGRESO
+  EGRESO
+  TRANSFERENCIA
+}
+
+/// Los dos cajones de la caja: lo que está en el mostrador y lo que entra por banco
+/// (transferencias, tarjeta y otros medios).
+enum Cajon {
+  EFECTIVO
+  BANCO
+}
+
+/// Lo que entra o sale de la caja sin ser el cobro de una reserva: gastos, retiros,
+/// ingresos extra. Una transferencia pasa plata de un cajón al otro: `cajon` es de
+/// dónde sale.
+model MovimientoCaja {
+  id            Int            @id @default(autoincrement())
+  tipo          TipoMovimiento
+  cajon         Cajon
+  fecha         DateTime       @db.Date
+  concepto      String         @db.VarChar(160)
+  monto         Int
+  registradoPor String?        @db.VarChar(80)
+  creadoEn      DateTime       @default(now())
+
+  @@index([fecha])
+  @@map("movimientos_caja")
+}
+
+/// Quién hizo qué con la plata: cobros, cobros anulados y movimientos de caja.
+model Actividad {
+  id        Int      @id @default(autoincrement())
+  creadoEn  DateTime @default(now())
+  usuario   String   @db.VarChar(80)
+  accion    String   @db.VarChar(40)
+  detalle   String   @db.VarChar(255)
+  reservaId Int?
+  monto     Int?
+
+  @@index([creadoEn])
+  @@map("actividad")
+}
+
+
+/// Los locales de comida: tienen su menú y sus cuentas, aparte de la caja del predio.
+enum Local {
+  RESTAURANTE
+  BAR
+}
+
+enum EstadoCuenta {
+  ABIERTA
+  COBRADA
+}
+
+/// Lo que se ofrece en la carta de cada local. Se muestra en el menú digital (QR) solo
+/// si está disponible.
+model ItemDeMenu {
+  id          Int      @id @default(autoincrement())
+  local       Local
+  categoria   String   @db.VarChar(60)
+  nombre      String   @db.VarChar(80)
+  descripcion String?  @db.VarChar(200)
+  precio      Int
+  disponible  Boolean  @default(true)
+  orden       Int      @default(0)
+  creadoEn    DateTime @default(now())
+
+  @@index([local, categoria])
+  @@map("menu_items")
+}
+
+/// La cuenta de una mesa: lo que pidieron y si ya está cobrada. Es la caja propia del
+/// local, separada de la del predio.
+model CuentaDeMesa {
+  id         Int            @id @default(autoincrement())
+  local      Local
+  fecha      DateTime       @db.Date
+  mesa       String         @db.VarChar(30)
+  titular    String?        @db.VarChar(80)
+  reservaId  Int?
+  estado     EstadoCuenta   @default(ABIERTA)
+  forma      FormaPago?
+  cobradaEn  DateTime?
+  cobradaPor String?        @db.VarChar(80)
+  abiertaPor String?        @db.VarChar(80)
+  creadoEn   DateTime       @default(now())
+  items      ItemDeCuenta[]
+
+  @@index([local, fecha])
+  @@map("cuentas_de_mesa")
+}
+
+/// Un renglón del pedido. Nombre y precio se copian del menú al pedir: si después cambia
+/// la carta, la cuenta no se mueve.
+model ItemDeCuenta {
+  id         Int          @id @default(autoincrement())
+  cuentaId   Int
+  cuenta     CuentaDeMesa @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  menuItemId Int?
+  nombre     String       @db.VarChar(80)
+  precio     Int
+  cantidad   Int          @default(1) @db.SmallInt
+  creadoEn   DateTime     @default(now())
+
+  @@index([cuentaId])
+  @@map("cuenta_items")
+}
