@@ -37,7 +37,7 @@ export async function cargarMovimiento(pedido: z.input<typeof nuevoMovimiento>):
     const quien = sesion.user.name.slice(0, 80)
     const id = await db().$transaction(async (tx) => {
       const creado = await tx.movimientoCaja.create({ data: { ...datos, fecha: aFechaDb(datos.fecha), registradoPor: quien }, select: { id: true } })
-      await registrarActividad(tx, { usuario: quien, accion: "movimiento", detalle: `Cargó un ${describir(datos)}`, monto: datos.monto })
+      await registrarActividad(tx, { usuario: quien, userId: sesion.user.id, seccion: "caja", accion: "movimiento", detalle: `Cargó un ${describir(datos)}`, monto: datos.monto })
       return creado.id
     })
     revalidatePath("/panel/caja", "layout")
@@ -56,6 +56,8 @@ export async function borrarMovimiento(pedido: { id: number }): Promise<Resultad
       await tx.movimientoCaja.delete({ where: { id } })
       await registrarActividad(tx, {
         usuario: quien,
+        userId: sesion.user.id,
+        seccion: "caja",
         accion: "movimiento borrado",
         detalle: `Borró un ${describir(movimiento)} (del ${deFechaDb(movimiento.fecha).split("-").reverse().join("/")})`,
         monto: movimiento.monto,

@@ -6,6 +6,8 @@ import { z } from "zod"
 
 import { auth } from "@/lib/auth"
 import { errorDeAuth, humanizar } from "@/lib/errores"
+import { anotar } from "@/lib/panel/actividad"
+import { sesionActual } from "@/lib/panel/sesion"
 
 const credenciales = z.object({
   email: z.string().trim().toLowerCase().email().max(120),
@@ -19,7 +21,8 @@ export async function ingresar(_previo: EstadoIngreso, datos: FormData): Promise
   if (!entrada.success) return { error: "Revisá el correo: tiene que tener @ y el dominio, por ejemplo nombre@gmail.com." }
 
   try {
-    await auth().api.signInEmail({ body: entrada.data, headers: await headers() })
+    const { user } = await auth().api.signInEmail({ body: entrada.data, headers: await headers() })
+    await anotar({ user }, { seccion: "acceso", accion: "entró", detalle: "Entró al panel" })
   } catch (error) {
     const fallo = errorDeAuth(error)
     if (fallo?.status === "TOO_MANY_REQUESTS") return { error: "Probaste varias veces seguidas. Esperá un minuto y volvé a intentar." }
@@ -32,6 +35,8 @@ export async function ingresar(_previo: EstadoIngreso, datos: FormData): Promise
 }
 
 export async function salir() {
+  const sesion = await sesionActual()
+  if (sesion) await anotar(sesion, { seccion: "acceso", accion: "salió", detalle: "Salió del panel" })
   await auth().api.signOut({ headers: await headers() })
   redirect("/ingresar")
 }

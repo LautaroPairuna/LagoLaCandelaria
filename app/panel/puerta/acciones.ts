@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { accion, exigir, ErrorHumano, mensajes, type Resultado } from "@/lib/errores"
-import { registrarActividad } from "@/lib/panel/actividad"
+import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
@@ -41,12 +41,16 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
     const ahora = new Date()
     const quien = sesion.user.name.slice(0, 80)
 
+    let titular = ""
     const afectadas = await db().$transaction(async (tx) => {
       const reserva = await tx.reserva.findUnique({
         where: { id: reservaId },
         select: {
           estado: true,
           modulo: true,
+          codigo: true,
+          institucion: true,
+          cliente: { select: { nombre: true, apellido: true } },
           desde: true,
           adultos: true,
           menores: true,
@@ -58,6 +62,7 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
       })
       if (reserva && soloMesas && reserva.modulo !== "RESTAURANTE") throw new ErrorHumano(mensajes.sinPermiso)
       if (!reserva || reserva.estado === "CANCELADA") throw new ErrorHumano("Esta reserva se canceló, así que no se puede registrar el ingreso. Revisala en Reservas.")
+      titular = `${reserva.institucion ?? `${reserva.cliente.nombre} ${reserva.cliente.apellido}`} (${reserva.codigo})`
       if (deFechaDb(reserva.desde) > hoyEnElPredio()) throw new ErrorHumano("Esta reserva es para más adelante: el ingreso se marca el día que llegan.")
 
       if (!porPersona(reserva)) {
@@ -101,6 +106,18 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
           ? "No hay nadie adentro para marcar la salida."
           : "No había nada para deshacer.",
     )
+    const personas = `${afectadas} ${afectadas === 1 ? "persona" : "personas"}`
+    await anotar(sesion, {
+      seccion: soloMesas ? "restaurante" : "puerta",
+      accion: movimiento === "ingreso" ? "ingreso" : movimiento === "salida" ? "salida" : "deshacer",
+      detalle:
+        movimiento === "ingreso"
+          ? `Marcó el ingreso de ${personas} de la reserva ${reservaId}, ${titular}`
+          : movimiento === "salida"
+            ? `Marcó la salida de ${personas} de la reserva ${reservaId}, ${titular}`
+            : `Deshizo el último paso de ${personas} de la reserva ${reservaId}, ${titular}`,
+      reservaId,
+    })
     return { ok: true, personas: afectadas }
   })
 }
@@ -153,6 +170,8 @@ export async function cobrar(pedido: z.input<typeof pedidoDeCobro>): Promise<Res
       })
       await registrarActividad(tx, {
         usuario: quien,
+        userId: sesion.user.id,
+        seccion: "caja",
         accion: "cobro",
         detalle: `Cobró ${pesos(cobro.importe)} en ${nombreDeForma[forma]} a la reserva ${id} (${reserva.codigo})${cobro.descuento ? `, con ${pesos(cobro.descuento)} de descuento` : ""}`,
         reservaId: id,
@@ -181,6 +200,8 @@ export async function anularCobro(pedido: z.input<typeof pedidoDeAnulacion>): Pr
       await tx.pago.delete({ where: { id: pagoId } })
       await registrarActividad(tx, {
         usuario: quien,
+        userId: sesion.user.id,
+        seccion: "caja",
         accion: "cobro anulado",
         detalle: `Anuló el cobro de ${pesos(pago.importe)} en ${nombreDeForma[pago.forma]} del ${deFechaDb(pago.fecha).split("-").reverse().join("/")} de la reserva ${pago.reservaId} (${pago.reserva.codigo})`,
         reservaId: pago.reservaId,

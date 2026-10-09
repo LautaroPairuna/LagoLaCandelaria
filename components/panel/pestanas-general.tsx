@@ -8,12 +8,13 @@ import { cn } from "cn"
 const pestanas = [
   { href: "/panel/general", nombre: "Resumen y reportes" },
   { href: "/panel/general/usuarios", nombre: "Usuarios y permisos" },
+  { href: "/panel/general/actividad", nombre: "Actividad del equipo" },
 ]
 
 export function PestanasGeneral() {
   const ruta = usePathname()
   return (
-    <nav aria-label="Secciones del panel general" className="mt-4 flex gap-2">
+    <nav aria-label="Secciones del panel general" className="mt-4 flex gap-2 overflow-x-auto">
       {pestanas.map((pestana) => {
         const activa = ruta === pestana.href
         return (
@@ -22,7 +23,7 @@ export function PestanasGeneral() {
             href={pestana.href}
             aria-current={activa ? "page" : undefined}
             className={cn(
-              "rounded-full border px-4 py-2 text-sm font-semibold",
+              "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold whitespace-nowrap",
               activa ? "border-panel-ink bg-panel-ink text-white" : "border-panel-line bg-white hover:border-panel-muted",
             )}
           >

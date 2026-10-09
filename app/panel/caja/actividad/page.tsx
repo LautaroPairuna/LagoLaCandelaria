@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { accionesDePlata } from "@/lib/panel/actividad"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { pesos } from "@/lib/predio/tarifas"
@@ -24,7 +25,7 @@ const colorDeAccion: Record<string, string> = {
 
 export default async function ActividadDeCaja() {
   await exigirPanel("caja")
-  const filas = await db().actividad.findMany({ orderBy: { creadoEn: "desc" }, take: MAXIMO })
+  const filas = await db().actividad.findMany({ where: { accion: { in: accionesDePlata } }, orderBy: { creadoEn: "desc" }, take: MAXIMO })
   const porDia = new Map<string, typeof filas>()
   for (const fila of filas) {
     const clave = dia.format(fila.creadoEn)

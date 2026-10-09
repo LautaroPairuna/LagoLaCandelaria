@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { accion, ErrorHumano, exigir, type Resultado } from "@/lib/errores"
+import { anotar } from "@/lib/panel/actividad"
 import { esActividadConProfesor, nombreDeActividad } from "@/lib/panel/actividades"
 import { rolesDe } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
@@ -25,11 +26,30 @@ async function permisoDeActividad(actividad: string) {
 
 /// La reserva tiene que estar en el predio hoy: las actividades se marcan el día de la visita.
 async function reservaDeHoy(reservaId: number) {
-  const reserva = await db().reserva.findUnique({ where: { id: reservaId }, select: { estado: true, desde: true, hasta: true, adultos: true, menores: true, sinCargo: true, personas: { select: { id: true } } } })
+  const reserva = await db().reserva.findUnique({
+    where: { id: reservaId },
+    select: {
+      estado: true,
+      desde: true,
+      hasta: true,
+      adultos: true,
+      menores: true,
+      sinCargo: true,
+      codigo: true,
+      institucion: true,
+      cliente: { select: { nombre: true, apellido: true } },
+      personas: { select: { id: true, nombre: true, apellido: true } },
+    },
+  })
   if (!reserva || reserva.estado === "CANCELADA") throw new ErrorHumano("Esa reserva se canceló. Te mostramos cómo quedó.")
   const hoy = hoyEnElPredio()
   exigir(deFechaDb(reserva.desde) <= hoy && deFechaDb(reserva.hasta) >= hoy, "Las actividades se marcan el día de la visita.")
   return reserva
+}
+
+function nombresDe(reserva: { personas: { id: number; nombre: string; apellido: string }[] }, ids: number[]) {
+  const nombres = reserva.personas.filter((persona) => ids.includes(persona.id)).map((persona) => `${persona.nombre} ${persona.apellido}`)
+  return nombres.length > 4 ? `${nombres.slice(0, 4).join(", ")} y ${nombres.length - 4} más` : nombres.join(", ")
 }
 
 function refrescar() {
@@ -69,11 +89,23 @@ export async function marcarActividad(pedido: z.input<typeof marcado>): Promise<
         skipDuplicates: true,
       })
       refrescar()
+      await anotar(sesion, {
+        seccion: "actividades",
+        accion: "marcó actividad",
+        detalle: `${nombreDeActividad(datos.actividad)}: ${nombresDe(reserva, nuevas)} (reserva ${datos.reservaId})`,
+        reservaId: datos.reservaId,
+      })
       return { ok: true, personas: nuevas.length }
     }
 
     const borradas = await db().actividadRealizada.deleteMany({ where: { actividad: datos.actividad, reservaId: datos.reservaId, personaId: { in: datos.personas } } })
     refrescar()
+    await anotar(sesion, {
+      seccion: "actividades",
+      accion: "desmarcó actividad",
+      detalle: `${nombreDeActividad(datos.actividad)}: desmarcó a ${nombresDe(reserva, datos.personas)} (reserva ${datos.reservaId})`,
+      reservaId: datos.reservaId,
+    })
     return { ok: true, personas: borradas.count }
   })
 }
@@ -99,6 +131,12 @@ export async function contarEnGrupo(pedido: z.input<typeof conteo>): Promise<Res
       })
     }
     refrescar()
+    await anotar(sesion, {
+      seccion: "actividades",
+      accion: "marcó actividad",
+      detalle: `${nombreDeActividad(datos.actividad)}: ${datos.cantidad} de ${total} del grupo ${reserva.institucion ?? reserva.codigo} (reserva ${datos.reservaId})`,
+      reservaId: datos.reservaId,
+    })
     return { ok: true, cantidad: datos.cantidad }
   })
 }

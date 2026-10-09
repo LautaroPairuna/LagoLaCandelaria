@@ -100,6 +100,15 @@ Hay una caja por sección y una general que las junta (`lib/panel/caja.ts`, `lib
 - **Actividad** (`/panel/caja/actividad`): cobros, cobros anulados, cuentas cobradas o reabiertas, y movimientos cargados o borrados, con quién y cuándo.
 - Pueden operar la administración y el rol `caja`. Puerta cobra y da de baja cobros, pero no ve la caja.
 
+### Actividad del equipo
+
+`/panel/general/actividad` (solo administración) muestra quién hizo qué dentro del panel, en la tabla `actividad` (`lib/panel/actividad.ts`, `lib/panel/registro.ts`). Cada renglón guarda la persona (`userId` y el nombre de ese momento), la sección, la acción y un detalle legible; la página muestra el nombre y el rol **actuales** de cada usuario.
+
+- Se anota: entrar y salir del panel; reservas confirmadas, canceladas o cargadas desde el panel; ingresos, salidas y "deshacer" en Puerta y en el restaurante; cobros, cobros anulados y movimientos de caja; cambios en la carta, cuentas y pedidos del restaurante y el bar; actividades marcadas por los profesores; usuarios creados, permisos, contraseñas y altas o bajas.
+- Filtros: período, persona, sección y búsqueda libre. Al costado, cuántas acciones hizo cada persona. "Exportar a Excel" baja lo filtrado.
+- Anotar nunca frena la operación: si falla el registro, la acción igual se hace (los cobros y movimientos sí se anotan en la misma transacción).
+- La caja (`/panel/caja/actividad`) sigue mostrando solo lo que mueve plata.
+
 ### Errores y avisos
 
 Ninguna pantalla muestra un error técnico. Las Server Actions pasan por `accion()` de `lib/errores.ts`: si algo sale mal, el detalle queda en el log del servidor (`[nombreDeLaAccion] ...`) y a la persona le llega una frase que dice qué pasó y qué hacer. Cuando el motivo es conocido (la reserva ya no estaba pendiente, no queda lugar) se tira `ErrorHumano` con el texto, o se usa `exigir(condición, "texto")`. El sitio público usa `mensajesDelSitio`, que ofrece el WhatsApp en vez de "avisá a la administración".

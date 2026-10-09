@@ -5,7 +5,7 @@ import { z } from "zod"
 
 import type { Local } from "@/generated/prisma/enums"
 import { accion, ErrorHumano, exigir, type Resultado } from "@/lib/errores"
-import { registrarActividad } from "@/lib/panel/actividad"
+import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { locales, totalDeCuenta } from "@/lib/panel/local"
 import { pesos } from "@/lib/predio/tarifas"
 import { permisoParaAccion } from "@/lib/panel/sesion"
@@ -42,7 +42,7 @@ const itemDeMenu = z.object({
 export async function guardarItemDeMenu(pedido: z.input<typeof itemDeMenu>): Promise<Resultado<{ id: number }>> {
   return accion("guardarItemDeMenu", async () => {
     const datos = itemDeMenu.parse(pedido)
-    await permiso(datos.local)
+    const sesion = await permiso(datos.local)
     const { id: existente, ...resto } = datos
     const campos = { ...resto, descripcion: resto.descripcion || null }
     let guardado: { id: number }
@@ -55,12 +55,17 @@ export async function guardarItemDeMenu(pedido: z.input<typeof itemDeMenu>): Pro
       guardado = await db().itemDeMenu.create({ data: { ...campos, orden: (ultimo._max.orden ?? 0) + 1 }, select: { id: true } })
     }
     refrescar(datos.local)
+    await anotar(sesion, {
+      seccion: locales[datos.local].slug,
+      accion: existente ? "editó la carta" : "sumó a la carta",
+      detalle: `${existente ? "Editó" : "Sumó a la carta"} «${datos.nombre}» (${datos.categoria}) a ${pesos(datos.precio)}`,
+    })
     return { ok: true, id: guardado.id }
   })
 }
 
 async function itemDelMenu(itemId: number) {
-  const item = await db().itemDeMenu.findUnique({ where: { id: itemId }, select: { local: true } })
+  const item = await db().itemDeMenu.findUnique({ where: { id: itemId }, select: { local: true, nombre: true } })
   if (!item) throw new ErrorHumano("Ese plato ya no estaba en la carta. Te mostramos cómo quedó.")
   return item
 }
@@ -69,9 +74,11 @@ export async function cambiarDisponible(pedido: { id: number; disponible: boolea
   return accion("cambiarDisponible", async () => {
     const itemId = id.parse(pedido.id)
     const item = await itemDelMenu(itemId)
-    await permiso(item.local)
-    await db().itemDeMenu.update({ where: { id: itemId }, data: { disponible: z.boolean().parse(pedido.disponible) } })
+    const sesion = await permiso(item.local)
+    const disponible = z.boolean().parse(pedido.disponible)
+    await db().itemDeMenu.update({ where: { id: itemId }, data: { disponible } })
     refrescar(item.local)
+    await anotar(sesion, { seccion: locales[item.local].slug, accion: "editó la carta", detalle: `Marcó «${item.nombre}» como ${disponible ? "disponible" : "sin stock"}` })
     return { ok: true, id: itemId }
   })
 }
@@ -80,9 +87,10 @@ export async function borrarItemDeMenu(pedido: { id: number }): Promise<Resultad
   return accion("borrarItemDeMenu", async () => {
     const itemId = id.parse(pedido.id)
     const item = await itemDelMenu(itemId)
-    await permiso(item.local)
+    const sesion = await permiso(item.local)
     await db().itemDeMenu.delete({ where: { id: itemId } })
     refrescar(item.local)
+    await anotar(sesion, { seccion: locales[item.local].slug, accion: "sacó de la carta", detalle: `Sacó «${item.nombre}» de la carta` })
     return { ok: true, id: itemId }
   })
 }
@@ -108,6 +116,12 @@ export async function abrirCuenta(pedido: z.input<typeof nuevaCuenta>): Promise<
       select: { id: true },
     })
     refrescar(datos.local)
+    await anotar(sesion, {
+      seccion: locales[datos.local].slug,
+      accion: "abrió cuenta",
+      detalle: `Abrió la cuenta de ${datos.mesa}${datos.titular ? ` (${datos.titular})` : ""}`,
+      reservaId: datos.reservaId,
+    })
     return { ok: true, id: cuenta.id }
   })
 }
@@ -133,7 +147,7 @@ const agregado = z.object({
 export async function agregarAlPedido(pedido: z.input<typeof agregado>): Promise<Resultado<{ id: number }>> {
   return accion("agregarAlPedido", async () => {
     const datos = agregado.parse(pedido)
-    const { cuenta } = await cuentaParaCambiar(datos.cuentaId)
+    const { cuenta, sesion } = await cuentaParaCambiar(datos.cuentaId)
     let item: { nombre: string; precio: number; menuItemId: number | null }
     if (datos.menuItemId) {
       const delMenu = await db().itemDeMenu.findUnique({ where: { id: datos.menuItemId }, select: { local: true, nombre: true, precio: true } })
@@ -149,6 +163,11 @@ export async function agregarAlPedido(pedido: z.input<typeof agregado>): Promise
       ? await db().itemDeCuenta.update({ where: { id: igual.id }, data: { cantidad: Math.min(igual.cantidad + datos.cantidad, 99) }, select: { id: true } })
       : await db().itemDeCuenta.create({ data: { cuentaId: cuenta.id, ...item, cantidad: datos.cantidad }, select: { id: true } })
     refrescar(cuenta.local)
+    await anotar(sesion, {
+      seccion: locales[cuenta.local].slug,
+      accion: "pedido",
+      detalle: `Sumó ${datos.cantidad} × ${item.nombre} (${pesos(item.precio)}) a ${cuenta.mesa}`,
+    })
     return { ok: true, id: guardado.id }
   })
 }
@@ -157,12 +176,17 @@ export async function cambiarCantidad(pedido: { itemId: number; cantidad: number
   return accion("cambiarCantidad", async () => {
     const itemId = id.parse(pedido.itemId)
     const cantidad = z.number().int().min(0).max(99).parse(pedido.cantidad)
-    const item = await db().itemDeCuenta.findUnique({ where: { id: itemId }, select: { cuentaId: true } })
+    const item = await db().itemDeCuenta.findUnique({ where: { id: itemId }, select: { cuentaId: true, nombre: true, cantidad: true } })
     if (!item) throw new ErrorHumano("Ese renglón ya no estaba en el pedido. Te mostramos cómo quedó.")
-    const { cuenta } = await cuentaParaCambiar(item.cuentaId)
+    const { cuenta, sesion } = await cuentaParaCambiar(item.cuentaId)
     if (cantidad === 0) await db().itemDeCuenta.delete({ where: { id: itemId } })
     else await db().itemDeCuenta.update({ where: { id: itemId }, data: { cantidad } })
     refrescar(cuenta.local)
+    await anotar(sesion, {
+      seccion: locales[cuenta.local].slug,
+      accion: "pedido",
+      detalle: cantidad === 0 ? `Sacó ${item.nombre} de ${cuenta.mesa}` : `Cambió ${item.nombre} de ${cuenta.mesa}: ${item.cantidad} → ${cantidad}`,
+    })
     return { ok: true, id: itemId }
   })
 }
@@ -178,6 +202,8 @@ export async function cobrarCuenta(pedido: { cuentaId: number; forma: "EFECTIVO"
       await tx.cuentaDeMesa.update({ where: { id: cuenta.id }, data: { estado: "COBRADA", forma, cobradaEn: new Date(), cobradaPor: quien(sesion) } })
       await registrarActividad(tx, {
         usuario: quien(sesion),
+        userId: sesion.user.id,
+        seccion: locales[cuenta.local].slug,
         accion: "cobro",
         detalle: `${locales[cuenta.local].nombre}: cobró ${pesos(total)} en ${nombreDeForma[forma]} a ${cuenta.mesa}`,
         monto: total,
@@ -197,6 +223,8 @@ export async function reabrirCuenta(pedido: { cuentaId: number }): Promise<Resul
         await tx.cuentaDeMesa.update({ where: { id: cuenta.id }, data: { estado: "ABIERTA", forma: null, cobradaEn: null, cobradaPor: null } })
         await registrarActividad(tx, {
           usuario: quien(sesion),
+          userId: sesion.user.id,
+          seccion: locales[cuenta.local].slug,
           accion: "cobro anulado",
           detalle: `${locales[cuenta.local].nombre}: reabrió la cuenta de ${cuenta.mesa}, que estaba cobrada`,
           monto: totalDeCuenta(items),
@@ -210,9 +238,10 @@ export async function reabrirCuenta(pedido: { cuentaId: number }): Promise<Resul
 
 export async function borrarCuenta(pedido: { cuentaId: number }): Promise<Resultado<{ id: number }>> {
   return accion("borrarCuenta", async () => {
-    const { cuenta } = await cuentaParaCambiar(id.parse(pedido.cuentaId))
+    const { cuenta, sesion } = await cuentaParaCambiar(id.parse(pedido.cuentaId))
     await db().cuentaDeMesa.delete({ where: { id: cuenta.id } })
     refrescar(cuenta.local)
+    await anotar(sesion, { seccion: locales[cuenta.local].slug, accion: "borró cuenta", detalle: `Borró la cuenta vacía de ${cuenta.mesa}` })
     return { ok: true, id: cuenta.id }
   })
 }

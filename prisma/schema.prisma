@@ -315,17 +315,23 @@ model MovimientoCaja {
   @@map("movimientos_caja")
 }
 
-/// Quién hizo qué con la plata: cobros, cobros anulados y movimientos de caja.
+/// Quién hizo qué en el panel: entradas, reservas, Puerta, cobros, caja, locales,
+/// actividades y usuarios. `usuario` guarda el nombre del momento; `userId`, a quién
+/// buscarle el rol actual.
 model Actividad {
   id        Int      @id @default(autoincrement())
   creadoEn  DateTime @default(now())
   usuario   String   @db.VarChar(80)
+  userId    String?  @db.VarChar(64)
+  seccion   String   @default("caja") @db.VarChar(30)
   accion    String   @db.VarChar(40)
   detalle   String   @db.VarChar(255)
   reservaId Int?
   monto     Int?
 
   @@index([creadoEn])
+  @@index([userId, creadoEn])
+  @@index([seccion, creadoEn])
   @@map("actividad")
 }
 

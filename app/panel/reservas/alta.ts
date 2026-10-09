@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { accion, ErrorHumano, exigir, type Resultado } from "@/lib/errores"
-import { registrarActividad } from "@/lib/panel/actividad"
+import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
@@ -93,6 +93,8 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
             })
             await registrarActividad(tx, {
               usuario: quien,
+              userId: sesion.user.id,
+              seccion: "caja",
               accion: "cobro",
               detalle: `Cobró ${pesos(propuesto.importe)} en ${datos.cobro === "DEBITO" ? "débito" : datos.cobro.toLowerCase()} a la reserva ${creada.id} (${creada.codigo}), cargada en el predio`,
               reservaId: creada.id,
@@ -105,6 +107,12 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
     }
 
     for (const ruta of ["/panel/puerta", "/panel/reservas", "/panel/ocupacion", "/panel/lugares", "/panel/caja"]) revalidatePath(ruta, "layout")
+    await anotar(sesion, {
+      seccion: datos.fecha === hoy ? "puerta" : "reservas",
+      accion: "reserva cargada",
+      detalle: `Cargó la reserva ${creada.id} (${creada.codigo}) de ${datos.nombre} ${datos.apellido} para el ${datos.fecha.split("-").reverse().join("/")}, ${grupo.adultos + grupo.menores + grupo.sinCargo} personas${datos.fecha === hoy ? ", llegó sin reserva" : ""}${ingresan ? ", ya ingresaron" : ""}`,
+      reservaId: creada.id,
+    })
     return { ok: true, id: creada.id }
   })
 }
