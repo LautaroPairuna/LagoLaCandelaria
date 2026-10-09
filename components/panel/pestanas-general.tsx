@@ -14,7 +14,7 @@ const pestanas = [
 export function PestanasGeneral() {
   const ruta = usePathname()
   return (
-    <nav aria-label="Secciones del panel general" className="mt-4 flex gap-2 overflow-x-auto">
+    <nav aria-label="Secciones del panel general" className="mt-4 flex flex-wrap gap-2">
       {pestanas.map((pestana) => {
         const activa = ruta === pestana.href
         return (
