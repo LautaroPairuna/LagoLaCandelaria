@@ -165,7 +165,7 @@ function Lugar({ unidad, reservas, elegida, href }: { unidad: UnidadPredio; rese
   const confirmada = reservas.some((item) => item.estado === "CONFIRMADA")
   const debajo = reservas.length > 1 ? `${reservas.length} reservas` : reserva ? reserva.titular.split(" ").at(-1) : null
   const descripcion = reservas
-    .map((item) => `${item.titular}, ${item.personas} personas${unidad.tipo === "MESA_RESTAURANTE" ? `, de ${item.horario}` : ""}, ${item.estado === "PENDIENTE" ? "a confirmar" : "confirmada"}`)
+    .map((item) => `${item.titular}, ${item.personas} personas${unidad.tipo === "MESA_RESTAURANTE" || unidad.tipo === "MESA_BAR" ? `, de ${item.horario}` : ""}, ${item.estado === "PENDIENTE" ? "a confirmar" : "confirmada"}`)
     .join("; ")
   return (
     <Link
@@ -203,7 +203,7 @@ function Detalle({ unidad, reservas, cerrar }: { unidad: UnidadPredio; reservas:
       {unidad.capacidad ? (
         <p className="mt-1 text-sm text-panel-muted">
           Hasta {unidad.capacidad} personas
-          {unidad.tipo !== "MESA_RESTAURANTE" && unidad.mesas ? ` · ${unidad.mesas} ${unidad.mesas === 1 ? "mesa" : "mesas"}` : ""}
+          {unidad.tipo !== "MESA_RESTAURANTE" && unidad.tipo !== "MESA_BAR" && unidad.mesas ? ` · ${unidad.mesas} ${unidad.mesas === 1 ? "mesa" : "mesas"}` : ""}
         </p>
       ) : null}
       {reservas.length ? (
