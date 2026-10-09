@@ -64,7 +64,6 @@ const palapas = rango(1, MAX_LUGARES_PLAYA - gazebos.length).map((numero) => uni
 const bungalows = rango(1, 4).map((numero) => unidad("BUNGALOW", numero, 4))
 
 // Las mesas del restaurante según la planilla del predio (PASO 1, hoja Restaurante).
-// El bar no tiene mesas reservables: la planilla no las lista.
 export const gruposDeMesas = [
   { capacidad: 2, numeros: [1, 5, 7] },
   { capacidad: 4, numeros: [2, 6, 8] },
@@ -77,6 +76,18 @@ const mesasRestaurante = gruposDeMesas
 
 export const MAX_PERSONAS_RESTAURANTE = mesasRestaurante.reduce((suma, mesa) => suma + (mesa.capacidad ?? 0), 0)
 
+// El bar es otro local: sus mesas no se comparten con las del restaurante.
+export const gruposDeMesasBar = [
+  { capacidad: 4, numeros: [1, 2, 3, 4] },
+  { capacidad: 6, numeros: [5, 6] },
+] as const
+
+const mesasBar = gruposDeMesasBar
+  .flatMap((grupo) => grupo.numeros.map((numero) => unidad("MESA_BAR", numero, grupo.capacidad, 1)))
+  .sort((a, b) => a.numero - b.numero)
+
+export const MAX_PERSONAS_BAR = mesasBar.reduce((suma, mesa) => suma + (mesa.capacidad ?? 0), 0)
+
 export const inventario: UnidadPredio[] = [
   ...parrillas,
   ...quinchos,
@@ -84,6 +95,7 @@ export const inventario: UnidadPredio[] = [
   ...palapas,
   ...bungalows,
   ...mesasRestaurante,
+  ...mesasBar,
 ]
 
 export function unidadesDelTipo(...tipos: TipoUnidad[]) {

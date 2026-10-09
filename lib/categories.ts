@@ -213,13 +213,23 @@ export const categories: Category[] = [
         how: "Se rema en kayaks triplos. El personal entrega el chaleco, acomoda a quienes suben y acompaña la salida dentro de la franja de 12:00 a 15:00. La embarcación sale cuando el staff abre el turno, y la vuelta cierra a los 20 minutos. En familia el grupo rota. En un curso, las tandas se arman con la cantidad de chicos que hay ese día.",
         photos: [
           {
-            src: "/lago.jpg",
-            alt: "Persona con chaleco salvavidas remando en un lago.",
-            position: "center 35%",
+            src: "/activities/kayak-rojo.jpg",
+            alt: "Tres personas con chaleco remando en un kayak rojo en el lago.",
+            position: "center",
           },
           {
-            src: "/activities/canotaje.jpg",
-            alt: "Orilla del agua del predio, con piedras, árboles y el sector de carpas arriba.",
+            src: "/activities/kayak-verde.jpg",
+            alt: "Tres personas con chaleco y remos en un kayak verde en el lago.",
+            position: "center",
+          },
+          {
+            src: "/activities/kayak-grupo.jpg",
+            alt: "Grupo con chalecos en un kayak rojo largo, recorriendo el lago.",
+            position: "center",
+          },
+          {
+            src: "/activities/kayak-muelle.jpg",
+            alt: "El personal acomoda el chaleco de unos chicos junto al kayak, en el muelle del lago.",
             position: "center",
           },
         ],
@@ -249,14 +259,19 @@ export const categories: Category[] = [
         how: "El lago también se nada. Es aguas abiertas: el espejo del predio, con orilla e islas, y el personal presente en el agua. Queda aparte de la playa artificial y de la pileta, que son de temporada y tienen su propia ficha. El nado se hace con el staff en el agua, en el rato en que el lago está habilitado ese día.",
         photos: [
           {
-            src: "/lago.jpg",
-            alt: "Persona en el agua de un lago, con chaleco, en una mañana de sol.",
-            position: "center 55%",
+            src: "/activities/nado-grupo.jpg",
+            alt: "Grupo nadando en aguas abiertas del lago, con boyas naranjas.",
+            position: "center",
           },
           {
-            src: "/activities/campamentos.jpg",
-            alt: "El espejo de agua del predio, oscuro, contra la orilla de piedras.",
-            position: "center bottom",
+            src: "/activities/nado-boya.jpg",
+            alt: "Nadadores en el lago, junto a una boya naranja grande.",
+            position: "center",
+          },
+          {
+            src: "/activities/nado-muelle.jpg",
+            alt: "Grupo nadando junto al muelle del lago, con kayaks en la orilla.",
+            position: "center",
           },
         ],
       },
@@ -346,14 +361,24 @@ export const categories: Category[] = [
         how: "Hay dos alturas, en turnos distintos. La baja va de 11:00 a 12:00. La alta va de 14:30 a 15:30 y es el vuelo más largo, sobre el lago. El personal indica el arnés y cuál corresponde según la edad y el día. Sirve tanto para la primera vez como para quien ya pide la más alta.",
         photos: [
           {
-            src: "/activities/tirolesa.jpg",
-            alt: "Pradera del predio con dos techos anaranjados y el monte cerrado al fondo.",
+            src: "/activities/tirolesa-torre.jpg",
+            alt: "Una persona sale en tirolesa desde la torre de madera, con el arnés puesto.",
             position: "center",
           },
           {
-            src: "/parque.jpg",
-            alt: "Persona con arnés suspendida de una pared de roca.",
-            position: "left center",
+            src: "/activities/tirolesa-vuelo.jpg",
+            alt: "Persona con arnés y sombrero cruzando en tirolesa sobre el predio.",
+            position: "center",
+          },
+          {
+            src: "/activities/tirolesa-pasto.jpg",
+            alt: "Persona con arnés bajando en tirolesa sobre el césped del predio.",
+            position: "center",
+          },
+          {
+            src: "/activities/tirolesa-nino.jpg",
+            alt: "Un chico con arnés cruza en tirolesa, con la pileta y las palapas atrás.",
+            position: "center",
           },
         ],
       },
@@ -364,9 +389,29 @@ export const categories: Category[] = [
         how: "Escalada deportiva en la pared del predio. Alguien del personal asegura desde abajo y coordina el turno, de 14:00 a 15:30. Se sube con arnés, en la tanda que abre el staff. En un curso entra en la misma jornada que el resto de la altura.",
         photos: [
           {
-            src: "/parque.jpg",
-            alt: "Escalador con arnés y cuerda en una pared de roca.",
-            position: "center 30%",
+            src: "/activities/palestra-rosa.jpg",
+            alt: "Una chica con arnés sube la pared de la palestra.",
+            position: "center",
+          },
+          {
+            src: "/activities/palestra-nino.jpg",
+            alt: "Un chico con arnés escala la pared de madera de la palestra.",
+            position: "center",
+          },
+          {
+            src: "/activities/palestra-rincon.jpg",
+            alt: "Un chico trepa el rincón de la palestra, entre las presas.",
+            position: "center",
+          },
+          {
+            src: "/activities/palestra-pared.jpg",
+            alt: "Una persona con arnés asciende la pared de la palestra.",
+            position: "center",
+          },
+          {
+            src: "/activities/palestra-seguro.jpg",
+            alt: "El personal asegura desde abajo a un chico que sube la palestra.",
+            position: "center",
           },
         ],
       },
@@ -385,31 +430,51 @@ export const categories: Category[] = [
       },
       {
         slug: "puente-ninos",
-        name: "Puente aéreo para niños",
-        chip: "Puente niños",
+        name: "Puentes aéreos infantiles",
+        chip: "Puentes infantiles",
         how: "Circuito colgado para chicos de 5 a 12 años. Tiene dos franjas: de 11:00 a 13:00 y de 15:00 a 17:00. El personal guía el recorrido y coloca el arnés. Es el tramo de altura pensado para esa edad, separado de los niveles que empiezan a los 12.",
         photos: [
           {
-            src: "/activities/tirolesa.jpg",
-            alt: "Campo abierto del predio, donde está la zona de altura.",
-            position: "center 40%",
+            src: "/activities/puente-ninos-tronco.jpg",
+            alt: "Un chico con arnés cruza un tronco del puente aéreo infantil.",
+            position: "center",
           },
           {
-            src: "/parque.jpg",
-            alt: "Recorrido de altura con arnés y cuerda.",
-            position: "left 40%",
+            src: "/activities/puente-ninos-tablas.jpg",
+            alt: "Dos chicas con arnés cruzan las tablas del puente aéreo infantil.",
+            position: "center",
+          },
+          {
+            src: "/activities/puente-ninos-plataforma.jpg",
+            alt: "Dos chicos con arnés esperan en la plataforma del puente aéreo infantil.",
+            position: "center",
+          },
+          {
+            src: "/activities/puente-ninos-guia.jpg",
+            alt: "El personal acompaña a dos chicos en el puente aéreo infantil.",
+            position: "center",
           },
         ],
       },
       {
         slug: "puente-niveles",
-        name: "Puente aéreo, niveles 1 y 2",
-        chip: "Niveles 1 y 2",
+        name: "Puentes aéreos adultos",
+        chip: "Puentes adultos",
         how: "Desde los 12 años, de 15:30 a 17:00. Pide más pulso que el circuito de niños. El personal confirma el nivel en el momento del turno y acompaña el cruce. Los dos niveles comparten esa franja de la tarde.",
         photos: [
           {
-            src: "/activities/tirolesa.jpg",
-            alt: "Vista amplia del predio: pasto, dos construcciones con techo rojo y bosque.",
+            src: "/activities/puente-adulto-tablas.jpg",
+            alt: "Persona con casco y arnés cruzando un puente de tablas en el parque aéreo.",
+            position: "center",
+          },
+          {
+            src: "/activities/puente-adulto-vigas.jpg",
+            alt: "Dos personas con casco y arnés en el puente aéreo, entre vigas de madera.",
+            position: "center",
+          },
+          {
+            src: "/activities/puente-adulto-letras.jpg",
+            alt: "Persona con arnés colgada del cartel del parque aéreo, sobre el predio.",
             position: "center",
           },
         ],
@@ -764,8 +829,8 @@ export const categories: Category[] = [
     reserve: { visita: "restaurante", intereses: ["restaurante"] },
     banner: {
       src: "/covers/parrillas.jpg",
-      alt: "Carne y achuras sobre la parrilla, con el fuego atrás.",
-      position: "center 38%",
+      alt: "Parrillas de mampostería amarilla junto al lago.",
+      position: "center 72%",
     },
     intro:
       "El fuego y la sombra están en el predio, al lado del día de agua y de altura. Hay tres variantes. Un sector de parrillas numeradas para quien pasa el día. Un sector de palapas —en el predio se llaman gazebos— con sombra y mesa. Y cuatro bungalows, cada uno con parrilla propia. Se puede traer comida y bebida. El fogón del campamento es otra cosa: lo arma el personal en la jornada del curso, y queda en el sector de carpas.",
@@ -1040,9 +1105,9 @@ export const stays: Category[] = [
     summary: "Cuatro casas para cuatro personas, con vista al lago, parrilla propia y pileta compartida.",
     reserve: { visita: "bungalows", intereses: ["bungalows"] },
     banner: {
-      src: "/activities/bungalows.jpg",
-      alt: "Campo del predio con un gazebo de techo anaranjado y el monte detrás.",
-      position: "center",
+      src: "/covers/bungalows.jpg",
+      alt: "Dormitorio del bungalow, con cama y ventana al césped del predio.",
+      position: "center 42%",
     },
     intro:
       "Hay cuatro bungalows y cada uno es para cuatro personas. Tienen baño privado, aire acondicionado, wi-fi y parrilla propia, con vista al lago. La pileta y el quincho con cocina se comparten. Entran el desayuno y las actividades que ese día se estén haciendo en el complejo. La fecha y el valor no se cierran en esta pantalla: los confirma el equipo.",
@@ -1165,9 +1230,9 @@ export const stays: Category[] = [
     summary: "Tres formas de traer al grupo: jornada de aventura, carpa o dormis.",
     reserve: { visita: "campamento", intereses: ["campamentos"] },
     banner: {
-      src: "/covers/campamento.jpg",
-      alt: "Carpas armadas en el césped del sector de campamento, entre los árboles.",
-      position: "center 45%",
+      src: "/covers/grupos-estudiantiles.jpg",
+      alt: "Un grupo de estudiantes sentado en el césped, con el equipo del predio adelante.",
+      position: "center 42%",
     },
     intro:
       "El campamento estudiantil no es una sola cama. Hay tres formas: jornada de aventura, para pasar el día y volver; campamento en carpa; y campamento en dormis. Tirolesa, parque aéreo, palestra, péndulo, remo y caminata los guía el personal. El fogón se conversa con el equipo. Si es un viaje de egresados o una salida educativa, se arma igual: fecha, cantidad y edades. Cuántas plazas hay en los dormis, o cuántas carpas entran esa fecha, se confirma al reservar.",

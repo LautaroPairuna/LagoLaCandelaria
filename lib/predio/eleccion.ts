@@ -5,10 +5,10 @@ import { MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventari
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { bandaDeEdad } from "@/lib/predio/tarifas"
 
-export type TipoDeLugar = "parrilla" | "playa" | "bungalow" | "restaurante"
+export type TipoDeLugar = "parrilla" | "gazebo" | "palapa" | "playa" | "bungalow" | "restaurante" | "bar"
 
 export type Regla =
-  | { modo: "capacidad"; personas: number; tipo: "PARRILLA" | "MESA_RESTAURANTE" }
+  | { modo: "capacidad"; personas: number; tipo: "PARRILLA" | "MESA_RESTAURANTE" | "MESA_BAR" }
   | { modo: "quincho" }
   | { modo: "cantidad"; cantidad: number; tipos: UnidadPredio["tipo"][] }
 
@@ -19,6 +19,9 @@ export type Regla =
 export function reglaDe(tipo: TipoDeLugar, personas: number): Regla {
   if (tipo === "parrilla") return personas > MAX_PERSONAS_PARRILLA ? { modo: "quincho" } : { modo: "capacidad", personas, tipo: "PARRILLA" }
   if (tipo === "restaurante") return { modo: "capacidad", personas, tipo: "MESA_RESTAURANTE" }
+  if (tipo === "bar") return { modo: "capacidad", personas, tipo: "MESA_BAR" }
+  if (tipo === "gazebo") return { modo: "cantidad", cantidad: lugaresDePlayaPara(personas), tipos: ["GAZEBO"] }
+  if (tipo === "palapa") return { modo: "cantidad", cantidad: lugaresDePlayaPara(personas), tipos: ["PALAPA"] }
   if (tipo === "playa") return { modo: "cantidad", cantidad: lugaresDePlayaPara(personas), tipos: ["GAZEBO", "PALAPA"] }
   return { modo: "cantidad", cantidad: bungalowsPara(personas), tipos: ["BUNGALOW"] }
 }
@@ -27,8 +30,10 @@ const nombre = (unidad: UnidadPredio) => `${nombreDeUnidad[unidad.tipo].toLowerC
 
 function palabra(tipo: TipoDeLugar, cantidad: number) {
   if (tipo === "bungalow") return cantidad === 1 ? "bungalow" : "bungalows"
+  if (tipo === "gazebo") return cantidad === 1 ? "gazebo" : "gazebos"
+  if (tipo === "palapa") return cantidad === 1 ? "palapa" : "palapas"
   if (tipo === "playa") return cantidad === 1 ? "lugar" : "lugares"
-  if (tipo === "restaurante") return cantidad === 1 ? "mesa" : "mesas"
+  if (tipo === "restaurante" || tipo === "bar") return cantidad === 1 ? "mesa" : "mesas"
   return cantidad === 1 ? "parrilla" : "parrillas"
 }
 

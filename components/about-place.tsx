@@ -1,4 +1,4 @@
-import { Foto } from "@/components/foto"
+import { EquipoFotos } from "@/components/equipo-fotos"
 import { GoogleReviews } from "@/components/google-reviews"
 import { PlaceMap } from "@/components/place-map"
 import { VideoFondo } from "@/components/video-fondo"
@@ -198,12 +198,7 @@ export function AboutPlace() {
             </p>
           </div>
           <figure className="team-print">
-            <Foto
-              src="/equipo.jpg"
-              sizes="(min-width: 768px) 50vw, 100vw"
-              alt="Equipo de Lago La Candelaria con cascos, reunido en el parque aéreo del predio."
-              className="team-print-photo"
-            />
+            <EquipoFotos />
             <figcaption>Equipo de Lago La Candelaria</figcaption>
           </figure>
         </div>

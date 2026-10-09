@@ -76,7 +76,9 @@ describe("mesas del restaurante", () => {
     const capacidades = Object.fromEntries(inventario.filter((item) => item.tipo === "MESA_RESTAURANTE").map((item) => [item.numero, item.capacidad]))
     expect(capacidades).toEqual({ 1: 2, 2: 4, 3: 6, 4: 6, 5: 2, 6: 4, 7: 2, 8: 4, 9: 6 })
     expect(MAX_PERSONAS_RESTAURANTE).toBe(36)
-    expect(inventario.some((item) => item.tipo === "MESA_BAR")).toBe(false)
+    const bar = inventario.filter((item) => item.tipo === "MESA_BAR")
+    expect(bar.map((item) => [item.numero, item.capacidad])).toEqual([[1, 4], [2, 4], [3, 4], [4, 4], [5, 6], [6, 6]])
+    expect(bar.some((item) => item.id.startsWith("restaurante-"))).toBe(false)
   })
 
   it("acepta una mesa que alcanza y pide juntar otra si no", () => {

@@ -96,7 +96,8 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
 
         <section className="rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6">
           <h2 className="font-display text-3xl tracking-tight">El grupo y las fechas</h2>
-          {tipo === "CAMPAMENTO" ? (
+          {modalidad && tipo === "CAMPAMENTO" ? <p className="mt-2 text-ink/70">Propuesta elegida: {modalidad}.</p> : null}
+          {tipo === "CAMPAMENTO" && !modalidad ? (
             <fieldset className="mt-4">
               <legend className="text-sm font-semibold">Modalidad</legend>
               <div className="mt-2 flex flex-wrap gap-2">

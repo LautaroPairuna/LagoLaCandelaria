@@ -8,7 +8,6 @@ export const phones = [
 
 export const nav = [
   { href: "/#actividades", id: "actividades", label: "Actividades" },
-  { href: "/#estadia", id: "estadia", label: "Estadía" },
   { href: "/#como-reservar", id: "como-reservar", label: "¿Cómo reservar?" },
   { href: "/#nosotros", id: "nosotros", label: "Nosotros" },
 ] as const

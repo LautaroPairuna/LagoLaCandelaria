@@ -7,15 +7,19 @@ export function TextLink({
   children,
   className,
   light = false,
+  externo = false,
 }: {
   href: string
   children: React.ReactNode
   className?: string
   light?: boolean
+  externo?: boolean
 }) {
   return (
     <Link
       href={href}
+      target={externo ? "_blank" : undefined}
+      rel={externo ? "noreferrer" : undefined}
       className={cn(
         "group inline-flex items-center gap-2 text-base font-semibold tracking-wide",
         light ? "text-cream" : "text-lake-ink",

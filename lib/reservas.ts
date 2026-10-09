@@ -108,6 +108,10 @@ export type NuevaReserva = {
   asignar?: (ocupacion: Map<string, Set<string>>) => string[] | null
   /// Las horas que ocupa cada unidad (mesas del restaurante). Sin horas, el día entero.
   horas?: number[]
+  /// Horas de algunas unidades. El resto ocupa el día entero, salvo que no haya mapa y sí `horas`.
+  horasPorUnidad?: Record<string, number[]>
+  /// Días que ocupa cada unidad. Sin mapa, todas las fechas de la reserva.
+  diasPorUnidad?: Record<string, string[]>
 }
 
 export type ReservaCreada = { id: number; token: string; codigo: string; unidades: string[] }
@@ -157,9 +161,12 @@ async function crearUnaVez(nueva: NuevaReserva, codigo: string, unidades: string
         personas: { create: nueva.personas ?? [] },
         ocupaciones: {
           createMany: {
-            data: unidades.flatMap((unidadId) =>
-              fechas.flatMap((fecha) => (nueva.horas?.length ? nueva.horas : [0]).map((hora) => ({ unidadId, fecha: aFechaDb(fecha), hora }))),
-            ),
+            data: unidades.flatMap((unidadId) => {
+              const dias = nueva.diasPorUnidad?.[unidadId] ?? fechas
+              const propias = nueva.horasPorUnidad?.[unidadId]
+              const horas = propias?.length ? propias : !nueva.horasPorUnidad && nueva.horas?.length ? nueva.horas : [0]
+              return dias.flatMap((fecha) => horas.map((hora) => ({ unidadId, fecha: aFechaDb(fecha), hora })))
+            }),
           },
         },
       },

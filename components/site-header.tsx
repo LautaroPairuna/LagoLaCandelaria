@@ -126,7 +126,7 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <ButtonLink href="/reserva" className="ml-3 h-14 px-7 text-lg">
+          <ButtonLink href="/reserva" className="ml-3 h-14 px-7 text-lg text-white">
             Reservar
           </ButtonLink>
         </nav>
@@ -193,7 +193,7 @@ export function SiteHeader() {
                 ))}
               </div>
               <div className="mt-auto space-y-4 pt-10">
-                <ButtonLink href="/reserva" className="w-full">
+                <ButtonLink href="/reserva" className="w-full text-white">
                   Reservar el día
                 </ButtonLink>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-muted">

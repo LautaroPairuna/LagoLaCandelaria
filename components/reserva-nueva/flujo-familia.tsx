@@ -347,7 +347,7 @@ const horasDelRestaurante = Array.from(
   (_, indice) => HORARIO_RESTAURANTE.abre + indice,
 )
 
-function ElegirHorario({ horario, onChange }: { horario: Franja; onChange: (horario: Franja) => void }) {
+export function ElegirHorario({ horario, onChange }: { horario: Franja; onChange: (horario: Franja) => void }) {
   const campo = "mt-1 block h-12 w-full rounded-2xl border border-ink/15 bg-white px-4 text-base text-ink"
   return (
     <fieldset className="mb-5 rounded-2xl bg-sand px-4 py-3">
@@ -401,7 +401,7 @@ function Resumen({ termino, children }: { termino: string; children: ReactNode }
   )
 }
 
-function PasoConfirmar({
+export function PasoConfirmar({
   familias,
   contacto,
   errores,

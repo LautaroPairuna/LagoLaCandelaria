@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { avisarError, falloDeRed } from "@/lib/avisos"
 import type { LugarDisponible } from "@/lib/disponibilidad"
 import { revisarEleccion, sugerir, type TipoDeLugar } from "@/lib/predio/eleccion"
-import { gruposDeMesas, gruposDeParrillas, MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
+import { gruposDeMesas, gruposDeMesasBar, gruposDeParrillas, MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { cn } from "cn"
 
@@ -24,11 +24,20 @@ function secciones(tipo: TipoDeLugar, personas: number, lugares: LugarDisponible
       lugares: delTipo("PARRILLA").filter((lugar) => (grupo.numeros as readonly number[]).includes(lugar.numero)),
     }))
   }
+  if (tipo === "gazebo") return [{ titulo: "Gazebos", detalle: "Hasta 8 personas cada uno", lugares: delTipo("GAZEBO") }]
+  if (tipo === "palapa") return [{ titulo: "Palapas", detalle: "Hasta 6 personas cada una", lugares: delTipo("PALAPA") }]
   if (tipo === "playa") {
     return [
       { titulo: "Gazebos", detalle: "Hasta 8 personas cada uno", lugares: delTipo("GAZEBO") },
       { titulo: "Palapas", detalle: "Hasta 6 personas cada una", lugares: delTipo("PALAPA") },
     ]
+  }
+  if (tipo === "bar") {
+    return gruposDeMesasBar.map((grupo) => ({
+      titulo: `Mesas del bar para ${grupo.capacidad} personas`,
+      detalle: "Son del bar, no del restaurante",
+      lugares: delTipo("MESA_BAR").filter((lugar) => (grupo.numeros as readonly number[]).includes(lugar.numero)),
+    }))
   }
   if (tipo === "restaurante") {
     return gruposDeMesas.map((grupo) => ({

@@ -8,9 +8,13 @@ import { libreEn, ocupacionPorUnidad } from "@/lib/reservas"
 
 export const categorias = {
   parrilla: ["PARRILLA", "QUINCHO"],
+  gazebo: ["GAZEBO"],
+  palapa: ["PALAPA"],
   playa: ["GAZEBO", "PALAPA"],
   bungalow: ["BUNGALOW"],
   restaurante: ["MESA_RESTAURANTE"],
+  bar: ["MESA_BAR"],
+  visita: ["PARRILLA", "GAZEBO", "PALAPA", "BUNGALOW"],
 } as const satisfies Record<string, readonly TipoUnidad[]>
 
 export type Categoria = keyof typeof categorias
@@ -41,6 +45,7 @@ export async function disponibilidadDelMes(mes: string, categoria: Categoria, pe
     const apertura = estadoDelDia(fecha, especiales)
     if (fecha < hoy) dias[fecha] = { estado: "pasado" }
     else if (!apertura.abierto) dias[fecha] = { estado: "cerrado", motivo: apertura.motivo }
+    else if (categoria === "visita") dias[fecha] = { estado: "libre" }
     else {
       const libre = libreEn(ocupacion, fecha, fecha, horas)
       const libres = delTipo.filter((unidad) => libre(unidad.id))

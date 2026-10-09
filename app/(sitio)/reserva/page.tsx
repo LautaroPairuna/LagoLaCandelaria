@@ -5,8 +5,11 @@ import { redirect } from "next/navigation"
 import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
 import { FlujoFamilia } from "@/components/reserva-nueva/flujo-familia"
+import { FlujoFinde, type PlatoDeCarta } from "@/components/reserva-nueva/flujo-finde"
 import { FormularioGrupo } from "@/components/reserva-nueva/formulario-grupo"
-import { buscarPropuesta, destinoDeVisitaVieja, propuestas, type Opcion, type Propuesta } from "@/lib/propuestas"
+import { ListaEstudiantil } from "@/components/reserva-nueva/lista-estudiantil"
+import { menuDelLocal } from "@/lib/panel/cuentas"
+import { buscarPropuesta, buscarPropuestaEstudiantil, destinoDeVisitaVieja, propuestas, type Opcion, type Propuesta } from "@/lib/propuestas"
 import { enlaceWhatsappDelPredio } from "@/lib/site"
 import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
@@ -24,26 +27,41 @@ export default async function ReservaPage({ searchParams }: PageProps<"/reserva"
     if (destino) redirect(destino)
   }
   const opcion = propuesta?.opciones.find((item) => item.id === primero(params.opcion))
+  const estudiantil = propuesta?.id === "estudiantil" ? buscarPropuestaEstudiantil(primero(params.opcion)) : undefined
+  const finde = propuesta?.id === "familia" && !opcion
+  const cartas = finde ? await cargarCartas() : null
+  const enDetalle = Boolean(opcion || estudiantil)
 
   return (
     <main className="bg-foam text-ink">
-      <PageHero kicker="Reserva" title={opcion ? <>{opcion.nombre}</> : propuesta ? <>{propuesta.nombre}</> : <>¿Qué quieren reservar?</>}>
-        {opcion?.detalle ?? propuesta?.detalle ?? "Elegí la propuesta. Después, la fecha y los datos. Al final te queda un ticket con QR."}
+      <PageHero
+        kicker="Reserva"
+        title={opcion ? <>{opcion.nombre}</> : estudiantil ? <>{estudiantil.titulo}</> : propuesta ? <>{propuesta.nombre}</> : <>¿Qué quieren reservar?</>}
+      >
+        {estudiantil
+          ? `${estudiantil.seccion}. Completá los datos del grupo y el predio arma el presupuesto.`
+          : (opcion?.detalle ?? propuesta?.detalle ?? "Elegí la propuesta. Después, la fecha y los datos. Al final te queda un ticket con QR.")}
       </PageHero>
 
       <section className="mx-auto max-w-[1180px] px-5 pb-20 md:px-8">
         {propuesta ? (
           <Link
-            href={opcion ? `/reserva?propuesta=${propuesta.id}` : "/reserva"}
+            href={enDetalle ? `/reserva?propuesta=${propuesta.id}` : "/reserva"}
             className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-ink/70 hover:text-ink"
           >
             <ArrowLeft className="size-4" aria-hidden />
-            {opcion ? `Volver a ${propuesta.nombre.toLowerCase()}` : "Volver a las propuestas"}
+            {enDetalle ? `Volver a ${propuesta.nombre.toLowerCase()}` : "Volver a las propuestas"}
           </Link>
         ) : null}
 
         {!propuesta ? (
           <Tarjetas items={propuestas.map((item) => ({ ...item, href: `/reserva?propuesta=${item.id}` }))} />
+        ) : finde && cartas ? (
+          <FlujoFinde cartas={cartas} />
+        ) : estudiantil ? (
+          <FormularioGrupo tipo="CAMPAMENTO" modalidad={estudiantil.titulo} />
+        ) : propuesta.id === "estudiantil" && !opcion ? (
+          <ListaEstudiantil />
         ) : !opcion ? (
           <Tarjetas items={propuesta.opciones.map((item) => ({ ...item, href: hrefDeOpcion(propuesta, item) }))} />
         ) : (
@@ -52,6 +70,23 @@ export default async function ReservaPage({ searchParams }: PageProps<"/reserva"
       </section>
     </main>
   )
+}
+
+async function cargarCartas() {
+  const vacio = { restaurante: [] as PlatoDeCarta[], bar: [] as PlatoDeCarta[] }
+  try {
+    const [restaurante, bar] = await Promise.all([menuDelLocal("RESTAURANTE", true), menuDelLocal("BAR", true)])
+    const plano = (item: { id: number; categoria: string; nombre: string; descripcion: string | null; precio: number }): PlatoDeCarta => ({
+      id: item.id,
+      categoria: item.categoria,
+      nombre: item.nombre,
+      descripcion: item.descripcion,
+      precio: item.precio,
+    })
+    return { restaurante: restaurante.map(plano), bar: bar.map(plano) }
+  } catch {
+    return vacio
+  }
 }
 
 function hrefDeOpcion(propuesta: Propuesta, opcion: Opcion) {

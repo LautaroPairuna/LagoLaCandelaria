@@ -1,7 +1,7 @@
 import type { EstadoReserva, Modulo } from "@/generated/prisma/enums"
 import { saldoDe } from "@/lib/panel/cobros"
 import { aFechaDb, deFechaDb } from "@/lib/predio/fechas"
-import { gruposDeMesas, gruposDeParrillas, unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
+import { gruposDeMesas, gruposDeMesasBar, gruposDeParrillas, unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
 import { db } from "@/lib/prisma"
 import { detalleDe } from "@/lib/reservas"
 
@@ -11,6 +11,7 @@ export const zonas = [
   { id: "playa", nombre: "Playa" },
   { id: "bungalows", nombre: "Bungalows" },
   { id: "restaurante", nombre: "Restaurante" },
+  { id: "bar", nombre: "Bar" },
 ] as const
 
 export type ZonaId = (typeof zonas)[number]["id"]
@@ -35,6 +36,13 @@ export function seccionesDe(zona: ZonaId): Seccion[] {
     const mesas = unidadesDelTipo("MESA_RESTAURANTE")
     return gruposDeMesas.map((grupo) => ({
       titulo: `Mesas para ${grupo.capacidad} personas`,
+      unidades: mesas.filter((unidad) => (grupo.numeros as readonly number[]).includes(unidad.numero)),
+    }))
+  }
+  if (zona === "bar") {
+    const mesas = unidadesDelTipo("MESA_BAR")
+    return gruposDeMesasBar.map((grupo) => ({
+      titulo: `Mesas del bar para ${grupo.capacidad} personas`,
       unidades: mesas.filter((unidad) => (grupo.numeros as readonly number[]).includes(unidad.numero)),
     }))
   }

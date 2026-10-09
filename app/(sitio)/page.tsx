@@ -6,9 +6,9 @@ import { ActivityMosaic } from "@/components/activity-mosaic"
 import { ButtonLink } from "@/components/button-link"
 import { TextLink } from "@/components/text-link"
 import { VideoFondo } from "@/components/video-fondo"
-import { Wave } from "@/components/wave"
 import { fotoUrl } from "@/lib/fotos"
 import { seoDeInicio } from "@/lib/seo"
+import { enlaceWhatsappDelPredio } from "@/lib/site"
 
 export const metadata: Metadata = seoDeInicio()
 
@@ -35,7 +35,7 @@ export default function HomePage() {
               <div className="mt-8 flex justify-center sm:mt-10">
                 <ButtonLink
                   href="/#actividades"
-                  className="h-14 bg-orange px-8 text-lg text-sobre-naranja shadow-[0_10px_28px_rgba(255,122,20,0.45)] hover:bg-orange-hover"
+                  className="h-14 bg-orange px-8 text-lg text-white shadow-[0_10px_28px_rgba(255,122,20,0.45)] hover:bg-orange-hover"
                 >
                   Ver actividades
                 </ButtonLink>
@@ -46,10 +46,9 @@ export default function HomePage() {
       </section>
 
       <div className="relative z-10">
-        <Wave />
         <ActivityMosaic />
 
-      <section id="como-reservar" data-nav="como-reservar" className="section-snap audience-water relative flex items-center overflow-hidden bg-[#0c4e58] text-cream">
+      <section id="como-reservar" data-nav="como-reservar" className="section-snap audience-water relative flex items-center overflow-hidden bg-[#0c4e58] text-cream max-md:!h-auto max-md:!overflow-visible">
         <VideoFondo
           src="/para-quien.mp4"
           poster={fotoUrl("/posters/para-quien.jpg", 1280)}
@@ -59,28 +58,43 @@ export default function HomePage() {
         <div aria-hidden className="audience-water-shade pointer-events-none absolute inset-0" />
         <div className="relative z-10 mx-auto w-full max-w-[1120px] px-5 py-10 md:px-8">
           <h2 className="font-display max-w-3xl text-4xl leading-[1.02] tracking-tight text-cream md:text-6xl">
-            ¿Cómo queres reservar?
+            ¿Cómo reservar?
           </h2>
-          <div className="mt-14 grid gap-12 md:grid-cols-2 md:gap-0">
-            <article className="md:pr-14">
-              <h3 className="font-display text-5xl italic tracking-tight text-cream">Familia</h3>
-              <p className="mt-5 text-lg leading-relaxed text-cream/90">
-                El finde en familia es un día de predio, no una entrada suelta. Las actividades con staff tienen turno. Las canchas y la plaza, no. Si vienen con mascota, entra con correa y no paga. El sector —parrilla, gazebo, restaurante o bar de playa— se acuerda al reservar. También pueden traer la comida.
+          <div className="mt-10 grid gap-10 md:grid-cols-3 md:gap-0">
+            <article className="md:pr-8">
+              <h3 className="inline-block max-w-full rounded-md bg-orange/35 px-2.5 py-0.5 font-display text-3xl italic leading-tight tracking-tight text-cream md:text-4xl">Para familias</h3>
+              <p className="mt-4 text-base leading-relaxed text-cream/90 md:text-lg">
+                Entrá al panel de reservas, completá tus datos y elegí dónde se ubican. El valor de la entrada incluye todas las actividades que quieran hacer.
               </p>
-              <div className="mt-6">
-                <TextLink href="/grupos" light>
-                  Cómo es el día en familia
+              <div className="mt-5">
+                <TextLink href="/reserva?propuesta=familia" light>
+                  Reservar finde en familia
                 </TextLink>
               </div>
             </article>
-            <article className="md:border-l md:border-cream/25 md:pl-14">
-              <h3 className="font-display text-5xl italic tracking-tight text-cream">Grupo Estudiantil</h3>
-              <p className="mt-5 text-lg leading-relaxed text-cream/90">
-                Los campamentos estudiantiles son el centro del lugar. Hay tres formas: jornada de aventura, carpa o dormis. Tirolesa, parque aéreo, palestra, péndulo, remo y caminata los guía el personal. Si es un viaje de egresados o una salida educativa, se arma igual: con fecha, cantidad y edades.
+            <article className="md:border-x md:border-cream/25 md:px-8">
+              <h3 className="inline-block max-w-full rounded-md bg-orange/35 px-2.5 py-0.5 font-display text-3xl italic leading-tight tracking-tight text-cream md:text-4xl">Para Grupo estudiantil</h3>
+              <p className="mt-4 text-base leading-relaxed text-cream/90 md:text-lg">
+                Entrá a reservas, mirá las propuestas y consultá con el equipo. Cuando decidan, traigan la planilla con los datos de todas las personas del grupo.
               </p>
-              <div className="mt-6">
-                <TextLink href="/grupos" light>
-                  Armar una salida
+              <div className="mt-5">
+                <TextLink href="/reserva?propuesta=estudiantil" light>
+                  Reservar propuesta estudiantil
+                </TextLink>
+              </div>
+            </article>
+            <article className="md:pl-8">
+              <h3 className="inline-block max-w-full rounded-md bg-orange/35 px-2.5 py-0.5 font-display text-3xl italic leading-tight tracking-tight text-cream md:text-4xl">Para actividades de aventura</h3>
+              <p className="mt-4 text-base leading-relaxed text-cream/90 md:text-lg">
+                Organizamos actividades deportivas y de aventura: carreras de nado, de bicicleta, senderismo, escalada y más. Para coordinar una actividad puntual, escribinos.
+              </p>
+              <div className="mt-5">
+                <TextLink
+                  href={enlaceWhatsappDelPredio("Hola, quiero coordinar una actividad de aventura.")}
+                  light
+                  externo
+                >
+                  Comunicarse con nuestro equipo
                 </TextLink>
               </div>
             </article>

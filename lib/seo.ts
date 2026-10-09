@@ -19,7 +19,7 @@ const portadas: Record<string, string> = {
   "/categorias/playa": "/covers/playa.jpg",
   "/categorias/parrillas": "/covers/parrillas.jpg",
   "/categorias/bar": "/covers/restaurante.jpg",
-  "/estadia/bungalows": "/bungalow.jpg",
+  "/estadia/bungalows": "/covers/bungalows.jpg",
   "/estadia/pasar-el-dia": "/covers/lago.jpg",
 }
 
