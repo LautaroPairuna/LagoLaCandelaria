@@ -107,6 +107,7 @@ model Reserva {
   personas      ReservaPersona[]
   ocupaciones   Ocupacion[]
   pagos         Pago[]
+  actividades   ActividadRealizada[]
 
   @@index([desde])
   @@index([estado, desde])
@@ -131,6 +132,7 @@ model ReservaPersona {
   /// está adentro, con salida ya se fue.
   ingresoEn   DateTime?
   salidaEn    DateTime?
+  actividades ActividadRealizada[]
 
   @@index([reservaId])
   @@index([dni])
@@ -392,3 +394,35 @@ model ItemDeCuenta {
   @@index([cuentaId])
   @@map("cuenta_items")
 }
+
+/// Quién ya hizo cada actividad. Con la entrada, cada persona puede hacer cada
+/// actividad una sola vez por visita: el índice único lo garantiza. Los grupos sin
+/// personas cargadas (estudiantiles) se cuentan con una sola fila y `cantidad`.
+model ActividadRealizada {
+  id            Int             @id @default(autoincrement())
+  reservaId     Int
+  reserva       Reserva         @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  personaId     Int?
+  persona       ReservaPersona? @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  actividad     String          @db.VarChar(40)
+  fecha         DateTime        @db.Date
+  cantidad      Int             @default(1) @db.SmallInt
+  registradoPor String?         @db.VarChar(80)
+  creadoEn      DateTime        @default(now())
+
+  @@unique([personaId, actividad])
+  @@index([actividad, fecha])
+  @@index([reservaId])
+  @@map("actividades_realizadas")
+}
+
+/// Qué actividades tiene a cargo cada profesor (usuario con el rol profesor).
+model ProfesorDeActividad {
+  id        Int    @id @default(autoincrement())
+  userId    String @db.VarChar(64)
+  actividad String @db.VarChar(40)
+
+  @@unique([userId, actividad])
+  @@map("profesores_actividad")
+}
+

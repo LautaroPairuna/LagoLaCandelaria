@@ -5,6 +5,7 @@ import { useState, useTransition, type FormEvent } from "react"
 import { cambiarAcceso, cambiarRoles, crearUsuario, generarContrasena, type ResultadoUsuario } from "@/app/panel/general/usuarios/acciones"
 import { Button } from "@/components/ui/button"
 import { avisarError, avisarExito, conAviso } from "@/lib/avisos"
+import { actividadesConProfesor } from "@/lib/panel/actividades"
 import { ROLES, type Rol } from "@/lib/panel/roles"
 import { cn } from "cn"
 
@@ -15,6 +16,7 @@ const nombreDeRol: Record<Rol, string> = {
   bar: "Bar",
   restaurante: "Restaurante",
   caja: "Caja (cobros y movimientos)",
+  profesor: "Profesor de actividad",
 }
 
 function ElegirRoles({ elegidos, onChange, prefijo }: { elegidos: Rol[]; onChange: (roles: Rol[]) => void; prefijo: string }) {
@@ -43,6 +45,40 @@ function ElegirRoles({ elegidos, onChange, prefijo }: { elegidos: Rol[]; onChang
         )
       })}
     </div>
+  )
+}
+
+function ElegirActividades({ elegidas, onChange, prefijo }: { elegidas: string[]; onChange: (actividades: string[]) => void; prefijo: string }) {
+  return (
+    <fieldset className="rounded-2xl bg-panel px-3 py-2.5">
+      <legend className="sr-only">Actividades a cargo</legend>
+      <p className="text-sm font-semibold">Actividades a cargo</p>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        {actividadesConProfesor.map((actividad) => {
+          const activa = elegidas.includes(actividad.slug)
+          return (
+            <label
+              key={actividad.slug}
+              htmlFor={`${prefijo}-act-${actividad.slug}`}
+              className={cn(
+                "cursor-pointer rounded-full border px-3 py-1.5 text-sm font-semibold",
+                activa ? "border-panel-ink bg-white text-panel-ink" : "border-panel-line bg-white/60 text-panel-muted",
+              )}
+            >
+              <input
+                id={`${prefijo}-act-${actividad.slug}`}
+                type="checkbox"
+                className="sr-only"
+                checked={activa}
+                onChange={() => onChange(activa ? elegidas.filter((item) => item !== actividad.slug) : [...elegidas, actividad.slug])}
+              />
+              {activa ? "✓ " : ""}
+              {actividad.nombre}
+            </label>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }
 
@@ -75,6 +111,7 @@ function ContrasenaNueva({ email, password, onCerrar }: { email: string; passwor
 
 export function NuevoUsuario() {
   const [roles, setRoles] = useState<Rol[]>(["reservas"])
+  const [actividades, setActividades] = useState<string[]>([])
   const [creado, setCreado] = useState<{ email: string; password: string } | null>(null)
   const [pendiente, iniciar] = useTransition()
 
@@ -86,12 +123,13 @@ export function NuevoUsuario() {
     const email = String(datos.get("email"))
     iniciar(async () => {
       const resultado = await conAviso(
-        () => crearUsuario({ nombre, email, roles }),
+        () => crearUsuario({ nombre, email, roles, actividades }),
         `Listo, ${nombre} ya tiene usuario. Pasale la contraseña que te mostramos abajo.`,
       )
       if (!resultado.ok) return
       formulario.reset()
       setRoles(["reservas"])
+      setActividades([])
       if (resultado.password) setCreado({ email, password: resultado.password })
     })
   }
@@ -116,6 +154,7 @@ export function NuevoUsuario() {
             <ElegirRoles elegidos={roles} onChange={setRoles} prefijo="nuevo" />
           </div>
         </fieldset>
+        {roles.includes("profesor") ? <ElegirActividades elegidas={actividades} onChange={setActividades} prefijo="nuevo" /> : null}
         <Button type="submit" disabled={pendiente || roles.length === 0} className="h-11 bg-panel-naranja px-5 text-white hover:bg-panel-tostado">
           {pendiente ? "Creando…" : "Crear usuario"}
         </Button>
@@ -133,13 +172,15 @@ export function FilaUsuario({
   usuario,
   soyYo,
 }: {
-  usuario: { id: string; nombre: string; email: string; roles: Rol[]; deshabilitado: boolean }
+  usuario: { id: string; nombre: string; email: string; roles: Rol[]; actividades: string[]; deshabilitado: boolean }
   soyYo: boolean
 }) {
   const [roles, setRoles] = useState<Rol[]>(usuario.roles)
+  const [actividades, setActividades] = useState<string[]>(usuario.actividades)
   const [contrasena, setContrasena] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
-  const cambiaron = roles.length !== usuario.roles.length || roles.some((rol) => !usuario.roles.includes(rol))
+  const distintas = (a: string[], b: string[]) => a.length !== b.length || a.some((item) => !b.includes(item))
+  const cambiaron = distintas(roles, usuario.roles) || (roles.includes("profesor") && distintas(actividades, usuario.actividades))
 
   function correr(tarea: () => Promise<ResultadoUsuario>, exito: string) {
     iniciar(async () => {
@@ -187,11 +228,12 @@ export function FilaUsuario({
       <div className="flex flex-wrap items-center gap-3">
         <ElegirRoles elegidos={roles} onChange={setRoles} prefijo={usuario.id} />
         {cambiaron ? (
-          <Button type="button" disabled={pendiente || roles.length === 0} className="h-9 bg-panel-ink text-white" onClick={() => correr(() => cambiarRoles(usuario.id, roles), `Listo, cambiaron los paneles de ${usuario.nombre}.`)}>
+          <Button type="button" disabled={pendiente || roles.length === 0} className="h-9 bg-panel-ink text-white" onClick={() => correr(() => cambiarRoles(usuario.id, roles, actividades), `Listo, cambiaron los paneles de ${usuario.nombre}.`)}>
             Guardar paneles
           </Button>
         ) : null}
       </div>
+      {roles.includes("profesor") ? <ElegirActividades elegidas={actividades} onChange={setActividades} prefijo={usuario.id} /> : null}
       {contrasena ? <ContrasenaNueva email={usuario.email} password={contrasena} onCerrar={() => setContrasena(null)} /> : null}
     </li>
   )

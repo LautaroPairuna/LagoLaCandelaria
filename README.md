@@ -82,6 +82,13 @@ Cada local tiene pestañas propias: el restaurante **Salón y reservas**, **Cuen
 - **Cuentas** (`cuentas_de_mesa`, `cuenta_items`): se abre una cuenta por mesa (en el restaurante, con un toque desde las reservas del día), se suman platos de la carta o algo fuera de la carta, y se cobra en efectivo, débito o transferencia. Nombre y precio se copian al pedir: si cambia la carta, la cuenta no se mueve. Una cuenta cobrada se puede reabrir.
 - Arriba, lo cobrado del día por forma de pago y lo pendiente. La pestaña **Caja** muestra lo cobrado por período; en la caja General se suma a las demás.
 
+### Actividades y profesores
+
+Con la entrada, cada persona puede hacer cada actividad **una sola vez por visita** (`actividades_realizadas`, con índice único por persona y actividad). Las actividades que se marcan son las que tienen profesor (`lib/panel/actividades.ts`): canotaje, tirolesa, parque aéreo, palestra, péndulo y caminata.
+
+- **Profesores** (rol `profesor`): en General → Usuarios se les asigna qué actividades tienen a cargo (`profesores_actividad`). En **Actividades** ven las reservas del día con todos sus integrantes y marcan quién ya la hizo: persona por persona, por familia o todos juntos (y deshacer). Los grupos sin la lista de personas (estudiantiles) se cuentan con un contador. Se marca solo el día de la visita.
+- **Administración** ve todas las actividades y la pestaña **Estadísticas**: actividades realizadas, visitantes que ingresaron, promedio por visitante, ranking de actividades (veces y porcentaje de visitantes), actividades por día (por semana en períodos largos) y por profesor.
+
 ### Cajas
 
 Hay una caja por sección y una general que las junta (`lib/panel/caja.ts`, `lib/panel/libro-caja.ts`). Todas separan la plata en dos cajones: **Efectivo** (el mostrador) y **Banco** (transferencia, débito y otros).

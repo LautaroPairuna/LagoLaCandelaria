@@ -1,4 +1,4 @@
-export const ROLES = ["admin", "reservas", "puerta", "bar", "restaurante", "caja"] as const
+export const ROLES = ["admin", "reservas", "puerta", "bar", "restaurante", "caja", "profesor"] as const
 export type Rol = (typeof ROLES)[number]
 
 // Cada panel se habilita con un rol; la administración ve todos.
@@ -10,6 +10,7 @@ export const paneles = [
   { id: "caja", nombre: "Caja", href: "/panel/caja", listo: true, rol: "caja" },
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: true, rol: "bar" },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: true, rol: "restaurante" },
+  { id: "actividades", nombre: "Actividades", href: "/panel/actividades", listo: true, rol: "profesor" },
   { id: "general", nombre: "General", href: "/panel/general", listo: true, rol: "admin" },
 ] as const satisfies readonly { id: string; nombre: string; href: string; listo: boolean; rol: Rol }[]
 
@@ -41,4 +42,5 @@ export const etiquetaDeRol: Record<Rol, string> = {
   bar: "Bar",
   restaurante: "Restaurante",
   caja: "Caja",
+  profesor: "Profesor",
 }

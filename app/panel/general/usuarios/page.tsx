@@ -13,6 +13,8 @@ export default async function Usuarios() {
     orderBy: [{ banned: "asc" }, { name: "asc" }],
     select: { id: true, name: true, email: true, role: true, banned: true },
   })
+  const asignaciones = await db().profesorDeActividad.findMany({ select: { userId: true, actividad: true } })
+  const actividadesDe = (userId: string) => asignaciones.filter((fila) => fila.userId === userId).map((fila) => fila.actividad)
 
   return (
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -26,7 +28,7 @@ export default async function Usuarios() {
             <FilaUsuario
               key={usuario.id}
               soyYo={usuario.id === sesion.user.id}
-              usuario={{ id: usuario.id, nombre: usuario.name, email: usuario.email, roles: rolesDe(usuario.role), deshabilitado: Boolean(usuario.banned) }}
+              usuario={{ id: usuario.id, nombre: usuario.name, email: usuario.email, roles: rolesDe(usuario.role), actividades: actividadesDe(usuario.id), deshabilitado: Boolean(usuario.banned) }}
             />
           ))}
         </ul>
