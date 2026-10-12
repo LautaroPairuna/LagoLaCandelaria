@@ -1,3 +1,4 @@
+import { Settings } from "lucide-react"
 import Link from "next/link"
 
 import { LogoMark } from "@/components/logo-mark"
@@ -76,9 +77,18 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="relative z-10 border-t border-line">
-        <p className="mx-auto max-w-[1120px] px-5 py-4 text-xs tracking-wide text-text-muted md:px-8">
-          Lago La Candelaria · Aventura
-        </p>
+        <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 py-2 md:px-8">
+          <p className="text-xs tracking-wide text-text-muted">Lago La Candelaria · Aventura</p>
+          <Link
+            href="/panel"
+            rel="nofollow"
+            aria-label="Administración del predio"
+            title="Administración del predio"
+            className="grid size-10 place-items-center rounded-full text-text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+          >
+            <Settings className="size-4" aria-hidden />
+          </Link>
+        </div>
       </div>
     </footer>
   )
