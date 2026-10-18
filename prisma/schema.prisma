@@ -15,6 +15,7 @@ enum Modulo {
   SALIDA_EDUCATIVA
   VIAJE_EGRESADOS
   ACTIVIDAD_AVENTURA
+  NADO
 }
 
 enum EstadoReserva {
@@ -99,6 +100,9 @@ model Reserva {
   ingresoEn     DateTime?
   ingresoPor    String?          @db.VarChar(80)
   salidaEn      DateTime?
+  /// Respuesta al mensaje del día anterior: CONFIRMO o CANCELO. Vacío, sin respuesta.
+  confirmacion   String?         @db.VarChar(12)
+  confirmacionEn DateTime?
   /// La solicitud tal como se emitió (personas, lugares, cotización): es el documento
   /// del ticket y no se recalcula si después cambian las tarifas.
   detalle       Json
@@ -432,3 +436,13 @@ model ProfesorDeActividad {
   @@map("profesores_actividad")
 }
 
+
+/// Ajustes que cambia la administración sin tocar el código: el cupo de palapas que se
+/// ofrecen por la web y el alias para transferir la seña de los bungalows.
+model Ajuste {
+  clave         String   @id @db.VarChar(40)
+  valor         String   @db.VarChar(255)
+  actualizadoEn DateTime @updatedAt
+
+  @@map("ajustes")
+}

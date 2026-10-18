@@ -3,7 +3,7 @@ import type { Modulo, TipoUnidad } from "@/generated/prisma/enums"
 export const lineas = [
   { id: "familia", nombre: "Finde en familia", modulos: ["FINDE_FAMILIA", "BUNGALOW", "RESTAURANTE"] },
   { id: "estudiantil", nombre: "Estudiantil", modulos: ["CAMPAMENTO", "SALIDA_EDUCATIVA", "VIAJE_EGRESADOS"] },
-  { id: "aventura", nombre: "Aventura", modulos: ["ACTIVIDAD_AVENTURA"] },
+  { id: "aventura", nombre: "Aventura", modulos: ["ACTIVIDAD_AVENTURA", "NADO"] },
 ] as const satisfies readonly { id: string; nombre: string; modulos: readonly Modulo[] }[]
 
 export type LineaId = (typeof lineas)[number]["id"]
@@ -16,6 +16,7 @@ export const nombreDelModulo: Record<Modulo, string> = {
   SALIDA_EDUCATIVA: "Salida educativa",
   VIAJE_EGRESADOS: "Viaje de egresados",
   ACTIVIDAD_AVENTURA: "Aventura",
+  NADO: "Nado en aguas abiertas",
 }
 
 export const nombreDeUnidad: Record<TipoUnidad, string> = {

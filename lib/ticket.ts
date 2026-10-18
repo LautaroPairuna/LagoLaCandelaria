@@ -2,8 +2,10 @@ import { fechaLarga } from "@/lib/predio/fechas"
 import { lineas, nombreDeUnidad, nombreDelModulo } from "@/lib/predio/nombres"
 import type { TicketDatos } from "@/lib/reservas"
 
-export function esGrupo(ticket: TicketDatos) {
-  return !lineas[0].modulos.some((modulo) => modulo === ticket.modulo)
+/// Los grupos (estudiantiles y de aventura) cargan participantes y acompañantes; el
+/// resto, personas por edad.
+export function esGrupo(ticket: Pick<TicketDatos, "modulo">) {
+  return ticket.modulo !== "NADO" && !lineas[0].modulos.some((modulo) => modulo === ticket.modulo)
 }
 
 export function filasDelTicket(ticket: TicketDatos) {
@@ -16,7 +18,9 @@ export function filasDelTicket(ticket: TicketDatos) {
     ["Salida", `${fechaLarga(ticket.hasta)} · ${ticket.salida} hs`],
   ]
   if (noches > 0) filas.push(["Estadía", `${noches} ${noches === 1 ? "noche" : "noches"}`])
-  if (grupo) {
+  if (ticket.modulo === "NADO") {
+    filas.push(["Nadadores", String(ticket.grupo.adultos)])
+  } else if (grupo) {
     filas.push(["Participantes", String(ticket.grupo.menores + ticket.grupo.sinCargo)], ["Acompañantes", String(ticket.grupo.adultos)])
   } else {
     filas.push([
@@ -28,9 +32,11 @@ export function filasDelTicket(ticket: TicketDatos) {
     "Lugar",
     ticket.lugares.length
       ? ticket.lugares.map((lugar) => `${nombreDeUnidad[lugar.tipo]} ${lugar.etiqueta}`).join(" · ")
-      : grupo
-        ? "Lo organiza el predio con la institución"
-        : "Lo asigna el predio",
+      : ticket.modulo === "NADO"
+        ? "Nado en aguas abiertas: coordinan el sector con los guardavidas en el muelle"
+        : grupo
+          ? "Lo organiza el predio con la institución"
+          : "Lo asigna el predio",
   ])
   return filas
 }

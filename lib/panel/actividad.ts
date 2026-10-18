@@ -52,8 +52,14 @@ export function registrarActividad(cliente: Prisma.TransactionClient, datos: Dat
 /// acción no se cae (queda en el log del servidor).
 export async function anotar(sesion: { user: { id: string; name: string } }, datos: Omit<DatosDeActividad, "usuario" | "userId">) {
   try {
-    await registrarActividad(db(), { ...autorDe(sesion), ...datos })
+    await registrarActividad(db(), { ...autorDe(sesion), ...datos, userId: sesion.user.id || null })
   } catch (error) {
     console.error(`[anotar] ${datos.seccion}/${datos.accion}: ${error instanceof Error ? error.message.slice(0, 200) : String(error)}`)
   }
+}
+
+/// Lo que hace el cliente desde la web (cancelar o modificar su reserva) también queda en
+/// el registro, a nombre de "Cliente (web)".
+export async function anotarDelCliente(datos: Omit<DatosDeActividad, "usuario" | "userId" | "seccion">) {
+  await anotar({ user: { id: "", name: "Cliente (web)" } }, { seccion: "reservas", ...datos })
 }

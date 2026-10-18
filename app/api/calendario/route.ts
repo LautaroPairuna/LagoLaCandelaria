@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { categorias, disponibilidadDelMes, type Categoria } from "@/lib/disponibilidad"
+import { categorias, disponibilidadDelMes, reservaDelToken, type Categoria } from "@/lib/disponibilidad"
 import { ipDe, superaLimite } from "@/lib/limite"
 import { horasDe, leerFranja } from "@/lib/predio/horario"
 
@@ -19,7 +19,8 @@ export async function GET(request: Request) {
   }
   const franja = leerFranja(url.searchParams.get("horas"))
   try {
-    return NextResponse.json({ ok: true, ...(await disponibilidadDelMes(mes, categoria as Categoria, personas, franja ? horasDe(franja) : undefined)) })
+    const sinReserva = await reservaDelToken(url.searchParams.get("sin"))
+    return NextResponse.json({ ok: true, ...(await disponibilidadDelMes(mes, categoria as Categoria, personas, franja ? horasDe(franja) : undefined, sinReserva)) })
   } catch (error) {
     console.error("Calendario no leído", error instanceof Error ? error.name : "unknown")
     return NextResponse.json({ ok: false, error: "No pudimos leer el calendario del predio. Probá de nuevo en un rato o escribinos por WhatsApp." }, { status: 503 })

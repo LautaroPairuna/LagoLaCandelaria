@@ -109,6 +109,22 @@ Hay una caja por sección y una general que las junta (`lib/panel/caja.ts`, `lib
 - Anotar nunca frena la operación: si falla el registro, la acción igual se hace (los cobros y movimientos sí se anotan en la misma transacción).
 - La caja (`/panel/caja/actividad`) sigue mostrando solo lo que mueve plata.
 
+### Reservas de la web: finde, bungalows y nado
+
+Según el documento de modificaciones del predio (`components/reserva-nueva/flujo-visita.tsx`, `app/(sitio)/reserva/acciones.ts`).
+
+- **Personas:** se cargan cantidades (adultos de 13 o más, menores de 5 a 12 y menores de 5, que no pagan) y solo los datos de quien reserva. Puerta y los profesores marcan esas reservas por cantidad.
+- **Precio:** la tarifa depende del día (`lib/predio/tarifas.ts`): fin de semana o feriado, 40.000 y 25.000; de miércoles a viernes, 30.000 y 20.000. Son precios en efectivo; por transferencia se suma el 10 %. El cliente elige la forma de pago al elegir la fecha (se guarda en `reservas.formaPago`) y se paga al ingresar. El precio de lista de la reserva es el de transferencia; en efectivo, la caja cobra sin el recargo.
+- **Calendario:** del 6/1 al 19/2 abre de miércoles a domingo; el resto del año, sábados, domingos y feriados (`TEMPORADA_DE_SEMANA` en `lib/predio/calendario.ts`). Los días puntuales se abren o cierran con los días especiales.
+- **Lugares:** los menores de 5 no ocupan lugar. Parrillas: se ofrece solo el tamaño justo (6, 12 o 18) y el siguiente cuando ese se completa; más de 18 personas, WhatsApp (quincho). Gazebos (28, de la A a la Z con LL y Ñ) y palapas (84 cargadas, 54 en el predio): 4 personas cada uno, los asigna el sistema y el cliente no los elige. Por la web se ofrecen solo las primeras palapas del cupo (10 por defecto).
+- **Restaurante:** con gazebo o palapa se pregunta si van a almorzar; el Panel Restaurante muestra quiénes avisaron.
+- **Bungalows:** propuesta aparte. 2 días y 1 noche entrando jueves o sábado, 370.000 por bungalow con la entrada, pago anticipado por transferencia (el ticket muestra el alias).
+- **Nado en aguas abiertas** (módulo `NADO`): nadadores, club opcional, fecha y hasta 3 horas entre las 10 y las 19. 25.000 el finde y 20.000 en semana por nadador; solo el nado.
+- **Cotizar** (`/cotizar`) y **Ver mi reserva** (`/mi-reserva`, con código y celular): desde el ticket se modifica (mismo flujo, conserva código y QR) o se cancela (libera los lugares y queda cancelada). Queda en el registro como "Cliente (web)".
+- **Reglamentos** (`lib/reglamentos.ts`, `/reglamento/finde|bungalow|nado`): el ticket los muestra con el horario de actividades y un botón para compartirlos con el grupo por WhatsApp.
+- **Confirmaciones** (`/panel/reservas/confirmaciones`): las reservas del día siguiente con un botón que abre WhatsApp con el mensaje del predio (y el enlace para cancelar), y "Confirmó" o "No viene" (cancela y libera los lugares).
+- **Ajustes de la web** (`/panel/general/ajustes`): cupo de palapas por la web y alias para la transferencia de los bungalows (tabla `ajustes`).
+
 ### Errores y avisos
 
 Ninguna pantalla muestra un error técnico. Las Server Actions pasan por `accion()` de `lib/errores.ts`: si algo sale mal, el detalle queda en el log del servidor (`[nombreDeLaAccion] ...`) y a la persona le llega una frase que dice qué pasó y qué hacer. Cuando el motivo es conocido (la reserva ya no estaba pendiente, no queda lugar) se tira `ErrorHumano` con el texto, o se usa `exigir(condición, "texto")`. El sitio público usa `mensajesDelSitio`, que ofrece el WhatsApp en vez de "avisá a la administración".

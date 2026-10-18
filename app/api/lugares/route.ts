@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { categorias, lugaresDisponibles, type Categoria } from "@/lib/disponibilidad"
+import { categorias, lugaresDisponibles, reservaDelToken, type Categoria } from "@/lib/disponibilidad"
 import { ipDe, superaLimite } from "@/lib/limite"
 import { horasDe, leerFranja } from "@/lib/predio/horario"
 import { esFechaIso, sumarDiasIso } from "@/lib/predio/fechas"
@@ -20,7 +20,8 @@ export async function GET(request: Request) {
   }
   const franja = leerFranja(url.searchParams.get("horas"))
   try {
-    return NextResponse.json({ ok: true, lugares: await lugaresDisponibles(categoria as Categoria, desde, hasta, franja ? horasDe(franja) : undefined) })
+    const sinReserva = await reservaDelToken(url.searchParams.get("sin"))
+    return NextResponse.json({ ok: true, lugares: await lugaresDisponibles(categoria as Categoria, desde, hasta, franja ? horasDe(franja) : undefined, sinReserva) })
   } catch (error) {
     console.error("Lugares no leídos", error instanceof Error ? error.name : "unknown")
     return NextResponse.json({ ok: false, error: "No pudimos leer los lugares del predio. Probá de nuevo en un rato o escribinos por WhatsApp." }, { status: 503 })

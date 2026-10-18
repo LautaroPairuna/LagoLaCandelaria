@@ -1,5 +1,5 @@
 import { LogoMark } from "@/components/logo-mark"
-import { textoDelEfectivo, textoDelTotal } from "@/lib/predio/cotizacion"
+import { lineasSegunForma, nombreDeFormaWeb, textoDelEfectivo, textoDelTotal, totalSegunForma } from "@/lib/predio/cotizacion"
 import { pesos } from "@/lib/predio/tarifas"
 import type { TicketDatos } from "@/lib/reservas"
 import { phones } from "@/lib/site"
@@ -16,6 +16,7 @@ function Fila({ termino, detalle }: { termino: string; detalle: string }) {
 
 export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos; qrDataUrl?: string; enlace?: string }) {
   const grupo = esGrupo(ticket)
+  const conForma = Boolean(ticket.formaPago && nombreDeFormaWeb[ticket.formaPago] && !grupo && !ticket.cotizacion.consumo)
   const notas = ticket.personas.filter((persona) => persona.notas || persona.cud)
 
   return (
@@ -95,18 +96,27 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
 
         <h3 className="font-display mt-8 text-2xl tracking-tight">Total</h3>
         <dl>
-          {ticket.cotizacion.lineas.map((linea) => (
+          {lineasSegunForma(ticket.cotizacion, ticket.formaPago).map((linea) => (
             <Fila key={`${linea.concepto}-${linea.detalle}`} termino={linea.concepto} detalle={ticket.cotizacion.consumo ? linea.detalle : `${linea.detalle} · ${pesos(linea.importe)}`} />
           ))}
+          {conForma ? <Fila termino="Forma de pago" detalle={nombreDeFormaWeb[ticket.formaPago!]} /> : null}
         </dl>
-        <p className="font-display mt-4 text-4xl tracking-tight">{textoDelTotal(ticket.cotizacion)}</p>
-        {textoDelEfectivo(ticket.cotizacion) ? <p className="mt-1 font-semibold">{textoDelEfectivo(ticket.cotizacion)}</p> : null}
+        <p className="font-display mt-4 text-4xl tracking-tight">
+          {conForma ? pesos(totalSegunForma(ticket.cotizacion, ticket.formaPago)) : textoDelTotal(ticket.cotizacion)}
+        </p>
+        {!conForma && textoDelEfectivo(ticket.cotizacion) ? <p className="mt-1 font-semibold">{textoDelEfectivo(ticket.cotizacion)}</p> : null}
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/65">
           {grupo
             ? "Es un pedido de servicio: el predio arma el presupuesto y la reserva se confirma con el pago del 50 %."
             : ticket.cotizacion.consumo
               ? "No se cobra nada por la web. En el restaurante se paga lo que consuman."
-              : "No se cobra nada por la web. El pago se hace en el predio, cuando llegan."}
+              : ticket.modulo === "BUNGALOW"
+                ? "El bungalow se paga por adelantado, por transferencia. La reserva queda confirmada cuando el predio recibe el pago."
+                : ticket.modulo === "NADO"
+                  ? "El precio incluye solo el nado en aguas abiertas, no el resto de las actividades del predio. Se paga al ingresar."
+                  : ticket.formaPago === "TRANSFERENCIA"
+                    ? "No cobramos por adelantado: la transferencia se hace al momento de ingresar al predio."
+                    : "No cobramos por adelantado: se paga en efectivo al ingresar al predio."}
         </p>
 
         <h3 className="font-display mt-8 text-2xl tracking-tight">Quién hizo la reserva</h3>

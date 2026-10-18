@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  bandaDeEdad,
-  conDescuentoEfectivo,
-  entradas,
-  precioBungalowPorNoche,
-  presupuestoGrupo,
-  repartirEnBungalows,
-} from "@/lib/predio/tarifas"
+import { bandaDeEdad, conDescuentoEfectivo, conRecargoTransferencia, entradas, presupuestoGrupo } from "@/lib/predio/tarifas"
 
 describe("tarifas", () => {
   it("separa las edades como la especificación: menos de 5 sin cargo, 5 a 12 menor, más de 12 adulto", () => {
@@ -18,22 +11,12 @@ describe("tarifas", () => {
     expect(bandaDeEdad(40, true)).toBe("sin-cargo")
   })
 
-  it("cobra la planilla de finde en familia: 2 adultos y 2 menores", () => {
-    const total = entradas(2, 2)
-    expect(total).toBe(130_000)
-    expect(conDescuentoEfectivo(total)).toBe(117_000)
-  })
-
-  it("cobra el bungalow según cuántas personas duermen", () => {
-    expect(precioBungalowPorNoche(1)).toBe(300_000)
-    expect(precioBungalowPorNoche(2)).toBe(300_000)
-    expect(precioBungalowPorNoche(3)).toBe(370_000)
-    expect(precioBungalowPorNoche(4)).toBe(440_000)
-  })
-
-  it("reparte a las personas entre los bungalows de forma pareja", () => {
-    expect(repartirEnBungalows(7, 2)).toEqual([4, 3])
-    expect(repartirEnBungalows(4, 1)).toEqual([4])
+  it("cobra la entrada en efectivo y suma el 10 % por transferencia", () => {
+    expect(entradas(2, 2)).toBe(130_000)
+    expect(entradas(2, 2, "semana")).toBe(100_000)
+    expect(conRecargoTransferencia(40_000)).toBe(44_000)
+    expect(conRecargoTransferencia(25_000)).toBe(27_500)
+    expect(conDescuentoEfectivo(44_000)).toBe(40_000)
   })
 
   it("reproduce el presupuesto de la planilla de campamentos", () => {
@@ -46,7 +29,7 @@ describe("tarifas", () => {
     })
     expect(presupuesto.lineas.map((linea) => linea.importe)).toEqual([2_200_000, 123_200])
     expect(presupuesto.total).toBe(2_323_200)
-    expect(presupuesto.totalEfectivo).toBe(2_090_880)
+    expect(presupuesto.totalEfectivo).toBe(2_112_000)
   })
 
   it("reproduce el presupuesto de la planilla de viaje de egresados", () => {

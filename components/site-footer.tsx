@@ -55,6 +55,16 @@ export function SiteFooter() {
                 Reserva
               </Link>
             </li>
+            <li>
+              <Link href="/cotizar" className="text-ink hover:text-orange">
+                Cotizar
+              </Link>
+            </li>
+            <li>
+              <Link href="/mi-reserva" className="text-ink hover:text-orange">
+                Ver mi reserva
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

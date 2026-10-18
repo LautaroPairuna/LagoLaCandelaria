@@ -47,19 +47,28 @@ export const gruposDeParrillas = [
 ] as const
 
 export const MAX_PERSONAS_PARRILLA = 18
-export const MAX_LUGARES_PLAYA = 60
+
+/// Gazebos y palapas: hasta 4 personas cada uno. De 5 a 8 personas van 2, y así.
+export const CAPACIDAD_DE_PLAYA = 4
+
+// Gazebos de la A a la Z, con la LL y la Ñ: 28. La letra la asigna el predio, el
+// cliente no la elige.
+export const LETRAS_DE_GAZEBOS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "LL", "M", "N", "Ñ", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"] as const
+
+// 54 palapas en el predio y 30 más cargadas para cuando se sumen. Por la web se ofrece
+// solo un cupo (las primeras, 10 salvo que el panel diga otra cosa): el resto se usa por
+// orden de llegada.
+export const PALAPAS_EN_EL_PREDIO = 54
+export const PALAPAS_CARGADAS = PALAPAS_EN_EL_PREDIO + 30
+export const PALAPAS_WEB_POR_DEFECTO = 10
+
+const quinchos = rango(1, 3).map((numero) => unidad("QUINCHO", numero, null))
+const gazebos = LETRAS_DE_GAZEBOS.map((letra, indice) => unidad("GAZEBO", indice + 1, CAPACIDAD_DE_PLAYA, 0, letra))
+const palapas = rango(1, PALAPAS_CARGADAS).map((numero) => unidad("PALAPA", numero, CAPACIDAD_DE_PLAYA))
 
 const parrillas = gruposDeParrillas
   .flatMap((grupo) => grupo.numeros.map((numero) => unidad("PARRILLA", numero, grupo.capacidad, grupo.mesas)))
   .sort((a, b) => a.numero - b.numero)
-
-const quinchos = rango(1, 3).map((numero) => unidad("QUINCHO", numero, null))
-
-// La playa tiene 60 lugares entre gazebos y palapas. El reparto exacto está pendiente:
-// por ahora 6 gazebos (los que figuran en el sitio) y el resto palapas.
-const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const gazebos = rango(1, 6).map((numero) => unidad("GAZEBO", numero, 8, 0, letras[numero - 1]))
-const palapas = rango(1, MAX_LUGARES_PLAYA - gazebos.length).map((numero) => unidad("PALAPA", numero, 6))
 
 const bungalows = rango(1, 4).map((numero) => unidad("BUNGALOW", numero, 4))
 
@@ -103,8 +112,11 @@ export function unidadesDelTipo(...tipos: TipoUnidad[]) {
 }
 
 // Personas que pueden estar en el predio en un mismo día. Hasta que el predio confirme
-// el número real, es lo que entra en parrillas, playa y bungalows.
-export const AFORO_DEL_PREDIO = unidadesDelTipo("PARRILLA", "GAZEBO", "PALAPA", "BUNGALOW").reduce(
+// el número real, es lo que entra en parrillas, playa y bungalows (solo las palapas que
+// ya existen).
+export const AFORO_DEL_PREDIO = unidadesDelTipo("PARRILLA", "GAZEBO", "PALAPA", "BUNGALOW")
+  .filter((unidad) => unidad.tipo !== "PALAPA" || unidad.numero <= PALAPAS_EN_EL_PREDIO)
+  .reduce(
   (suma, unidad) => suma + (unidad.capacidad ?? 0),
   0,
 )

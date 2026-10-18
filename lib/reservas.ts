@@ -52,10 +52,10 @@ export async function ocupadosEntre(desde: string, hasta: string, unidades?: str
 }
 
 /// Por cada unidad, los días que tiene tomados ("2026-10-12") y, en las mesas, las horas
-/// ("2026-10-12@13").
-export async function ocupacionPorUnidad(desde: string, hasta: string) {
+/// ("2026-10-12@13"). `sinReserva` deja afuera lo que ocupa una reserva que se modifica.
+export async function ocupacionPorUnidad(desde: string, hasta: string, sinReserva?: number) {
   const filas = await db().ocupacion.findMany({
-    where: { fecha: { gte: aFechaDb(desde), lte: aFechaDb(hasta) } },
+    where: { fecha: { gte: aFechaDb(desde), lte: aFechaDb(hasta) }, ...(sinReserva ? { reservaId: { not: sinReserva } } : {}) },
     select: { unidadId: true, fecha: true, hora: true },
   })
   const mapa = new Map<string, Set<string>>()
@@ -112,12 +112,59 @@ export type NuevaReserva = {
   horasPorUnidad?: Record<string, number[]>
   /// Días que ocupa cada unidad. Sin mapa, todas las fechas de la reserva.
   diasPorUnidad?: Record<string, string[]>
+  /// Id de una reserva que se modifica: se reemplazan sus datos y sus lugares, y se
+  /// conservan el número, el código, el token, los pagos y el estado.
+  reemplaza?: number
 }
 
 export type ReservaCreada = { id: number; token: string; codigo: string; unidades: string[] }
 
-async function crearUnaVez(nueva: NuevaReserva, codigo: string, unidades: string[]) {
+function filasDeOcupacion(nueva: NuevaReserva, unidades: string[]) {
   const fechas = fechasEntre(nueva.desde, nueva.hasta)
+  return unidades.flatMap((unidadId) => {
+    const dias = nueva.diasPorUnidad?.[unidadId] ?? fechas
+    const propias = nueva.horasPorUnidad?.[unidadId]
+    const horas = propias?.length ? propias : !nueva.horasPorUnidad && nueva.horas?.length ? nueva.horas : [0]
+    return dias.flatMap((fecha) => horas.map((hora) => ({ unidadId, fecha: aFechaDb(fecha), hora })))
+  })
+}
+
+/// Cambia una reserva que ya existe: datos, cliente y lugares, en una transacción. Si
+/// otro tomó un lugar mientras tanto, el índice único frena el cambio y no se toca nada.
+async function reemplazarUnaVez(id: number, nueva: NuevaReserva, unidades: string[]) {
+  const detalle = { version: 2, cotizacion: nueva.cotizacion, ...(nueva.extra ? { extra: nueva.extra } : {}), ...nueva.detalle }
+  return db().$transaction(async (tx) => {
+    const actual = await tx.reserva.findUniqueOrThrow({ where: { id }, select: { clienteId: true } })
+    const { nombre, apellido, email, telefono } = nueva.cliente
+    await tx.cliente.update({ where: { id: actual.clienteId }, data: { nombre, apellido, email, telefono } })
+    await tx.ocupacion.deleteMany({ where: { reservaId: id } })
+    // Las reservas nuevas guardan solo al titular: si traía la lista de personas, ya no
+    // coincide con las cantidades nuevas.
+    await tx.reservaPersona.deleteMany({ where: { reservaId: id } })
+    await tx.ocupacion.createMany({ data: filasDeOcupacion(nueva, unidades).map((fila) => ({ ...fila, reservaId: id })) })
+    return tx.reserva.update({
+      where: { id },
+      data: {
+        desde: aFechaDb(nueva.desde),
+        hasta: aFechaDb(nueva.hasta),
+        ingreso: nueva.ingreso,
+        salida: nueva.salida,
+        institucion: nueva.institucion || null,
+        propuesta: nueva.propuesta || null,
+        notas: nueva.notas || null,
+        formaPago: nueva.formaPago ?? null,
+        ...nueva.grupo,
+        total: nueva.cotizacion.total,
+        detalle: detalle as Prisma.InputJsonValue,
+        confirmacion: null,
+        confirmacionEn: null,
+      },
+      select: { id: true, token: true, codigo: true },
+    })
+  })
+}
+
+async function crearUnaVez(nueva: NuevaReserva, codigo: string, unidades: string[]) {
   const detalle = {
     version: 2,
     cotizacion: nueva.cotizacion,
@@ -159,16 +206,7 @@ async function crearUnaVez(nueva: NuevaReserva, codigo: string, unidades: string
         total: nueva.cotizacion.total,
         detalle: detalle as Prisma.InputJsonValue,
         personas: { create: nueva.personas ?? [] },
-        ocupaciones: {
-          createMany: {
-            data: unidades.flatMap((unidadId) => {
-              const dias = nueva.diasPorUnidad?.[unidadId] ?? fechas
-              const propias = nueva.horasPorUnidad?.[unidadId]
-              const horas = propias?.length ? propias : !nueva.horasPorUnidad && nueva.horas?.length ? nueva.horas : [0]
-              return dias.flatMap((fecha) => horas.map((hora) => ({ unidadId, fecha: aFechaDb(fecha), hora })))
-            }),
-          },
-        },
+        ocupaciones: { createMany: { data: filasDeOcupacion(nueva, unidades) } },
       },
       select: { id: true, token: true, codigo: true },
     })
@@ -182,12 +220,13 @@ export async function crearReserva(nueva: NuevaReserva): Promise<ReservaCreada |
   for (let intento = 1; ; intento += 1) {
     let unidades: string[] = []
     if (nueva.asignar) {
-      const ocupacion = await ocupacionPorUnidad(sumarDiasIso(nueva.desde, -MARGEN_DE_DIAS), sumarDiasIso(nueva.hasta, MARGEN_DE_DIAS))
+      const ocupacion = await ocupacionPorUnidad(sumarDiasIso(nueva.desde, -MARGEN_DE_DIAS), sumarDiasIso(nueva.hasta, MARGEN_DE_DIAS), nueva.reemplaza)
       const asignadas = nueva.asignar(ocupacion)
       if (!asignadas) return { sinLugar: true }
       unidades = asignadas
     }
     try {
+      if (nueva.reemplaza) return { ...(await reemplazarUnaVez(nueva.reemplaza, nueva, unidades)), unidades }
       return { ...(await crearUnaVez(nueva, codigo, unidades)), unidades }
     } catch (error) {
       if (!duplicado(error) || intento >= INTENTOS) throw error
@@ -217,10 +256,11 @@ export async function ticketDeReserva(token: string) {
     include: {
       cliente: true,
       personas: { orderBy: [{ familia: "asc" }, { id: "asc" }] },
-      ocupaciones: { distinct: ["unidadId"], select: { unidad: { select: { tipo: true, etiqueta: true, numero: true } } } },
+      ocupaciones: { distinct: ["unidadId"], select: { unidad: { select: { id: true, tipo: true, etiqueta: true, numero: true } } } },
     },
   })
   if (!reserva) return null
+  const detalle = detalleDe(reserva.detalle) as DetalleReserva & { almuerzo?: boolean; club?: string | null; pagoAnticipado?: boolean }
   return {
     numero: reserva.id,
     token: reserva.token,
@@ -250,9 +290,14 @@ export async function ticketDeReserva(token: string) {
     lugares: reserva.ocupaciones
       .map((item) => item.unidad)
       .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.numero - b.numero)
-      .map((unidad) => ({ tipo: unidad.tipo, etiqueta: unidad.etiqueta })),
+      .map((unidad) => ({ id: unidad.id, tipo: unidad.tipo, etiqueta: unidad.etiqueta })),
     formaPago: reserva.formaPago,
-    cotizacion: detalleDe(reserva.detalle).cotizacion,
+    cotizacion: detalle.cotizacion,
+    almuerzo: Boolean(detalle.almuerzo),
+    club: detalle.club ?? null,
+    notas: reserva.notas,
+    ingresado: reserva.ingresoEn !== null,
+    confirmacion: reserva.confirmacion,
   }
 }
 

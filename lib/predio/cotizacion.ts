@@ -1,18 +1,13 @@
-import {
-  EDAD_MAXIMA_MENOR,
-  EDAD_MINIMA_CON_CARGO,
-  conDescuentoEfectivo,
-  pesos,
-  precioBungalowPorNoche,
-  repartirEnBungalows,
-  tarifas,
-} from "@/lib/predio/tarifas"
+import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, conDescuentoEfectivo, conRecargoTransferencia, pesos, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
 
 export type LineaCotizacion = { concepto: string; detalle: string; importe: number }
 
+/// `total` es el precio de lista, el de pagar por transferencia; `totalEfectivo`, el de
+/// pagar en efectivo. En las lineas va el importe de transferencia.
 export type Cotizacion = {
   total: number
   totalEfectivo?: number
+  dia?: TipoDeDia
   aConfirmar?: boolean
   /// Reserva de mesa en el restaurante: no se cobra la reserva, se paga lo que consumen.
   consumo?: boolean
@@ -25,38 +20,53 @@ function veces(cantidad: number, uno: string, varios: string) {
   return `${cantidad} ${cantidad === 1 ? uno : varios}`
 }
 
-function cerrar(lineas: LineaCotizacion[]): Cotizacion {
-  const total = lineas.reduce((suma, linea) => suma + linea.importe, 0)
-  return { total, totalEfectivo: conDescuentoEfectivo(total), lineas }
-}
+export const nombreDelDia: Record<TipoDeDia, string> = { finde: "Fin de semana o feriado", semana: "Día de semana" }
 
-export function cotizarDia({ adultos, menores, sinCargo }: Grupo): Cotizacion {
+/// La entrada del día: en efectivo, la tarifa; por transferencia, con el recargo.
+export function cotizarDia({ adultos, menores, sinCargo }: Grupo, dia: TipoDeDia = "finde"): Cotizacion {
+  const precio = tarifas.entrada[dia]
   const lineas: LineaCotizacion[] = []
   if (adultos > 0) {
-    lineas.push({ concepto: "Adultos", detalle: `${adultos} × más de ${EDAD_MAXIMA_MENOR} años`, importe: adultos * tarifas.adulto })
+    lineas.push({ concepto: "Adultos", detalle: `${adultos} × más de ${EDAD_MAXIMA_MENOR} años`, importe: adultos * conRecargoTransferencia(precio.adulto) })
   }
   if (menores > 0) {
     lineas.push({
       concepto: "Menores",
       detalle: `${menores} × de ${EDAD_MINIMA_CON_CARGO} a ${EDAD_MAXIMA_MENOR} años`,
-      importe: menores * tarifas.menor,
+      importe: menores * conRecargoTransferencia(precio.menor),
     })
   }
   if (sinCargo > 0) {
     lineas.push({ concepto: "Sin cargo", detalle: `${veces(sinCargo, "menor", "menores")} de ${EDAD_MINIMA_CON_CARGO} años`, importe: 0 })
   }
-  return cerrar(lineas)
+  const total = lineas.reduce((suma, linea) => suma + linea.importe, 0)
+  return { total, totalEfectivo: adultos * precio.adulto + menores * precio.menor, dia, lineas }
 }
 
-export function cotizarBungalows(personas: number, noches: number, bungalows: number): Cotizacion {
-  const reparto = repartirEnBungalows(personas, bungalows)
-  return cerrar(
-    reparto.map((ocupantes, indice) => ({
+/// Nado en aguas abiertas: precio único por nadador, solo el nado.
+export function cotizarNado(nadadores: number, dia: TipoDeDia): Cotizacion {
+  const total = nadadores * tarifas.nado[dia]
+  return {
+    total,
+    totalEfectivo: total,
+    dia,
+    lineas: [{ concepto: "Nadadores", detalle: `${veces(nadadores, "nadador", "nadadores")} · solo el nado en aguas abiertas`, importe: total }],
+  }
+}
+
+/// Bungalows: precio único por estadía de 2 días y 1 noche, con la entrada incluida. Se
+/// paga por adelantado por transferencia, sin recargo aparte.
+export function cotizarBungalows(bungalows: number): Cotizacion {
+  const total = bungalows * tarifas.bungalow
+  return {
+    total,
+    totalEfectivo: total,
+    lineas: Array.from({ length: bungalows }, (_, indice) => ({
       concepto: bungalows === 1 ? "Bungalow" : `Bungalow ${indice + 1}`,
-      detalle: `${veces(ocupantes, "persona", "personas")} × ${veces(noches, "noche", "noches")} · incluye la entrada`,
-      importe: precioBungalowPorNoche(ocupantes) * noches,
+      detalle: "2 días y 1 noche · incluye la entrada",
+      importe: tarifas.bungalow,
     })),
-  )
+  }
 }
 
 export const cotizacionAConfirmar: Cotizacion = {
@@ -90,5 +100,19 @@ export function textoDelTotal(cotizacion: Cotizacion) {
 
 export function textoDelEfectivo(cotizacion: Cotizacion) {
   if (cotizacion.aConfirmar || !cotizacion.totalEfectivo || cotizacion.totalEfectivo === cotizacion.total) return null
-  return `Pagando en efectivo: ${pesos(cotizacion.totalEfectivo)} (${tarifas.descuentoEfectivo * 100} % menos).`
+  return `En efectivo: ${pesos(cotizacion.totalEfectivo)}. Por transferencia: ${pesos(cotizacion.total)}.`
 }
+
+/// Lo que se paga según la forma elegida: en efectivo, sin el recargo de transferencia.
+export function totalSegunForma(cotizacion: Cotizacion, forma: string | null | undefined) {
+  return forma === "EFECTIVO" && cotizacion.totalEfectivo !== undefined ? cotizacion.totalEfectivo : cotizacion.total
+}
+
+/// Las líneas con el importe de la forma elegida (en las de entrada, sin el recargo).
+export function lineasSegunForma(cotizacion: Cotizacion, forma: string | null | undefined) {
+  const conRecargo = cotizacion.totalEfectivo !== undefined && cotizacion.totalEfectivo !== cotizacion.total
+  if (forma !== "EFECTIVO" || !conRecargo) return cotizacion.lineas
+  return cotizacion.lineas.map((linea) => ({ ...linea, importe: conDescuentoEfectivo(linea.importe) }))
+}
+
+export const nombreDeFormaWeb: Record<string, string> = { EFECTIVO: "Efectivo", TRANSFERENCIA: "Transferencia" }

@@ -1,23 +1,43 @@
 import { lugaresDePlayaPara } from "@/lib/predio/asignacion"
 import { bungalowsPara } from "@/lib/predio/bungalows"
 import type { Grupo } from "@/lib/predio/cotizacion"
-import { MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
+import { gruposDeParrillas, MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { bandaDeEdad } from "@/lib/predio/tarifas"
 
 export type TipoDeLugar = "parrilla" | "gazebo" | "palapa" | "playa" | "bungalow" | "restaurante" | "bar"
 
 export type Regla =
-  | { modo: "capacidad"; personas: number; tipo: "PARRILLA" | "MESA_RESTAURANTE" | "MESA_BAR" }
+  | { modo: "parrilla"; personas: number }
+  | { modo: "capacidad"; personas: number; tipo: "MESA_RESTAURANTE" | "MESA_BAR" }
   | { modo: "quincho" }
   | { modo: "cantidad"; cantidad: number; tipos: UnidadPredio["tipo"][] }
 
-/// Lo que tiene que elegir el grupo según la especificación: una o más parrillas que
-/// sumen la capacidad (más de 18 personas, un quincho), 1 a 3 lugares de playa según el
-/// tamaño del grupo, un bungalow cada 4 personas, y en el restaurante una o más mesas
-/// que sumen la capacidad.
+/// Los menores de 5 años no ocupan lugar: 3 adultos, 3 niños y un bebé van a una parrilla
+/// de 6. Con esto se cuentan las personas para elegir parrilla, gazebo o palapa.
+export function personasQueOcupan(grupo: Grupo) {
+  return grupo.adultos + grupo.menores
+}
+
+const tamanosDeParrilla = [...new Set(gruposDeParrillas.map((grupo) => grupo.capacidad))].sort((a, b) => a - b)
+
+/// Las parrillas que se le ofrecen a un grupo: las del tamaño justo (hasta 6, hasta 12 o
+/// hasta 18 personas) y, solo cuando ese tamaño está completo, las del siguiente. Nunca
+/// una más chica: un grupo de 8 no puede tomar una parrilla de 6.
+export function parrillasOfrecidas(personas: number, libres: UnidadPredio[]) {
+  for (const tamano of tamanosDeParrilla) {
+    if (tamano < personas) continue
+    const delTamano = libres.filter((unidad) => unidad.tipo === "PARRILLA" && unidad.capacidad === tamano)
+    if (delTamano.length) return delTamano
+  }
+  return []
+}
+
+/// Lo que tiene que elegir el grupo: una parrilla del tamaño que le toca (más de 18
+/// personas, un quincho que asigna el predio), un gazebo o una palapa cada 4 personas,
+/// un bungalow cada 4 personas, y en el restaurante una o más mesas que sumen.
 export function reglaDe(tipo: TipoDeLugar, personas: number): Regla {
-  if (tipo === "parrilla") return personas > MAX_PERSONAS_PARRILLA ? { modo: "quincho" } : { modo: "capacidad", personas, tipo: "PARRILLA" }
+  if (tipo === "parrilla") return personas > MAX_PERSONAS_PARRILLA ? { modo: "quincho" } : { modo: "parrilla", personas }
   if (tipo === "restaurante") return { modo: "capacidad", personas, tipo: "MESA_RESTAURANTE" }
   if (tipo === "bar") return { modo: "capacidad", personas, tipo: "MESA_BAR" }
   if (tipo === "gazebo") return { modo: "cantidad", cantidad: lugaresDePlayaPara(personas), tipos: ["GAZEBO"] }
@@ -45,6 +65,15 @@ export function revisarEleccion(tipo: TipoDeLugar, personas: number, elegidas: U
   if (regla.modo === "quincho") {
     if (elegidas.length === 1 && elegidas[0].tipo === "QUINCHO") return { ok: true }
     return { ok: false, faltan: elegidas.length === 0, mensaje: `Para más de ${MAX_PERSONAS_PARRILLA} personas va un quincho: elegí uno.` }
+  }
+
+  if (regla.modo === "parrilla") {
+    if (elegidas.length === 0) return { ok: false, faltan: true, mensaje: "Elegí una parrilla." }
+    if (elegidas.length > 1 || elegidas[0].tipo !== "PARRILLA") return { ok: false, faltan: false, mensaje: "Elegí una sola parrilla." }
+    if ((elegidas[0].capacidad ?? 0) < personas) {
+      return { ok: false, faltan: false, mensaje: `La ${nombre(elegidas[0])} es para ${elegidas[0].capacidad} personas y son ${personas}: elegí otra.` }
+    }
+    return { ok: true }
   }
 
   if (regla.modo === "capacidad") {
@@ -83,6 +112,7 @@ export function revisarEleccion(tipo: TipoDeLugar, personas: number, elegidas: U
 export function hayLugarPara(tipo: TipoDeLugar, personas: number, libres: UnidadPredio[]) {
   const regla = reglaDe(tipo, personas)
   if (regla.modo === "quincho") return libres.some((unidad) => unidad.tipo === "QUINCHO")
+  if (regla.modo === "parrilla") return parrillasOfrecidas(personas, libres).length > 0
   if (regla.modo === "capacidad") {
     return libres.filter((unidad) => unidad.tipo === regla.tipo).reduce((suma, unidad) => suma + (unidad.capacidad ?? 0), 0) >= personas
   }
@@ -98,6 +128,10 @@ export function sugerir(tipo: TipoDeLugar, personas: number, libres: UnidadPredi
   if (regla.modo === "quincho") {
     const quincho = ordenadas.find((unidad) => unidad.tipo === "QUINCHO")
     return quincho ? [quincho] : null
+  }
+  if (regla.modo === "parrilla") {
+    const [primera] = parrillasOfrecidas(personas, ordenadas)
+    return primera ? [primera] : null
   }
   if (regla.modo === "capacidad") {
     const parrillas = ordenadas.filter((unidad) => unidad.tipo === regla.tipo)

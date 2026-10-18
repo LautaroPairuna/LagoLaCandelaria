@@ -5,6 +5,7 @@ import Link from "next/link"
 import { AccionesLlegada } from "@/components/panel/acciones-llegada"
 import { LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { NuevaReserva } from "@/components/panel/nueva-reserva"
+import { feriadosDelAnio } from "@/lib/disponibilidad"
 import { totalesPorForma } from "@/lib/panel/cobros"
 import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel } from "@/lib/panel/formato"
@@ -100,7 +101,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
             />
           </form>
 
-          {momento === "hoy" ? <NuevaReserva hoy={hoy} enPuerta puedeCobrar /> : null}
+          {momento === "hoy" ? <NuevaReserva hoy={hoy} enPuerta puedeCobrar feriados={await feriadosDelAnio(hoy)} /> : null}
 
           <LeyendaDeEstados />
 

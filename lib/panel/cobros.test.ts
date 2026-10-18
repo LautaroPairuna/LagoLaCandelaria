@@ -10,9 +10,9 @@ describe("cobro en puerta", () => {
     expect(saldoDe(130_000, [{ importe: 117_000, descuento: 13_000 }])).toBe(0)
   })
 
-  it("el saldo completo en efectivo tiene 10 % de descuento", () => {
-    expect(cobroPropuesto(130_000, [], "EFECTIVO")).toEqual({ importe: 117_000, descuento: 13_000 })
-    expect(cobroPropuesto(130_000, [], "DEBITO")).toEqual({ importe: 130_000, descuento: 0 })
+  it("el saldo completo en efectivo va sin el recargo del 10 % de transferencia", () => {
+    expect(cobroPropuesto(143_000, [], "EFECTIVO")).toEqual({ importe: 130_000, descuento: 13_000 })
+    expect(cobroPropuesto(143_000, [], "DEBITO")).toEqual({ importe: 143_000, descuento: 0 })
   })
 
   it("suma la caja del día por forma de pago", () => {

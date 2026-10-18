@@ -1,17 +1,26 @@
 import { describe, expect, it } from "vitest"
 
-import { estadoDelDia, mapaDeEspeciales } from "@/lib/predio/calendario"
+import { estadoDelDia, mapaDeEspeciales, tipoDeDia } from "@/lib/predio/calendario"
 import { feriados2026 } from "@/lib/predio/feriados"
 
 const especiales = mapaDeEspeciales(feriados2026)
 const abierto = (fecha: string) => estadoDelDia(fecha, especiales).abierto
 
 describe("calendario de apertura", () => {
-  it("en enero y febrero abre de miércoles a domingo", () => {
-    expect(abierto("2026-01-05")).toBe(false)
-    expect(abierto("2026-01-06")).toBe(false)
-    expect(abierto("2026-01-07")).toBe(true)
-    expect(abierto("2026-01-11")).toBe(true)
+  it("del 6 de enero al 19 de febrero abre de miércoles a domingo", () => {
+    expect(abierto("2027-01-05")).toBe(false)
+    expect(abierto("2027-01-06")).toBe(true)
+    expect(abierto("2027-01-07")).toBe(true)
+    expect(abierto("2027-01-11")).toBe(false)
+    expect(abierto("2027-02-19")).toBe(true)
+    expect(abierto("2027-02-24")).toBe(false)
+    expect(abierto("2026-12-30")).toBe(false)
+  })
+
+  it("los sábados, domingos y feriados cobran tarifa de fin de semana", () => {
+    expect(tipoDeDia("2027-01-09", especiales)).toBe("finde")
+    expect(tipoDeDia("2027-01-07", especiales)).toBe("semana")
+    expect(tipoDeDia("2026-10-12", especiales)).toBe("finde")
   })
 
   it("los feriados de verano abren aunque caigan lunes o martes", () => {

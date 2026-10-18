@@ -4,18 +4,17 @@ import { ArrowLeft, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useState, useTransition, type ReactNode } from "react"
 
-import { reservarBungalow, reservarDia } from "@/app/(sitio)/reserva/acciones"
+import { reservarDia } from "@/app/(sitio)/reserva/acciones"
 import { Campo } from "@/components/reserva/campo"
-import { CalendarioDisponible, type DatosDelMes } from "@/components/reserva-nueva/calendario-disponible"
+import { CalendarioDisponible } from "@/components/reserva-nueva/calendario-disponible"
 import { PasoLugar } from "@/components/reserva-nueva/paso-lugar"
 import { cantidadDePersonas, familiaVacia, familiasParaEnviar, PasoPersonas, type FamiliaForm } from "@/components/reserva-nueva/paso-personas"
 import { Button } from "@/components/ui/button"
 import { avisarError, avisarRevisar, irAlPrimerCampo, llamar } from "@/lib/avisos"
 import { camposDe } from "@/lib/errores-de-campos"
-import { asignarBungalows, bungalowsPara } from "@/lib/predio/bungalows"
-import { cotizacionDeConsumo, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
+import { cotizacionDeConsumo, cotizarDia } from "@/lib/predio/cotizacion"
 import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
-import { fechaLarga, fechasEntre, hoyEnElPredio } from "@/lib/predio/fechas"
+import { fechaLarga } from "@/lib/predio/fechas"
 import { HORARIO_RESTAURANTE, textoDeHora, type Franja } from "@/lib/predio/horario"
 import { inventario, MAX_PERSONAS_RESTAURANTE } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
@@ -23,20 +22,7 @@ import { pesos } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto, familias as esquemaDeFamilias } from "@/lib/reserva-familia"
 import { cn } from "cn"
 
-const MAX_PERSONAS_BUNGALOW = 16
 const pasos = ["Personas", "Fecha", "Lugar", "Confirmar"] as const
-
-function ocupacionDeBungalows(meses: Record<string, DatosDelMes>) {
-  const mapa = new Map<string, Set<string>>()
-  for (const datos of Object.values(meses)) {
-    for (const [id, fechas] of Object.entries(datos.bungalows ?? {})) {
-      const conjunto = mapa.get(id) ?? new Set<string>()
-      for (const fecha of fechas) conjunto.add(fecha)
-      mapa.set(id, conjunto)
-    }
-  }
-  return mapa
-}
 
 function pasoDelCampo(campo: string) {
   if (campo.startsWith("familias")) return 0
@@ -44,9 +30,12 @@ function pasoDelCampo(campo: string) {
   return 3
 }
 
-export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?: "parrilla" | "playa" | "restaurante" }) {
+/// La reserva de mesa del restaurante (y, por enlaces viejos, de parrilla o playa con la
+/// lista de personas). El finde en familia, los bungalows y el nado van por FlujoVisita.
+export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restaurante" }) {
   const router = useRouter()
-  const tipo: TipoDeLugar = modo === "bungalow" ? "bungalow" : (lugar ?? "parrilla")
+  const modo = "dia" as const
+  const tipo: TipoDeLugar = lugar ?? "parrilla"
   const [paso, setPaso] = useState(0)
   const [familias, setFamilias] = useState<FamiliaForm[]>(() => [familiaVacia()])
   const [fechas, setFechas] = useState({ desde: "", hasta: "" })
@@ -61,9 +50,8 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
   const personas = cantidadDePersonas(familias)
   const edades = familias.flatMap((familia) => [...familia.adultos, ...familia.ninos]).map((persona) => Number(persona.edad)).filter(edadValida)
   const grupo = grupoPorEdades(edades)
-  const noches = fechas.desde && fechas.hasta ? fechasEntre(fechas.desde, fechas.hasta).length - 1 : 0
-  const cotizacion = restaurante ? cotizacionDeConsumo : modo === "dia" ? cotizarDia(grupo) : noches > 0 ? cotizarBungalows(personas, noches, bungalowsPara(personas)) : null
-  const fechaLista = modo === "dia" ? Boolean(fechas.desde) : noches > 0
+  const cotizacion = restaurante ? cotizacionDeConsumo : cotizarDia(grupo)
+  const fechaLista = Boolean(fechas.desde)
   const elegidas = unidades.map((id) => inventario.find((unidad) => unidad.id === id)).filter((unidad) => unidad !== undefined)
   const cambiarUnidades = useCallback((ids: string[]) => setUnidades(ids), [])
 
@@ -98,13 +86,9 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
         avisarRevisar(`En el restaurante entran hasta ${MAX_PERSONAS_RESTAURANTE} personas: para un grupo más grande escribinos por WhatsApp.`)
         return
       }
-      if (modo === "bungalow" && personas > MAX_PERSONAS_BUNGALOW) {
-        avisarRevisar(`Para más de ${MAX_PERSONAS_BUNGALOW} personas armamos la estadía a medida: escribinos por WhatsApp.`)
-        return
-      }
     }
     if (paso === 1 && !fechaLista) {
-      avisarRevisar(modo === "dia" ? "Elegí el día en el calendario." : "Elegí el día de llegada y el de salida.")
+      avisarRevisar("Elegí el día en el calendario.")
       return
     }
     if (paso === 2) {
@@ -128,11 +112,7 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
     }
     iniciar(async () => {
       const comun = { familias: familiasParaEnviar(familias), contacto, unidades }
-      const resultado = await llamar(() =>
-        modo === "dia"
-          ? reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", horario: restaurante ? horario : undefined, ...comun })
-          : reservarBungalow({ desde: fechas.desde, hasta: fechas.hasta, ...comun }),
-      )
+      const resultado = await llamar(() => reservarDia({ fecha: fechas.desde, lugar: lugar ?? "parrilla", horario: restaurante ? horario : undefined, ...comun }))
       if (resultado.ok) {
         router.push(`/reserva/t/${resultado.token}?nuevo=1`)
         return
@@ -225,17 +205,6 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
                     setFechas({ desde, hasta })
                     setUnidades([])
                   }}
-                  validarRango={
-                    modo === "bungalow"
-                      ? (desde, hasta, meses) => {
-                          const resultado = asignarBungalows(personas, desde, hasta, hoyEnElPredio(), ocupacionDeBungalows(meses))
-                          if ("unidades" in resultado) return null
-                          return resultado.motivo === "deja-huecos"
-                            ? "Así quedaría una noche suelta que nadie puede reservar. Probá corriendo la estadía un día antes o después."
-                            : `No hay ${bungalowsPara(personas)} ${bungalowsPara(personas) === 1 ? "bungalow libre" : "bungalows libres"} para todas esas noches.`
-                        }
-                      : undefined
-                  }
                 />
               </>
             ) : null}
@@ -295,13 +264,7 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
             {personas} · {familias.length} {familias.length === 1 ? "familia" : "familias"}
           </Resumen>
           <Resumen termino={modo === "dia" ? "Día" : "Estadía"}>
-            {modo === "dia"
-              ? fechas.desde
-                ? fechaLarga(fechas.desde)
-                : "Falta elegir"
-              : noches > 0
-                ? `${noches} ${noches === 1 ? "noche" : "noches"} desde el ${fechaLarga(fechas.desde).toLowerCase()}`
-                : "Falta elegir"}
+            {fechas.desde ? fechaLarga(fechas.desde) : "Falta elegir"}
           </Resumen>
           {restaurante ? (
             <Resumen termino="Horario">
@@ -330,11 +293,11 @@ export function FlujoFamilia({ modo, lugar }: { modo: "dia" | "bungalow"; lugar?
             </ul>
             <p className="font-display mt-3 text-4xl tracking-tight">{pesos(cotizacion.total)}</p>
             {cotizacion.totalEfectivo && cotizacion.totalEfectivo !== cotizacion.total ? (
-              <p className="text-sm font-semibold text-ink/75">Pagando en efectivo: {pesos(cotizacion.totalEfectivo)} (10 % menos).</p>
+              <p className="text-sm font-semibold text-ink/75">En efectivo: {pesos(cotizacion.totalEfectivo)}. Por transferencia, el total de arriba.</p>
             ) : null}
           </div>
         ) : (
-          <p className="border-t border-ink/10 pt-4 text-sm text-ink/60">El total aparece cuando cargues las edades{modo === "bungalow" ? " y las noches" : ""}.</p>
+          <p className="border-t border-ink/10 pt-4 text-sm text-ink/60">El total aparece cuando cargues las edades.</p>
         )}
         <p className="text-xs leading-relaxed text-ink/55">No se cobra en la web. Te queda un ticket con QR y el predio te confirma por WhatsApp.</p>
       </aside>
@@ -466,11 +429,6 @@ export function PasoConfirmar({
         </div>
         <p className="mt-1 text-sm text-ink/55">Característica y número, sin 0 ni 15.</p>
       </fieldset>
-
-      <div className="rounded-2xl bg-sand px-4 py-3 text-sm leading-relaxed">
-        <p className="font-semibold">El pago se hace en el predio</p>
-        <p className="mt-1 text-ink/75">Ahora no se cobra nada. Cuando lleguen, elegís cómo pagar en la puerta. Pagando en efectivo tenés 10 % de descuento.</p>
-      </div>
     </div>
   )
 }

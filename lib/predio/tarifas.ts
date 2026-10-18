@@ -1,8 +1,20 @@
+/// Fin de semana o feriado, o día de semana (en verano el predio abre de miércoles a viernes).
+export type TipoDeDia = "finde" | "semana"
+
+/// Los precios son los de pagar en efectivo. Por transferencia se suma el recargo: 40.000
+/// en efectivo quedan en 44.000. El "precio de lista" que se guarda en la reserva es el
+/// de transferencia; el de efectivo sale de sacarle el recargo.
 export const tarifas = {
-  adulto: 40_000,
-  menor: 25_000,
-  bungalowPorNoche: { 2: 300_000, 3: 370_000, 4: 440_000 } as Readonly<Record<number, number>>,
-  descuentoEfectivo: 0.1,
+  entrada: {
+    finde: { adulto: 40_000, menor: 25_000 },
+    semana: { adulto: 30_000, menor: 20_000 },
+  },
+  /// Nado en aguas abiertas, por nadador. Es un precio único: ya incluye el recargo.
+  nado: { finde: 25_000, semana: 20_000 },
+  /// Bungalow por estadía (2 días y 1 noche), con la entrada incluida. Se paga por
+  /// adelantado, por transferencia.
+  bungalow: 370_000,
+  recargoTransferencia: 0.1,
   acompananteSobreParticipante: 0.7,
 } as const
 
@@ -17,24 +29,19 @@ export function bandaDeEdad(edad: number, cud = false): BandaDeEdad {
   return "adulto"
 }
 
-export function entradas(adultos: number, menores: number) {
-  return adultos * tarifas.adulto + menores * tarifas.menor
+/// Lo que se paga en efectivo por las entradas.
+export function entradas(adultos: number, menores: number, dia: TipoDeDia = "finde") {
+  const precio = tarifas.entrada[dia]
+  return adultos * precio.adulto + menores * precio.menor
 }
 
-export function precioBungalowPorNoche(personas: number) {
-  const ocupacion = Math.min(Math.max(personas, 2), 4)
-  return tarifas.bungalowPorNoche[ocupacion]
+export function conRecargoTransferencia(efectivo: number) {
+  return Math.round(efectivo * (1 + tarifas.recargoTransferencia))
 }
 
-export function repartirEnBungalows(personas: number, bungalows: number) {
-  if (bungalows < 1) return []
-  const base = Math.floor(personas / bungalows)
-  const resto = personas % bungalows
-  return Array.from({ length: bungalows }, (_, indice) => base + (indice < resto ? 1 : 0))
-}
-
+/// El precio en efectivo de un total de lista (el de transferencia): 44.000 → 40.000.
 export function conDescuentoEfectivo(total: number) {
-  return Math.round(total * (1 - tarifas.descuentoEfectivo))
+  return Math.round(total / (1 + tarifas.recargoTransferencia))
 }
 
 export type LineaPresupuesto = {

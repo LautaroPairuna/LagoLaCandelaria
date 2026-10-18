@@ -9,6 +9,7 @@ const pestanas = [
   { href: "/panel/general", nombre: "Resumen y reportes" },
   { href: "/panel/general/usuarios", nombre: "Usuarios y permisos" },
   { href: "/panel/general/actividad", nombre: "Actividad del equipo" },
+  { href: "/panel/general/ajustes", nombre: "Ajustes de la web" },
 ]
 
 export function PestanasGeneral() {

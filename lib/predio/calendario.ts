@@ -1,4 +1,5 @@
 import { diaDeLaSemana } from "@/lib/predio/fechas"
+import type { TipoDeDia } from "@/lib/predio/tarifas"
 
 export type TipoDia = "FERIADO" | "NO_LABORABLE" | "CERRADO" | "ABIERTO"
 
@@ -21,11 +22,14 @@ const LUNES = 1
 const MARTES = 2
 const SABADO = 6
 
-// Temporada de verano: enero, febrero y, mientras el predio no diga otra cosa,
-// del 16 al 31 de diciembre (la especificación cubre "marzo al 15 de diciembre").
-function esVerano(fecha: string) {
-  const mes = fecha.slice(5, 7)
-  return mes === "01" || mes === "02" || (mes === "12" && fecha.slice(8, 10) >= "16")
+/// Temporada en que el predio abre también de miércoles a viernes (mes-día, inclusive).
+/// El resto del año abre sábados, domingos y feriados. Un día puntual se abre o se cierra
+/// desde el panel, con los días especiales.
+export const TEMPORADA_DE_SEMANA = { desde: "01-06", hasta: "02-19" } as const
+
+function esTemporadaDeSemana(fecha: string) {
+  const mesDia = fecha.slice(5)
+  return mesDia >= TEMPORADA_DE_SEMANA.desde && mesDia <= TEMPORADA_DE_SEMANA.hasta
 }
 
 export function estadoDelDia(fecha: string, especiales: ReadonlyMap<string, DiaEspecial>): EstadoDelDia {
@@ -39,12 +43,21 @@ export function estadoDelDia(fecha: string, especiales: ReadonlyMap<string, DiaE
   if (especial?.tipo === "FERIADO" || especial?.tipo === "NO_LABORABLE") return { abierto: true }
 
   const dia = diaDeLaSemana(fecha)
-  if (esVerano(fecha)) {
+  if (esTemporadaDeSemana(fecha)) {
     return dia === LUNES || dia === MARTES ? { abierto: false, motivo: "En verano abrimos de miércoles a domingo." } : { abierto: true }
   }
   return dia === SABADO || dia === DOMINGO
     ? { abierto: true }
-    : { abierto: false, motivo: "De marzo a mediados de diciembre abrimos sábados, domingos y feriados." }
+    : { abierto: false, motivo: "Fuera del verano abrimos sábados, domingos y feriados." }
+}
+
+/// Qué tarifa corresponde: sábados, domingos y feriados (o no laborables) van con la de
+/// fin de semana; el resto, con la de semana.
+export function tipoDeDia(fecha: string, especiales: ReadonlyMap<string, DiaEspecial>): TipoDeDia {
+  const especial = especiales.get(fecha)
+  if (especial?.tipo === "FERIADO" || especial?.tipo === "NO_LABORABLE") return "finde"
+  const dia = diaDeLaSemana(fecha)
+  return dia === SABADO || dia === DOMINGO ? "finde" : "semana"
 }
 
 export function mapaDeEspeciales(dias: DiaEspecial[]) {

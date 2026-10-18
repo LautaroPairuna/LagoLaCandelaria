@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/restaurante",
     "/grupos",
     "/reserva",
+    "/cotizar",
     ...categories.map((category) => `/categorias/${category.slug}`),
     ...stays.map((stay) => `/estadia/${stay.slug}`),
   ]

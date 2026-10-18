@@ -43,3 +43,30 @@ export async function cancelarReserva(id: number): Promise<Resultado> {
     return { ok: true }
   })
 }
+
+const respuestas = z.enum(["CONFIRMO", "CANCELO", "SIN_RESPUESTA"])
+
+/// La respuesta al mensaje del día anterior. Si avisa que no viene, la reserva se cancela
+/// y se liberan los lugares.
+export async function responderConfirmacion(id: number, respuesta: z.input<typeof respuestas>): Promise<Resultado> {
+  return accion("responderConfirmacion", async () => {
+    const sesion = await permisoParaAccion("reservas")
+    const reservaId = idDeReserva.parse(id)
+    const valor = respuestas.parse(respuesta)
+    if (valor === "CANCELO") {
+      await db().$transaction([
+        db().ocupacion.deleteMany({ where: { reservaId } }),
+        db().reserva.update({ where: { id: reservaId }, data: { estado: "CANCELADA", confirmacion: "CANCELO", confirmacionEn: new Date() } }),
+      ])
+    } else {
+      await db().reserva.update({
+        where: { id: reservaId },
+        data: valor === "CONFIRMO" ? { confirmacion: "CONFIRMO", confirmacionEn: new Date() } : { confirmacion: null, confirmacionEn: null },
+      })
+    }
+    revalidatePath("/panel", "layout")
+    const texto = { CONFIRMO: "confirmó que viene", CANCELO: "avisó que no viene (cancelada)", SIN_RESPUESTA: "volvió a sin respuesta" }[valor]
+    await anotar(sesion, { seccion: "reservas", accion: valor === "CANCELO" ? "canceló" : "confirmación", detalle: `Reserva ${reservaId}: ${texto}. ${await describirReserva(reservaId)}`, reservaId })
+    return { ok: true }
+  })
+}

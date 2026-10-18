@@ -5,30 +5,41 @@ export type Opcion = {
   nombre: string
   detalle: string
   foto: string
-  flujo: "dia" | "bungalow" | "grupo" | "whatsapp"
+  flujo: "dia" | "bungalow" | "grupo" | "whatsapp" | "nado" | "profes"
   lugar?: "parrilla" | "playa" | "restaurante"
   modulo?: Modulo
   modalidad?: string
 }
 
-export type Propuesta = { id: "familia" | "estudiantil" | "aventura"; nombre: string; detalle: string; foto: string; opciones: Opcion[] }
+export type Propuesta = { id: "familia" | "bungalows" | "estudiantil" | "aventura"; nombre: string; detalle: string; foto: string; opciones: Opcion[] }
+
+/// Los profes que coordinan el resto de las actividades de aventura (kayak, senderismo,
+/// trail running, escalada): se arregla directamente con ellos por WhatsApp.
+export const profesDeAventura = [
+  { nombre: "Profe Santi", telefono: "11 6213-7303", whatsapp: "5491162137303" },
+  { nombre: "Profe Mica", telefono: "11 5103-2295", whatsapp: "5491151032295" },
+] as const
 
 export const propuestas: Propuesta[] = [
   {
     id: "familia",
     nombre: "Finde en familia",
-    detalle: "Pasar el día con parrilla o en la playa, o quedarse en un bungalow.",
+    detalle: "Pasar el día con parrilla, gazebo o palapa, con todas las actividades incluidas.",
     foto: "/covers/playa.jpg",
     opciones: [
-      { id: "parrilla", nombre: "Parrilla", detalle: "Banco de madera con parrilla para el día. Más de 18 personas, quincho.", foto: "/covers/parrillas.jpg", flujo: "dia", lugar: "parrilla" },
-      { id: "playa", nombre: "Gazebo o palapa", detalle: "Sombra en la playa, junto al agua. Según el grupo, uno, dos o tres lugares.", foto: "/covers/playa.jpg", flujo: "dia", lugar: "playa" },
-      { id: "bungalow", nombre: "Bungalow", detalle: "Alojamiento por noche para hasta 4 personas por bungalow.", foto: "/bungalow.jpg", flujo: "bungalow" },
       { id: "restaurante", nombre: "Restaurante", detalle: "Mesa en el restaurante del predio en el horario que elijan, para 2, 4 o 6 personas o varias juntas. Se paga lo que consumen.", foto: "/covers/restaurante.jpg", flujo: "dia", lugar: "restaurante" },
     ],
   },
   {
+    id: "bungalows",
+    nombre: "Bungalows",
+    detalle: "2 días y 1 noche, para hasta 4 personas por bungalow, con la entrada incluida.",
+    foto: "/covers/bungalows.jpg",
+    opciones: [],
+  },
+  {
     id: "estudiantil",
-    nombre: "Propuesta estudiantil",
+    nombre: "Propuestas estudiantiles",
     detalle: "Campamento, dormitorios o jornada. Elegí una propuesta y después cargá los datos del grupo.",
     foto: "/covers/grupos-estudiantiles.jpg",
     opciones: [
@@ -40,12 +51,23 @@ export const propuestas: Propuesta[] = [
   {
     id: "aventura",
     nombre: "Actividad de aventura",
-    detalle: "Carreras de nado, kayak, senderismo y tirolesa para clubes y grupos.",
+    detalle: "Aguas abiertas, kayak, senderismo, trail running y escalada deportiva.",
     foto: "/covers/lago.jpg",
     opciones: [
-      { id: "nado", nombre: "Carreras de nado", detalle: "Competencias y pruebas en el agua.", foto: "/lago.jpg", flujo: "grupo", modulo: "ACTIVIDAD_AVENTURA", modalidad: "Carreras de nado" },
-      { id: "kayak", nombre: "Kayak y canotaje", detalle: "Travesías y actividades náuticas guiadas.", foto: "/covers/lago.jpg", flujo: "grupo", modulo: "ACTIVIDAD_AVENTURA", modalidad: "Kayak y canotaje" },
-      { id: "senderismo", nombre: "Senderismo y tirolesa", detalle: "Recorridos, trekking y canopy por el predio.", foto: "/covers/parque-aereo.jpg", flujo: "grupo", modulo: "ACTIVIDAD_AVENTURA", modalidad: "Senderismo y tirolesa" },
+      {
+        id: "nado",
+        nombre: "Nado en aguas abiertas",
+        detalle: "Elegí el día y el horario, y reservá para los nadadores.",
+        foto: "/activities/nado-boya.jpg",
+        flujo: "nado",
+      },
+      {
+        id: "actividades",
+        nombre: "Resto de actividades",
+        detalle: "Kayak, senderismo, trail running y escalada: coordinalas con nuestros profes.",
+        foto: "/activities/palestra-pared.jpg",
+        flujo: "profes",
+      },
     ],
   },
 ]
@@ -320,8 +342,8 @@ export function buscarPropuesta(id: string | undefined) {
 }
 
 const visitasViejas: Record<string, [string, string?]> = {
-  familia: ["familia", "parrilla"],
-  bungalows: ["familia", "bungalow"],
+  familia: ["familia"],
+  bungalows: ["bungalows"],
   restaurante: ["familia", "restaurante"],
   campamento: ["estudiantil", "campamento"],
   egresados: ["estudiantil", "egresados"],

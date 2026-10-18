@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { grupoPorEdades, hayLugarPara, revisarEleccion, sugerir } from "@/lib/predio/eleccion"
+import { grupoPorEdades, hayLugarPara, parrillasOfrecidas, personasQueOcupan, revisarEleccion, sugerir } from "@/lib/predio/eleccion"
 import { idDeUnidad, inventario, MAX_PERSONAS_RESTAURANTE, type TipoUnidad } from "@/lib/predio/inventario"
 
 const u = (tipo: TipoUnidad, numero: number) => inventario.find((item) => item.id === idDeUnidad(tipo, numero))!
@@ -14,16 +14,13 @@ describe("revisarEleccion en parrillas", () => {
     expect(revisarEleccion("parrilla", 5, [P6])).toEqual({ ok: true })
   })
 
-  it("pide sumar otra si no entran", () => {
-    expect(revisarEleccion("parrilla", 9, [P6])).toMatchObject({ ok: false, faltan: true, mensaje: expect.stringContaining("sumá otra parrilla") })
+  it("no acepta una parrilla chica para un grupo más grande", () => {
+    expect(revisarEleccion("parrilla", 9, [P6])).toMatchObject({ ok: false, mensaje: expect.stringContaining("es para 6 personas") })
   })
 
-  it("acepta dos parrillas que juntas alcanzan", () => {
-    expect(revisarEleccion("parrilla", 10, [P6, P6b])).toEqual({ ok: true })
-  })
-
-  it("no deja quedarse con una parrilla de más", () => {
-    expect(revisarEleccion("parrilla", 5, [P6, P12])).toMatchObject({ ok: false, faltan: false, mensaje: expect.stringContaining("parrilla 4") })
+  it("no junta dos parrillas: va una sola del tamaño que corresponde", () => {
+    expect(revisarEleccion("parrilla", 10, [P6, P6b])).toMatchObject({ ok: false, mensaje: "Elegí una sola parrilla." })
+    expect(revisarEleccion("parrilla", 10, [P12])).toEqual({ ok: true })
   })
 
   it("con más de 18 personas pide un quincho", () => {
@@ -46,15 +43,26 @@ describe("revisarEleccion en playa y bungalows", () => {
 })
 
 describe("hayLugarPara y sugerir", () => {
-  it("un día sirve si los libres suman lo necesario", () => {
-    expect(hayLugarPara("parrilla", 10, [P6, P6b])).toBe(true)
-    expect(hayLugarPara("parrilla", 13, [P6, P6b])).toBe(false)
-    expect(hayLugarPara("playa", 9, [u("PALAPA", 1), u("PALAPA", 2)])).toBe(false)
+  it("un día sirve si queda una parrilla del tamaño que corresponde o mayor", () => {
+    expect(hayLugarPara("parrilla", 10, [P6, P6b])).toBe(false)
+    expect(hayLugarPara("parrilla", 10, [P6, P18])).toBe(true)
+    expect(hayLugarPara("palapa", 9, [u("PALAPA", 1), u("PALAPA", 2)])).toBe(false)
   })
 
-  it("sugiere la parrilla más chica que alcanza, o las que sumen", () => {
+  it("ofrece solo el tamaño justo y el siguiente cuando ese se completa, nunca uno menor", () => {
+    expect(parrillasOfrecidas(2, [P18, P12, P6, P6b])).toEqual([P6, P6b])
+    expect(parrillasOfrecidas(2, [P18, P12])).toEqual([P12])
+    expect(parrillasOfrecidas(8, [P6, P18])).toEqual([P18])
+    expect(parrillasOfrecidas(13, [P6, P12])).toEqual([])
+  })
+
+  it("los menores de 5 no ocupan lugar", () => {
+    expect(personasQueOcupan({ adultos: 3, menores: 3, sinCargo: 1 })).toBe(6)
+  })
+
+  it("sugiere la primera parrilla del tamaño que corresponde", () => {
     expect(sugerir("parrilla", 5, [P18, P12, P6])).toEqual([P6])
-    expect(sugerir("parrilla", 10, [P6, P6b])).toEqual([P6, P6b])
+    expect(sugerir("parrilla", 10, [P6, P6b])).toBeNull()
     expect(sugerir("parrilla", 20, [P18])).toBeNull()
   })
 

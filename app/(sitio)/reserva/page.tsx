@@ -5,11 +5,11 @@ import { redirect } from "next/navigation"
 import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
 import { FlujoFamilia } from "@/components/reserva-nueva/flujo-familia"
-import { FlujoFinde, type PlatoDeCarta } from "@/components/reserva-nueva/flujo-finde"
+import { FlujoVisita, type PlatoDeCarta } from "@/components/reserva-nueva/flujo-visita"
 import { FormularioGrupo } from "@/components/reserva-nueva/formulario-grupo"
 import { ListaEstudiantil } from "@/components/reserva-nueva/lista-estudiantil"
 import { menuDelLocal } from "@/lib/panel/cuentas"
-import { buscarPropuesta, buscarPropuestaEstudiantil, destinoDeVisitaVieja, propuestas, type Opcion, type Propuesta } from "@/lib/propuestas"
+import { buscarPropuesta, buscarPropuestaEstudiantil, destinoDeVisitaVieja, profesDeAventura, propuestas, type Opcion, type Propuesta } from "@/lib/propuestas"
 import { enlaceWhatsappDelPredio } from "@/lib/site"
 import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
@@ -29,7 +29,8 @@ export default async function ReservaPage({ searchParams }: PageProps<"/reserva"
   const opcion = propuesta?.opciones.find((item) => item.id === primero(params.opcion))
   const estudiantil = propuesta?.id === "estudiantil" ? buscarPropuestaEstudiantil(primero(params.opcion)) : undefined
   const finde = propuesta?.id === "familia" && !opcion
-  const cartas = finde ? await cargarCartas() : null
+  const bungalows = propuesta?.id === "bungalows"
+  const carta = finde ? await cargarCarta() : []
   const enDetalle = Boolean(opcion || estudiantil)
 
   return (
@@ -56,14 +57,19 @@ export default async function ReservaPage({ searchParams }: PageProps<"/reserva"
 
         {!propuesta ? (
           <Tarjetas items={propuestas.map((item) => ({ ...item, href: `/reserva?propuesta=${item.id}` }))} />
-        ) : finde && cartas ? (
-          <FlujoFinde cartas={cartas} />
+        ) : finde ? (
+          <FlujoVisita tipo="finde" carta={carta} />
+        ) : bungalows ? (
+          <FlujoVisita tipo="bungalow" />
         ) : estudiantil ? (
           <FormularioGrupo tipo="CAMPAMENTO" modalidad={estudiantil.titulo} />
         ) : propuesta.id === "estudiantil" && !opcion ? (
           <ListaEstudiantil />
         ) : !opcion ? (
-          <Tarjetas items={propuesta.opciones.map((item) => ({ ...item, href: hrefDeOpcion(propuesta, item) }))} />
+          <>
+            {propuesta.id === "aventura" ? <h2 className="font-display mb-5 text-3xl tracking-tight">¿Qué actividad querés realizar?</h2> : null}
+            <Tarjetas items={propuesta.opciones.map((item) => ({ ...item, href: hrefDeOpcion(propuesta, item) }))} />
+          </>
         ) : (
           <Flujo opcion={opcion} />
         )}
@@ -72,20 +78,12 @@ export default async function ReservaPage({ searchParams }: PageProps<"/reserva"
   )
 }
 
-async function cargarCartas() {
-  const vacio = { restaurante: [] as PlatoDeCarta[], bar: [] as PlatoDeCarta[] }
+async function cargarCarta(): Promise<PlatoDeCarta[]> {
   try {
-    const [restaurante, bar] = await Promise.all([menuDelLocal("RESTAURANTE", true), menuDelLocal("BAR", true)])
-    const plano = (item: { id: number; categoria: string; nombre: string; descripcion: string | null; precio: number }): PlatoDeCarta => ({
-      id: item.id,
-      categoria: item.categoria,
-      nombre: item.nombre,
-      descripcion: item.descripcion,
-      precio: item.precio,
-    })
-    return { restaurante: restaurante.map(plano), bar: bar.map(plano) }
+    const items = await menuDelLocal("RESTAURANTE", true)
+    return items.map(({ id, categoria, nombre, descripcion, precio }) => ({ id, categoria, nombre, descripcion, precio }))
   } catch {
-    return vacio
+    return []
   }
 }
 
@@ -95,12 +93,39 @@ function hrefDeOpcion(propuesta: Propuesta, opcion: Opcion) {
 }
 
 function Flujo({ opcion }: { opcion: Opcion }) {
-  if (opcion.flujo === "dia") return <FlujoFamilia modo="dia" lugar={opcion.lugar} />
-  if (opcion.flujo === "bungalow") return <FlujoFamilia modo="bungalow" />
-  if (opcion.flujo === "grupo" && opcion.modulo && opcion.modulo !== "FINDE_FAMILIA" && opcion.modulo !== "BUNGALOW" && opcion.modulo !== "RESTAURANTE") {
+  if (opcion.flujo === "dia") return <FlujoFamilia lugar={opcion.lugar} />
+  if (opcion.flujo === "nado") return <FlujoVisita tipo="nado" />
+  if (opcion.flujo === "profes") return <Profes />
+  if (opcion.flujo === "grupo" && (opcion.modulo === "CAMPAMENTO" || opcion.modulo === "SALIDA_EDUCATIVA" || opcion.modulo === "VIAJE_EGRESADOS" || opcion.modulo === "ACTIVIDAD_AVENTURA")) {
     return <FormularioGrupo tipo={opcion.modulo} modalidad={opcion.modalidad} />
   }
   return null
+}
+
+function Profes() {
+  return (
+    <div className="max-w-2xl rounded-[1.6rem] border border-ink/10 bg-white p-6">
+      <p className="text-lg leading-relaxed">Kayak, senderismo, trail running y escalada deportiva se coordinan directamente con nuestros profes. Escribiles y arman la actividad para tu grupo.</p>
+      <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+        {profesDeAventura.map((profe) => (
+          <li key={profe.whatsapp}>
+            <a
+              href={`https://wa.me/${profe.whatsapp}?text=${encodeURIComponent("Hola, quiero coordinar una actividad en Lago La Candelaria.")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded-2xl border border-ink/10 bg-foam px-4 py-4 hover:border-[#25a95a]"
+            >
+              <MessageCircle className="size-6 text-[#25a95a]" aria-hidden />
+              <span>
+                <span className="block font-display text-2xl tracking-tight">{profe.nombre}</span>
+                <span className="text-ink/70 tabular-nums">{profe.telefono}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function Tarjetas({ items }: { items: { id: string; nombre: string; detalle: string; foto: string; href: string; flujo?: Opcion["flujo"] }[] }) {

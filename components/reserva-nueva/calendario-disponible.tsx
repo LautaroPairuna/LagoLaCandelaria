@@ -8,7 +8,7 @@ import type { Categoria, EstadoDeFecha } from "@/lib/disponibilidad"
 import { diaDeLaSemana, fechaLarga, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { cn } from "cn"
 
-export type DatosDelMes = { hoy: string; dias: Record<string, EstadoDeFecha>; bungalows?: Record<string, string[]> }
+export type DatosDelMes = { hoy: string; dias: Record<string, EstadoDeFecha> }
 
 const nombresDeDia = ["L", "M", "M", "J", "V", "S", "D"]
 const mesLargo = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric", timeZone: "UTC" })
@@ -32,16 +32,20 @@ export function CalendarioDisponible({
   onElegir,
   validarRango,
   horas,
+  sin,
 }: {
   categoria: Categoria
   personas?: number
   modo: "dia" | "rango"
   desde: string
   hasta: string
-  onElegir: (desde: string, hasta: string) => void
+  /// El tercer dato es el estado del día elegido: trae qué tarifa le corresponde.
+  onElegir: (desde: string, hasta: string, estado?: EstadoDeFecha) => void
   validarRango?: (desde: string, hasta: string, meses: Record<string, DatosDelMes>) => string | null
   /// Franja horaria ("12-14") para las mesas del restaurante.
   horas?: string
+  /// Token de la reserva que se modifica: sus lugares cuentan como libres.
+  sin?: string
 }) {
   const hoy = hoyEnElPredio()
   const primerMes = hoy.slice(0, 7)
@@ -55,7 +59,7 @@ export function CalendarioDisponible({
   useEffect(() => {
     if (datos) return
     const controlador = new AbortController()
-    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}${horas ? `&horas=${horas}` : ""}`, { signal: controlador.signal })
+    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}${horas ? `&horas=${horas}` : ""}${sin ? `&sin=${sin}` : ""}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string } & DatosDelMes) => {
         if (!json.ok) throw new Error(json.error)
@@ -68,7 +72,7 @@ export function CalendarioDisponible({
         avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "calendario", reintentar: reintentar })
       })
     return () => controlador.abort()
-  }, [categoria, personas, horas, clave, mes, datos, intento])
+  }, [categoria, personas, horas, sin, clave, mes, datos, intento])
 
   function reintentar() {
     setFallo(false)
@@ -81,7 +85,7 @@ export function CalendarioDisponible({
 
   function elegir(fecha: string) {
     if (modo === "dia" || !desde || hasta || fecha <= desde) {
-      onElegir(fecha, modo === "dia" ? fecha : "")
+      onElegir(fecha, modo === "dia" ? fecha : "", estadoDe(fecha))
       return
     }
     const rango = fechasEntre(desde, fecha)

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { avisarError, avisarExito, avisarRevisar, llamar } from "@/lib/avisos"
 import type { LugarDisponible } from "@/lib/disponibilidad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
+import { mapaDeEspeciales, tipoDeDia } from "@/lib/predio/calendario"
 import { cotizarDia } from "@/lib/predio/cotizacion"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, pesos } from "@/lib/predio/tarifas"
@@ -60,7 +61,7 @@ function Cantidad({ etiqueta, detalle, valor, minimo = 0, onChange }: { etiqueta
 /// Carga una reserva desde el panel. En Puerta es para quien llegó sin avisar: queda
 /// para hoy y, en el mismo paso, se cobra y se marca el ingreso. En Reservas, para quien
 /// reservó por teléfono, con la fecha que se elija.
-export function NuevaReserva({ hoy, enPuerta, puedeCobrar }: { hoy: string; enPuerta: boolean; puedeCobrar: boolean }) {
+export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: string; enPuerta: boolean; puedeCobrar: boolean; feriados: string[] }) {
   const [abierto, setAbierto] = useState(false)
   const [fecha, setFecha] = useState(hoy)
   const [grupo, setGrupo] = useState({ adultos: 1, menores: 0, sinCargo: 0 })
@@ -72,7 +73,7 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar }: { hoy: string; enPu
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [pendiente, iniciar] = useTransition()
 
-  const cotizacion = cotizarDia(grupo)
+  const cotizacion = cotizarDia(grupo, tipoDeDia(fecha, mapaDeEspeciales(feriados.map((dia) => ({ fecha: dia, tipo: "FERIADO" as const, motivo: "" })))))
   const precio = (forma: Forma) => cobroPropuesto(cotizacion.total, [], forma).importe
   const borde = (nombre: string) => (errores[nombre] ? "border-[#c62828] ring-2 ring-[#c62828]/20" : "border-panel-line")
 

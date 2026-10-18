@@ -8,6 +8,8 @@ import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
+import { diasEspeciales } from "@/lib/disponibilidad"
+import { tipoDeDia } from "@/lib/predio/calendario"
 import { cotizarDia } from "@/lib/predio/cotizacion"
 import { aFechaDb, esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { inventario } from "@/lib/predio/inventario"
@@ -64,7 +66,7 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
     exigir(!datos.unidadId || (unidad && (lugaresPermitidos as readonly string[]).includes(unidad.tipo)), "Ese lugar no se puede elegir acá. Elegí otro o dejalo sin lugar.")
 
     const grupo = { adultos: datos.adultos, menores: datos.menores, sinCargo: datos.sinCargo }
-    const cotizacion = cotizarDia(grupo)
+    const cotizacion = cotizarDia(grupo, tipoDeDia(datos.fecha, await diasEspeciales(datos.fecha, datos.fecha)))
     const quien = sesion.user.name.slice(0, 80)
     const creada = await crearReserva({
       modulo: "FINDE_FAMILIA",

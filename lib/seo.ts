@@ -85,6 +85,16 @@ export const seoDePaginas = {
     descripcion:
       "Findes en familia, campamentos estudiantiles, viajes de egresados y salidas educativas en el predio de Tristán Suárez. La visita es con reserva.",
   },
+  cotizar: {
+    titulo: "Cotizá tu visita",
+    descripcion:
+      "Calculá cuánto sale pasar el día en Lago La Candelaria: fin de semana o día de semana, efectivo o transferencia, adultos y menores. Sin cobro por adelantado.",
+  },
+  "mi-reserva": {
+    titulo: "Ver mi reserva",
+    descripcion:
+      "Con el código de tu reserva y tu celular, mirá los datos de tu visita a Lago La Candelaria, cambiá la fecha, el lugar o las personas, o cancelala.",
+  },
   reserva: {
     titulo: "Reservá tu visita",
     descripcion:

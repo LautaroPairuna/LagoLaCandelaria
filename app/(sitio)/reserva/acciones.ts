@@ -3,18 +3,22 @@
 import { headers } from "next/headers"
 import { z } from "zod"
 
-import { categorias, diasEspeciales } from "@/lib/disponibilidad"
+import type { Modulo } from "@/generated/prisma/enums"
+import { categorias, diasEspeciales, entradaDeBungalow, unidadesDeLaWeb } from "@/lib/disponibilidad"
 import { accion, ErrorHumano, exigir, mensajesDelSitio, type Resultado } from "@/lib/errores"
 import { limiteAlcanzado, registrarUso } from "@/lib/limite"
-import { estadoDelBungalow } from "@/lib/predio/bungalows"
-import { estadoDelDia } from "@/lib/predio/calendario"
-import { cotizacionAConfirmar, cotizacionDeConsumo, cotizarBungalows, cotizarDia } from "@/lib/predio/cotizacion"
-import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
-import { esFechaIso, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
+import { anotarDelCliente } from "@/lib/panel/actividad"
+import { lugaresDePlayaPara } from "@/lib/predio/asignacion"
+import { estadoDelDia, tipoDeDia } from "@/lib/predio/calendario"
+import { cotizacionAConfirmar, cotizacionDeConsumo, cotizarBungalows, cotizarDia, cotizarNado } from "@/lib/predio/cotizacion"
+import { grupoPorEdades, parrillasOfrecidas, personasQueOcupan, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
+import { deFechaDb, esFechaIso, fechaLarga, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { esFranja, horasDe, textoDeHora } from "@/lib/predio/horario"
-import { inventario, MAX_PERSONAS_BAR, MAX_PERSONAS_RESTAURANTE, type UnidadPredio } from "@/lib/predio/inventario"
+import { inventario, MAX_PERSONAS_PARRILLA, MAX_PERSONAS_RESTAURANTE, type UnidadPredio } from "@/lib/predio/inventario"
+import { db } from "@/lib/prisma"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { contacto, email, familias, nombre, personasDe, telefono, type FamiliaValida } from "@/lib/reserva-familia"
+import { formaDePagoWeb, franjaDeNado, grupoWeb, MAX_PERSONAS_BUNGALOWS, MAX_PERSONAS_WEB, titularWeb } from "@/lib/reserva-visita"
 import { crearReserva, libreEn, type NuevaReserva } from "@/lib/reservas"
 
 export type ResultadoReserva = Resultado<{ token: string }>
@@ -159,7 +163,7 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
         horas,
         cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
-        cotizacion: restaurante ? cotizacionDeConsumo : cotizarDia(grupo),
+        cotizacion: restaurante ? cotizacionDeConsumo : cotizarDia(grupo, await tipoDelDia(datos.fecha)),
         propuesta: propuestaDelLugar[datos.lugar],
         personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
@@ -173,160 +177,222 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
   })
 }
 
-const pedidoDeBungalow = z.object({ desde: z.string(), hasta: z.string(), ...grupoFamiliar })
+const HORARIO_BUNGALOW = { ingreso: "10:00", salida: "18:00" }
 
-export async function reservarBungalow(pedido: z.input<typeof pedidoDeBungalow>): Promise<ResultadoReserva> {
-  return reservar("reservarBungalow", async () => {
-    const datos = pedidoDeBungalow.parse(pedido)
-    exigir(
-      fechaReservable(datos.desde) && fechaReservable(datos.hasta) && datos.hasta > datos.desde,
-      "Elegí el día de llegada y el de salida en el calendario: la salida tiene que ser al menos un día después.",
-    )
-    const noches = fechasEntre(datos.desde, datos.hasta).length - 1
-    exigir(noches <= MAX_NOCHES, `Por la web se pueden reservar hasta ${MAX_NOCHES} noches. Para estadías más largas escribinos por WhatsApp.`)
-    const personas = personasDe(datos.familias)
-    exigir(personas.length <= 16, "Para más de 16 personas armamos la estadía a medida: escribinos por WhatsApp.")
-    await exigirAbierto(datos.desde, datos.hasta, "Alguno de esos días")
-    const elegidas = lugaresElegidos("bungalow", datos.unidades, personas.length)
-    const grupo = grupoPorEdades(personas.map((persona) => persona.edad))
-    let tomados: UnidadPredio[] = []
-    let dejaHuecos = false
-
-    return guardar(
-      {
-        modulo: "BUNGALOW",
-        desde: datos.desde,
-        hasta: datos.hasta,
-        ...HORARIO,
-        cliente: clienteDe(datos.familias, datos.contacto),
-        grupo,
-        cotizacion: cotizarBungalows(personas.length, noches, elegidas.length),
-        personas: personasParaGuardar(datos.familias),
-        asignar: (ocupacion) => {
-          const hoy = hoyEnElPredio()
-          const estados = elegidas.map((unidad) => ({ unidad, estado: estadoDelBungalow(ocupacion.get(unidad.id) ?? new Set(), datos.desde, datos.hasta, hoy) }))
-          tomados = estados.filter((item) => item.estado !== "libre").map((item) => item.unidad)
-          dejaHuecos = estados.every((item) => item.estado !== "ocupado")
-          return tomados.length ? null : elegidas.map((unidad) => unidad.id)
-        },
-      },
-      () =>
-        dejaHuecos
-          ? "Con esas fechas quedaría una noche suelta en ese bungalow que nadie más podría reservar. Probá con otro bungalow o corriendo la estadía un día."
-          : tomadosRecien(tomados),
-    )
-  })
+async function tipoDelDia(fecha: string) {
+  return tipoDeDia(fecha, await diasEspeciales(fecha, fecha))
 }
 
-const nombresDeUbicacion = { parrilla: "Parrilla", gazebo: "Gazebo", palapa: "Palapa", bungalow: "Bungalow" } as const
+/// Si viene el token, es una modificación: la reserva tiene que ser del mismo tipo, estar
+/// viva y no haber empezado.
+async function reservaAModificar(token: string | undefined, modulo: Modulo) {
+  if (!token) return undefined
+  const reserva = await db().reserva.findUnique({ where: { token }, select: { id: true, modulo: true, estado: true, desde: true, ingresoEn: true } })
+  exigir(reserva && reserva.modulo === modulo, "No encontramos esa reserva. Abrila de nuevo desde Ver mi reserva.")
+  exigir(reserva.estado !== "CANCELADA", "Esta reserva está cancelada: hacé una nueva.")
+  exigir(!reserva.ingresoEn && deFechaDb(reserva.desde) >= hoyEnElPredio(), "Esta reserva ya no se puede modificar por la web. Escribinos por WhatsApp.")
+  return reserva.id
+}
 
-const pedidoDeMesa = z.object({
-  unidades: z.array(z.string().max(24)).min(1, "Elegí la mesa.").max(9),
-  horario: z.object({ desde: z.number(), hasta: z.number() }),
-})
+function titularDe(titular: z.infer<typeof titularWeb>, datos: z.infer<typeof contacto>): NuevaReserva["cliente"] {
+  return { nombre: titular.nombre, apellido: titular.apellido, dni: titular.dni, email: datos.email || null, telefono: datos.telefono }
+}
+
+async function guardarVisita(nueva: NuevaReserva, sinLugar: () => string, resumen: string): Promise<ResultadoReserva> {
+  // El celular queda también en la reserva: el cliente se comparte por DNI y su celular
+  // puede cambiar en otra reserva, pero "Ver mi reserva" busca con el de esta.
+  const resultado = await guardar({ ...nueva, detalle: { ...nueva.detalle, telefono: nueva.cliente.telefono } }, sinLugar)
+  if (nueva.reemplaza) await anotarDelCliente({ accion: "modificó", detalle: `Modificó su reserva ${nueva.reemplaza} desde la web: ${resumen}`, reservaId: nueva.reemplaza })
+  return resultado
+}
+
+const comunDeVisita = { titular: titularWeb, contacto, forma: formaDePagoWeb, token: z.string().max(40).optional() }
 
 const pedidoDeFinde = z.object({
   fecha: z.string(),
-  ubicacion: z.enum(["parrilla", "gazebo", "palapa", "bungalow"]),
-  noches: z.number().int().min(1).max(MAX_NOCHES).optional(),
-  unidades: z.array(z.string().max(24)).min(1, "Elegí dónde se ubican.").max(12),
-  restaurante: pedidoDeMesa.optional(),
-  bar: pedidoDeMesa.optional(),
-  familias,
-  contacto,
+  ubicacion: z.enum(["parrilla", "gazebo", "palapa"]),
+  /// La parrilla la elige el grupo; gazebos y palapas los asigna el predio.
+  parrilla: z.string().max(24).optional(),
+  almuerzo: z.boolean().optional(),
+  grupo: grupoWeb,
+  ...comunDeVisita,
 })
+
+const nombresDeUbicacion = { parrilla: "Parrilla", gazebo: "Gazebo", palapa: "Palapa" } as const
 
 export async function reservarFinde(pedido: z.input<typeof pedidoDeFinde>): Promise<ResultadoReserva> {
   return reservar("reservarFinde", async () => {
     const datos = pedidoDeFinde.parse(pedido)
-    const bungalow = datos.ubicacion === "bungalow"
-    const noches = bungalow ? (datos.noches ?? 0) : 0
+    const reemplaza = await reservaAModificar(datos.token, "FINDE_FAMILIA")
     exigir(fechaReservable(datos.fecha), "Elegí un día de hoy en adelante, dentro del próximo año.")
-    exigir(!bungalow || noches >= 1, "Elegí cuántas noches se quedan.")
-    const hasta = bungalow ? sumarDiasIso(datos.fecha, noches) : datos.fecha
-    exigir(!bungalow || fechaReservable(hasta), "La salida queda fuera del próximo año. Elegí menos noches o una fecha más cercana.")
-    const personas = personasDe(datos.familias)
-    exigir(personas.length <= MAX_PERSONAS, `Para más de ${MAX_PERSONAS} personas escribinos por WhatsApp.`)
-    exigir(!bungalow || personas.length <= 16, "Para más de 16 personas armamos la estadía a medida: escribinos por WhatsApp.")
-    if (datos.restaurante) {
-      exigir(personas.length <= MAX_PERSONAS_RESTAURANTE, `En el restaurante entran hasta ${MAX_PERSONAS_RESTAURANTE} personas: para un grupo más grande escribinos por WhatsApp.`)
-      exigir(esFranja(datos.restaurante.horario), "Elegí a qué hora llegan y a qué hora se van del restaurante.")
+    await exigirAbierto(datos.fecha, datos.fecha, "Ese día")
+    const ocupan = personasQueOcupan(datos.grupo)
+    exigir(
+      datos.ubicacion !== "parrilla" || ocupan <= MAX_PERSONAS_PARRILLA,
+      `Para más de ${MAX_PERSONAS_PARRILLA} personas les asignamos un quincho: escribinos por WhatsApp.`,
+    )
+    const dia = await tipoDelDia(datos.fecha)
+    const playa = datos.ubicacion !== "parrilla"
+    const disponibles = await unidadesDeLaWeb(datos.ubicacion)
+    let elegida: UnidadPredio | undefined
+    if (!playa) {
+      elegida = disponibles.find((unidad) => unidad.id === datos.parrilla)
+      exigir(elegida, "Elegí la parrilla en el mapa.")
+      const revision = revisarEleccion("parrilla", ocupan, [elegida])
+      exigir(revision.ok, revision.ok ? "" : revision.mensaje)
     }
-    if (datos.bar) {
-      exigir(personas.length <= MAX_PERSONAS_BAR, `En el bar entran hasta ${MAX_PERSONAS_BAR} personas: para un grupo más grande escribinos por WhatsApp.`)
-      exigir(esFranja(datos.bar.horario), "Elegí a qué hora llegan y a qué hora se van del bar.")
-    }
-    await exigirAbierto(datos.fecha, hasta, bungalow ? "Alguno de esos días" : "Ese día")
-    const lugar = lugaresElegidos(datos.ubicacion, datos.unidades, personas.length)
-    const mesasRestaurante = datos.restaurante ? lugaresElegidos("restaurante", datos.restaurante.unidades, personas.length) : []
-    const mesasBar = datos.bar ? lugaresElegidos("bar", datos.bar.unidades, personas.length) : []
-    const grupo = grupoPorEdades(personas.map((persona) => persona.edad))
-    const horasRestaurante = datos.restaurante ? horasDe(datos.restaurante.horario) : []
-    const horasBar = datos.bar ? horasDe(datos.bar.horario) : []
-    const horasPorUnidad: Record<string, number[]> = {}
-    const diasPorUnidad: Record<string, string[]> = {}
-    for (const mesa of mesasRestaurante) {
-      horasPorUnidad[mesa.id] = horasRestaurante
-      diasPorUnidad[mesa.id] = [datos.fecha]
-    }
-    for (const mesa of mesasBar) {
-      horasPorUnidad[mesa.id] = horasBar
-      diasPorUnidad[mesa.id] = [datos.fecha]
-    }
-    const notas = [
-      mesasRestaurante.length ? `Restaurante: ${mesasRestaurante.map(nombreDe).join(", ")}` : null,
-      mesasBar.length ? `Bar: ${mesasBar.map(nombreDe).join(", ")}` : null,
-    ]
-      .filter((linea) => linea !== null)
-      .join("\n")
-    let tomados: UnidadPredio[] = []
-    let dejaHuecos = false
+    const cantidadPlaya = lugaresDePlayaPara(ocupan)
+    let motivo = ""
 
-    return guardar(
+    return guardarVisita(
       {
-        modulo: bungalow ? "BUNGALOW" : "FINDE_FAMILIA",
+        modulo: "FINDE_FAMILIA",
         desde: datos.fecha,
-        hasta,
+        hasta: datos.fecha,
         ...HORARIO,
-        cliente: clienteDe(datos.familias, datos.contacto),
-        grupo,
-        cotizacion: bungalow ? cotizarBungalows(personas.length, noches, lugar.length) : cotizarDia(grupo),
+        cliente: titularDe(datos.titular, datos.contacto),
+        grupo: datos.grupo,
+        cotizacion: cotizarDia(datos.grupo, dia),
         propuesta: nombresDeUbicacion[datos.ubicacion],
-        notas: notas || null,
-        personas: personasParaGuardar(datos.familias),
-        horasPorUnidad,
-        diasPorUnidad,
+        notas: datos.titular.notas ? `Algo importante: ${datos.titular.notas}` : null,
+        formaPago: datos.forma,
+        detalle: { almuerzo: playa ? Boolean(datos.almuerzo) : false },
+        reemplaza,
         asignar: (ocupacion) => {
-          if (bungalow) {
-            const hoy = hoyEnElPredio()
-            const estados = lugar.map((unidad) => ({ unidad, estado: estadoDelBungalow(ocupacion.get(unidad.id) ?? new Set(), datos.fecha, hasta, hoy) }))
-            tomados = estados.filter((item) => item.estado !== "libre").map((item) => item.unidad)
-            dejaHuecos = tomados.length > 0 && estados.every((item) => item.estado !== "ocupado")
-            if (tomados.length) return null
-          } else {
-            const libre = libreEn(ocupacion, datos.fecha, datos.fecha)
-            tomados = lugar.filter((unidad) => !libre(unidad.id))
-            if (tomados.length) return null
+          const libre = libreEn(ocupacion, datos.fecha, datos.fecha)
+          const libres = disponibles.filter((unidad) => libre(unidad.id))
+          if (elegida) {
+            // La parrilla tiene que seguir libre y seguir siendo del tamaño que le toca:
+            // si se liberó una del tamaño justo, no se toma una más grande.
+            if (!parrillasOfrecidas(ocupan, libres).some((unidad) => unidad.id === elegida.id)) {
+              motivo = `Justo alguien reservó la parrilla ${elegida.etiqueta} para ese día. Volvé al paso de la ubicación y elegí otra.`
+              return null
+            }
+            return [elegida.id]
           }
-          if (horasRestaurante.length) {
-            const libre = libreEn(ocupacion, datos.fecha, datos.fecha, horasRestaurante)
-            tomados = mesasRestaurante.filter((unidad) => !libre(unidad.id))
-            if (tomados.length) return null
+          const asignadas = libres.sort((a, b) => a.numero - b.numero).slice(0, cantidadPlaya)
+          if (asignadas.length < cantidadPlaya) {
+            motivo =
+              datos.ubicacion === "gazebo"
+                ? "No tenemos los gazebos necesarios para tu reserva: te recomendamos reservar una palapa."
+                : "No quedan palapas para reservar por la web ese día: probá con un gazebo, otro día o escribinos por WhatsApp."
+            return null
           }
-          if (horasBar.length) {
-            const libre = libreEn(ocupacion, datos.fecha, datos.fecha, horasBar)
-            tomados = mesasBar.filter((unidad) => !libre(unidad.id))
-            if (tomados.length) return null
-          }
-          return [...lugar, ...mesasRestaurante, ...mesasBar].map((unidad) => unidad.id)
+          return asignadas.map((unidad) => unidad.id)
         },
       },
-      () =>
-        dejaHuecos
-          ? "Con esas fechas quedaría una noche suelta en ese bungalow que nadie más podría reservar. Probá con otro bungalow o corriendo la estadía un día."
-          : tomadosRecien(tomados),
+      () => motivo,
+      `${fechaLarga(datos.fecha).toLowerCase()}, ${nombresDeUbicacion[datos.ubicacion].toLowerCase()}, ${datos.grupo.adultos + datos.grupo.menores + datos.grupo.sinCargo} personas`,
     )
   })
+}
+
+const pedidoDeBungalow = z.object({
+  fecha: z.string(),
+  bungalows: z.array(z.string().max(24)).min(1, "Elegí los bungalows.").max(4),
+  grupo: grupoWeb,
+  ...comunDeVisita,
+  forma: z.literal("TRANSFERENCIA").default("TRANSFERENCIA"),
+})
+
+export async function reservarBungalow(pedido: z.input<typeof pedidoDeBungalow>): Promise<ResultadoReserva> {
+  return reservar("reservarBungalow", async () => {
+    const datos = pedidoDeBungalow.parse(pedido)
+    const reemplaza = await reservaAModificar(datos.token, "BUNGALOW")
+    exigir(fechaReservable(datos.fecha), "Elegí un día de hoy en adelante, dentro del próximo año.")
+    exigir(entradaDeBungalow(datos.fecha), "Los bungalows se reservan entrando jueves (hasta el viernes) o sábado (hasta el domingo).")
+    const salida = sumarDiasIso(datos.fecha, 1)
+    await exigirAbierto(datos.fecha, salida, "Alguno de esos días")
+    const ocupan = personasQueOcupan(datos.grupo)
+    exigir(ocupan <= MAX_PERSONAS_BUNGALOWS, `Para más de ${MAX_PERSONAS_BUNGALOWS} personas armamos la estadía a medida: escribinos por WhatsApp.`)
+    const elegidas = lugaresElegidos("bungalow", datos.bungalows, ocupan)
+    let tomados: UnidadPredio[] = []
+
+    return guardarVisita(
+      {
+        modulo: "BUNGALOW",
+        desde: datos.fecha,
+        hasta: salida,
+        ...HORARIO_BUNGALOW,
+        cliente: titularDe(datos.titular, datos.contacto),
+        grupo: datos.grupo,
+        cotizacion: cotizarBungalows(elegidas.length),
+        propuesta: "Bungalow",
+        notas: datos.titular.notas ? `Algo importante: ${datos.titular.notas}` : null,
+        formaPago: "TRANSFERENCIA",
+        detalle: { pagoAnticipado: true },
+        reemplaza,
+        asignar: (ocupacion) => {
+          const libre = libreEn(ocupacion, datos.fecha, salida)
+          tomados = elegidas.filter((unidad) => !libre(unidad.id))
+          return tomados.length ? null : elegidas.map((unidad) => unidad.id)
+        },
+      },
+      () => tomadosRecien(tomados),
+      `estadía desde el ${fechaLarga(datos.fecha).toLowerCase()}, ${elegidas.length} ${elegidas.length === 1 ? "bungalow" : "bungalows"}`,
+    )
+  })
+}
+
+const pedidoDeNado = z.object({
+  fecha: z.string(),
+  horario: franjaDeNado,
+  nadadores: z.number().int().min(1, "Contanos cuántos nadan.").max(MAX_PERSONAS_WEB, `Para más de ${MAX_PERSONAS_WEB} nadadores escribinos por WhatsApp.`),
+  club: z.string().trim().max(80, "Es muy largo: dejalo en 80 letras o menos.").optional(),
+  ...comunDeVisita,
+})
+
+export async function reservarNado(pedido: z.input<typeof pedidoDeNado>): Promise<ResultadoReserva> {
+  return reservar("reservarNado", async () => {
+    const datos = pedidoDeNado.parse(pedido)
+    const reemplaza = await reservaAModificar(datos.token, "NADO")
+    exigir(fechaReservable(datos.fecha), "Elegí un día de hoy en adelante, dentro del próximo año.")
+    await exigirAbierto(datos.fecha, datos.fecha, "Ese día")
+    const dia = await tipoDelDia(datos.fecha)
+    const notas = [datos.club ? `Club o natatorio: ${datos.club}` : null, datos.titular.notas ? `Algo importante: ${datos.titular.notas}` : null].filter(Boolean).join("\n")
+
+    return guardarVisita(
+      {
+        modulo: "NADO",
+        desde: datos.fecha,
+        hasta: datos.fecha,
+        ingreso: textoDeHora(datos.horario.desde),
+        salida: textoDeHora(datos.horario.hasta),
+        cliente: titularDe(datos.titular, datos.contacto),
+        grupo: { adultos: datos.nadadores, menores: 0, sinCargo: 0 },
+        cotizacion: cotizarNado(datos.nadadores, dia),
+        propuesta: "Nado en aguas abiertas",
+        notas: notas || null,
+        formaPago: datos.forma,
+        detalle: { club: datos.club || null },
+        reemplaza,
+      },
+      () => mensajesDelSitio.inesperado,
+      `${fechaLarga(datos.fecha).toLowerCase()}, de ${textoDeHora(datos.horario.desde)} a ${textoDeHora(datos.horario.hasta)}, ${datos.nadadores} nadadores`,
+    )
+  })
+}
+
+/// El cliente cancela desde el ticket: se liberan los lugares y la reserva queda como
+/// cancelada (no se borra, para que quede el rastro de lo que pasó).
+export async function cancelarMiReserva(token: string): Promise<Resultado> {
+  return accion(
+    "cancelarMiReserva",
+    async () => {
+      const reserva = await db().reserva.findUnique({ where: { token: String(token).slice(0, 40) }, select: { id: true, codigo: true, estado: true, desde: true, ingresoEn: true, notas: true } })
+      exigir(reserva, "No encontramos esa reserva.")
+      if (reserva.estado === "CANCELADA") return { ok: true }
+      exigir(!reserva.ingresoEn && deFechaDb(reserva.desde) >= hoyEnElPredio(), "Esta reserva ya no se puede cancelar por la web. Escribinos por WhatsApp.")
+      const nota = `Cancelada por el cliente desde la web el ${fechaLarga(hoyEnElPredio()).toLowerCase()}.`
+      await db().$transaction([
+        db().ocupacion.deleteMany({ where: { reservaId: reserva.id } }),
+        db().reserva.update({ where: { id: reserva.id }, data: { estado: "CANCELADA", confirmacion: "CANCELO", confirmacionEn: new Date(), notas: [reserva.notas, nota].filter(Boolean).join("\n") } }),
+      ])
+      await anotarDelCliente({ accion: "canceló", detalle: `Canceló su reserva ${reserva.id} (${reserva.codigo}) desde la web`, reservaId: reserva.id })
+      return { ok: true }
+    },
+    mensajesDelSitio,
+  )
 }
 
 const dietas = z.object({ celiacos: cantidad, vegetarianos: cantidad, veganos: cantidad })

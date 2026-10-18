@@ -8,11 +8,17 @@ import { db } from "@/lib/prisma"
 /// Las reservas de mesa de un día y cómo quedan repartidas en el salón por horario.
 /// Entran las de mesa y también las del predio que sumaron una mesa del restaurante.
 export async function restauranteDelDia(fecha: string) {
-  const [llegadas, filas] = await Promise.all([
+  const [llegadas, filas, almuerzan] = await Promise.all([
     llegadasDelDia(fecha, ""),
     db().ocupacion.findMany({
       where: { fecha: aFechaDb(fecha), unidad: { tipo: "MESA_RESTAURANTE" }, reserva: { estado: { not: "CANCELADA" } } },
       select: { unidadId: true, reservaId: true, hora: true },
+    }),
+    // Las del finde en familia que avisaron que van a almorzar (gazebo o palapa).
+    db().reserva.findMany({
+      where: { desde: aFechaDb(fecha), modulo: "FINDE_FAMILIA", estado: { not: "CANCELADA" }, detalle: { path: "$.almuerzo", equals: true } },
+      orderBy: { id: "asc" },
+      select: { id: true, adultos: true, menores: true, sinCargo: true, propuesta: true, cliente: { select: { nombre: true, apellido: true } } },
     }),
   ])
   const conMesa = new Set(filas.map((fila) => fila.reservaId))
@@ -28,6 +34,12 @@ export async function restauranteDelDia(fecha: string) {
     reservas: reservas.sort((a, b) => a.horario.localeCompare(b.horario) || a.id - b.id),
     mesas: unidadesDelTipo("MESA_RESTAURANTE"),
     bloques: bloquesPorMesa(filas),
+    almuerzan: almuerzan.map((reserva) => ({
+      id: reserva.id,
+      titular: `${reserva.cliente.nombre} ${reserva.cliente.apellido}`,
+      personas: reserva.adultos + reserva.menores + reserva.sinCargo,
+      lugar: reserva.propuesta,
+    })),
   }
 }
 

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 
 import { avisarError, falloDeRed } from "@/lib/avisos"
 import type { LugarDisponible } from "@/lib/disponibilidad"
-import { revisarEleccion, sugerir, type TipoDeLugar } from "@/lib/predio/eleccion"
+import { parrillasOfrecidas, revisarEleccion, sugerir, type TipoDeLugar } from "@/lib/predio/eleccion"
 import { gruposDeMesas, gruposDeMesasBar, gruposDeParrillas, MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { cn } from "cn"
@@ -18,18 +18,23 @@ function secciones(tipo: TipoDeLugar, personas: number, lugares: LugarDisponible
     if (personas > MAX_PERSONAS_PARRILLA) {
       return [{ titulo: "Quinchos", detalle: `Para grupos de más de ${MAX_PERSONAS_PARRILLA} personas`, lugares: delTipo("QUINCHO") }]
     }
-    return gruposDeParrillas.map((grupo) => ({
-      titulo: `Parrillas para ${grupo.capacidad} personas`,
-      detalle: `${grupo.mesas} ${grupo.mesas === 1 ? "mesa" : "mesas"}`,
-      lugares: delTipo("PARRILLA").filter((lugar) => (grupo.numeros as readonly number[]).includes(lugar.numero)),
-    }))
+    // Solo el tamaño que le toca al grupo; el siguiente aparece cuando ese se completa.
+    const libres = lugares.filter((lugar) => lugar.estado === "libre") as UnidadPredio[]
+    const tamano = parrillasOfrecidas(personas, libres)[0]?.capacidad
+    return gruposDeParrillas
+      .filter((grupo) => grupo.capacidad === tamano)
+      .map((grupo) => ({
+        titulo: `Parrillas para ${grupo.capacidad} personas`,
+        detalle: `${grupo.mesas} ${grupo.mesas === 1 ? "mesa" : "mesas"}`,
+        lugares: delTipo("PARRILLA").filter((lugar) => (grupo.numeros as readonly number[]).includes(lugar.numero)),
+      }))
   }
-  if (tipo === "gazebo") return [{ titulo: "Gazebos", detalle: "Hasta 8 personas cada uno", lugares: delTipo("GAZEBO") }]
-  if (tipo === "palapa") return [{ titulo: "Palapas", detalle: "Hasta 6 personas cada una", lugares: delTipo("PALAPA") }]
+  if (tipo === "gazebo") return [{ titulo: "Gazebos", detalle: "Hasta 4 personas cada uno", lugares: delTipo("GAZEBO") }]
+  if (tipo === "palapa") return [{ titulo: "Palapas", detalle: "Hasta 4 personas cada una", lugares: delTipo("PALAPA") }]
   if (tipo === "playa") {
     return [
-      { titulo: "Gazebos", detalle: "Hasta 8 personas cada uno", lugares: delTipo("GAZEBO") },
-      { titulo: "Palapas", detalle: "Hasta 6 personas cada una", lugares: delTipo("PALAPA") },
+      { titulo: "Gazebos", detalle: "Hasta 4 personas cada uno", lugares: delTipo("GAZEBO") },
+      { titulo: "Palapas", detalle: "Hasta 4 personas cada una", lugares: delTipo("PALAPA") },
     ]
   }
   if (tipo === "bar") {
@@ -59,6 +64,7 @@ export function PasoLugar({
   elegidas,
   onChange,
   horas,
+  sin,
 }: {
   tipo: TipoDeLugar
   desde: string
@@ -67,6 +73,8 @@ export function PasoLugar({
   elegidas: string[]
   onChange: (ids: string[]) => void
   horas?: string
+  /// Token de la reserva que se modifica: sus lugares cuentan como libres.
+  sin?: string
 }) {
   const [lugares, setLugares] = useState<LugarDisponible[] | null>(null)
   const [fallo, setFallo] = useState(false)
@@ -75,7 +83,7 @@ export function PasoLugar({
   useEffect(() => {
     const controlador = new AbortController()
     const categoria = tipo === "parrilla" ? "parrilla" : tipo
-    fetch(`/api/lugares?tipo=${categoria}&desde=${desde}&hasta=${hasta}${horas ? `&horas=${horas}` : ""}`, { signal: controlador.signal })
+    fetch(`/api/lugares?tipo=${categoria}&desde=${desde}&hasta=${hasta}${horas ? `&horas=${horas}` : ""}${sin ? `&sin=${sin}` : ""}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string; lugares?: LugarDisponible[] }) => {
         if (!json.ok || !json.lugares) throw new Error(json.error)
@@ -88,7 +96,7 @@ export function PasoLugar({
         avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "lugares", reintentar: () => setIntento((actual) => actual + 1) })
       })
     return () => controlador.abort()
-  }, [tipo, desde, hasta, horas, intento])
+  }, [tipo, desde, hasta, horas, sin, intento])
 
   // Si alguno de los elegidos dejó de estar libre (otra reserva lo tomó), se suelta.
   useEffect(() => {

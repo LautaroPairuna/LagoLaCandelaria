@@ -1,9 +1,10 @@
-import { Search } from "lucide-react"
+import { MessageCircle, Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
 import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { NuevaReserva } from "@/components/panel/nueva-reserva"
+import { feriadosDelAnio } from "@/lib/disponibilidad"
 import { buscarReservas, contarPasadas, POR_PAGINA, type FiltroDeEstado, type FilaDeBusqueda } from "@/lib/panel/busqueda"
 import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel, rangoConMesPanel } from "@/lib/panel/formato"
@@ -65,8 +66,15 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
         <h1 className="font-display mt-1 text-3xl tracking-tight md:mt-2 md:text-4xl">Buscar reservas</h1>
       </header>
 
-      <div className="mt-4 flex">
-        <NuevaReserva hoy={hoy} enPuerta={false} puedeCobrar={puedeVer(sesion.user.role, "puerta") || puedeVer(sesion.user.role, "caja")} />
+      <div className="mt-4 flex flex-wrap items-start gap-3">
+        <Link
+          href="/panel/reservas/confirmaciones"
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted"
+        >
+          <MessageCircle className="size-4 text-[#25a95a]" aria-hidden />
+          Confirmar las de mañana
+        </Link>
+        <NuevaReserva hoy={hoy} feriados={await feriadosDelAnio(hoy)} enPuerta={false} puedeCobrar={puedeVer(sesion.user.role, "puerta") || puedeVer(sesion.user.role, "caja")} />
       </div>
 
       <form action="/panel/reservas" role="search" className="mt-5 rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5">

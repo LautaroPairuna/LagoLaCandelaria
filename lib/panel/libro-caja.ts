@@ -99,9 +99,9 @@ export function totalesPorCajon(renglones: Pick<Renglon, "cajon" | "sentido" | "
 
 type PagoParaDeuda = { importe: number; descuento: number; forma: FormaPago }
 
-/// Lo que falta cobrar de una reserva. Regla del descuento: si todo se paga en efectivo
-/// se cobra el precio con descuento; si alguna parte entró por banco, se pierde el
-/// descuento y se cobra el precio de lista.
+/// Lo que falta cobrar de una reserva. El precio de lista es el de transferencia (con el
+/// recargo del 10 %): si todo se paga en efectivo se cobra sin el recargo; si alguna parte
+/// entró por banco, se cobra el precio de lista. La diferencia se guarda como descuento.
 export function deudaDe(total: number, pagos: PagoParaDeuda[]) {
   const saldo = saldoDe(total, pagos)
   const conBanco = pagos.some((pago) => cajonDe(pago.forma) === "BANCO")

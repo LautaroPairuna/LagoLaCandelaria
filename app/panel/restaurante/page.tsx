@@ -35,7 +35,7 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
   const enlace = (dia: string) => (dia === hoy ? "/panel/restaurante" : `/panel/restaurante?fecha=${dia}`)
   const horaActual = momento === "hoy" ? horaEnElPredio() : null
 
-  const { reservas, mesas, bloques } = await restauranteDelDia(fecha)
+  const { reservas, mesas, bloques, almuerzan } = await restauranteDelDia(fecha)
   const porId = new Map(reservas.map((reserva) => [reserva.id, reserva]))
   const esperadas = reservas.reduce((suma, reserva) => suma + reserva.personas, 0)
   const llegaron = reservas.reduce((suma, reserva) => suma + reserva.adentro + reserva.salieron, 0)
@@ -92,6 +92,28 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
         </div>
         <Salon mesas={mesas} bloques={bloques} porId={porId} horaActual={horaActual} />
       </section>
+
+      {almuerzan.length ? (
+        <section aria-label="Avisaron que almuerzan" className="mt-6 rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5">
+          <h2 className="font-display text-2xl tracking-tight">Avisaron que almuerzan</h2>
+          <p className="text-sm text-panel-muted">
+            Reservas del predio (gazebo o palapa) que dijeron que van a almorzar en el restaurante: {almuerzan.reduce((suma, item) => suma + item.personas, 0)} personas.
+          </p>
+          <ul className="mt-3 divide-y divide-panel-line">
+            {almuerzan.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
+                <Link href={`/panel/reservas/${item.id}`} className="font-semibold hover:underline">
+                  {item.titular}
+                </Link>
+                <span className="text-sm text-panel-muted">
+                  {item.personas} {item.personas === 1 ? "persona" : "personas"}
+                  {item.lugar ? ` · ${item.lugar}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="mt-6">
         <LeyendaDeEstados estados={["a-confirmar", "confirmada", "parcial", "ingresada", "finalizada", "no-vino"]} />

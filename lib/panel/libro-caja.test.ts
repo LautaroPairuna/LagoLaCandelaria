@@ -30,16 +30,16 @@ describe("cajones", () => {
 })
 
 describe("regla del descuento", () => {
-  it("sin pagos: en efectivo con 10 % menos, por banco a precio de lista", () => {
-    expect(deudaDe(100_000, [])).toEqual({ saldo: 100_000, efectivo: 90_000, pierdeDescuento: false })
-    expect(cobroPropuesto(100_000, [], "EFECTIVO")).toEqual({ importe: 90_000, descuento: 10_000 })
-    expect(cobroPropuesto(100_000, [], "TRANSFERENCIA")).toEqual({ importe: 100_000, descuento: 0 })
+  it("sin pagos: en efectivo sin el recargo de transferencia, por banco a precio de lista", () => {
+    expect(deudaDe(110_000, [])).toEqual({ saldo: 110_000, efectivo: 100_000, pierdeDescuento: false })
+    expect(cobroPropuesto(110_000, [], "EFECTIVO")).toEqual({ importe: 100_000, descuento: 10_000 })
+    expect(cobroPropuesto(110_000, [], "TRANSFERENCIA")).toEqual({ importe: 110_000, descuento: 0 })
   })
 
   it("una seña en efectivo mantiene el descuento sobre el total", () => {
     const pagos = [{ importe: 40_000, descuento: 0, forma: "EFECTIVO" as const }]
-    expect(deudaDe(100_000, pagos)).toEqual({ saldo: 60_000, efectivo: 50_000, pierdeDescuento: false })
-    expect(cobroPropuesto(100_000, pagos, "EFECTIVO")).toEqual({ importe: 50_000, descuento: 10_000 })
+    expect(deudaDe(110_000, pagos)).toEqual({ saldo: 70_000, efectivo: 60_000, pierdeDescuento: false })
+    expect(cobroPropuesto(110_000, pagos, "EFECTIVO")).toEqual({ importe: 60_000, descuento: 10_000 })
   })
 
   it("si una parte entró por banco, se pierde el descuento", () => {
