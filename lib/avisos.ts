@@ -47,6 +47,29 @@ export async function conAviso<R extends { ok: true } | Fallo>(
   return resultado
 }
 
+/// En el inicio, el recuadro vive más abajo: el salto tiene que dejarlo bajo el encabezado.
+/// En /reserva no está ese ancla y se vuelve arriba, como antes.
+export function subirAlRecuadro() {
+  const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  const behavior: ScrollBehavior = reducido ? "auto" : "smooth"
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const ancla = document.getElementById("recuadro-reservas")
+      if (!ancla) {
+        window.scrollTo({ top: 0, behavior })
+        return
+      }
+      const altoHeader = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-header")) || 80
+      const margen = 18
+      const disponible = window.innerHeight - altoHeader - margen * 2
+      const rect = ancla.getBoundingClientRect()
+      const espacioSuperior = rect.height < disponible ? (disponible - rect.height) / 2 : margen
+      const top = window.scrollY + rect.top - altoHeader - espacioSuperior
+      window.scrollTo({ top: Math.max(0, top), behavior })
+    })
+  })
+}
+
 /// Con errores por campo, el toast resume y el foco salta al primero marcado.
 export function irAlPrimerCampo(campos: Record<string, string> | undefined) {
   const primero = Object.keys(campos ?? {})[0]

@@ -8,11 +8,11 @@ export const metadata = seoDePagina({ ...seoDePaginas.restaurante, ruta: "/resta
 const sectors = [
   {
     name: "Restaurante",
-    text: "La mesa del predio. El menú y los valores se consultan: no los publicamos como si no cambiaran.",
+    text: "La mesa del predio. La carta digital muestra los productos y valores publicados por el restaurante.",
   },
   {
     name: "Bar de playa",
-    text: "Un sector cerca del agua, para el grupo que quiere quedarse afuera. Se acuerda al reservar.",
+    text: "Un sector cerca del agua, para el grupo que quiere quedarse afuera. Su menú se consulta presencialmente.",
   },
   {
     name: "Parrilla",
@@ -21,10 +21,6 @@ const sectors = [
   {
     name: "Gazebo",
     text: "Sombra y mesa para el grupo. También se reserva el sector, no se da por sentado.",
-  },
-  {
-    name: "Proveeduría",
-    text: "Por si falta algo en el medio del día. No reemplaza al restaurante: lo completa.",
   },
 ]
 
@@ -55,7 +51,7 @@ export default function RestaurantePage() {
               Para un grupo grande, conviene decirlo en la reserva: cuántos comen, si usan parrilla y si el restaurante entra en el día.
             </p>
             <div className="mt-6">
-              <ButtonLink href="/reserva?propuesta=familia&opcion=restaurante">Pedir la mesa o un sector</ButtonLink>
+              <ButtonLink href="/categorias/bar#carta">Ver la carta del restaurante</ButtonLink>
             </div>
           </div>
         </div>

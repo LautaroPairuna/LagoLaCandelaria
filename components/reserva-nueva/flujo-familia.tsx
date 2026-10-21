@@ -10,7 +10,7 @@ import { CalendarioDisponible } from "@/components/reserva-nueva/calendario-disp
 import { PasoLugar } from "@/components/reserva-nueva/paso-lugar"
 import { cantidadDePersonas, familiaVacia, familiasParaEnviar, PasoPersonas, type FamiliaForm } from "@/components/reserva-nueva/paso-personas"
 import { Button } from "@/components/ui/button"
-import { avisarError, avisarRevisar, irAlPrimerCampo, llamar } from "@/lib/avisos"
+import { avisarError, avisarRevisar, irAlPrimerCampo, llamar, subirAlRecuadro } from "@/lib/avisos"
 import { camposDe } from "@/lib/errores-de-campos"
 import { cotizacionDeConsumo, cotizarDia } from "@/lib/predio/cotizacion"
 import { grupoPorEdades, revisarEleccion, type TipoDeLugar } from "@/lib/predio/eleccion"
@@ -100,7 +100,7 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
     }
     setErrores({})
     setPaso(paso + 1)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    subirAlRecuadro()
   }
 
   function confirmar() {
@@ -127,11 +127,11 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
   }
 
   return (
-    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="space-y-6">
+    <div className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="min-w-0 space-y-6">
         <ol className="flex gap-1.5 md:gap-2" aria-label="Pasos de la reserva">
           {pasos.map((nombre, indice) => (
-            <li key={nombre} className="flex-1">
+            <li key={nombre} className="min-w-0 flex-1">
               <button
                 type="button"
                 disabled={indice >= paso}
@@ -153,7 +153,7 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
           ))}
         </ol>
 
-        <section className="rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6">
+        <section className="min-w-0 max-w-full rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6">
           <p className="kicker">Paso {paso + 1}</p>
           <h2 className="font-display mt-1 text-3xl tracking-tight">
             {paso === 0
@@ -235,7 +235,7 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
             ) : null}
           </div>
 
-          <div className="mt-6 flex items-center justify-between gap-3 border-t border-ink/10 pt-5">
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
             {paso > 0 ? (
               <button type="button" onClick={() => setPaso(paso - 1)} className="inline-flex items-center gap-2 font-semibold text-ink/70 hover:text-ink">
                 <ArrowLeft className="size-4" aria-hidden />
@@ -245,11 +245,11 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
               <span />
             )}
             {paso < 3 ? (
-              <Button type="button" className="h-12 px-6 text-base" onClick={avanzar}>
+              <Button type="button" className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal sm:w-auto sm:px-6" onClick={avanzar}>
                 Continuar
               </Button>
             ) : (
-              <Button type="button" disabled={enviando} className="h-12 px-6 text-base" onClick={confirmar}>
+              <Button type="button" disabled={enviando} className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal sm:w-auto sm:px-6" onClick={confirmar}>
                 {enviando ? "Reservando…" : "Confirmar reserva"}
               </Button>
             )}
@@ -257,7 +257,7 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
         </section>
       </div>
 
-      <aside className="space-y-4 rounded-[1.6rem] border-2 border-orange bg-white p-5 lg:sticky lg:top-28">
+      <aside className="min-w-0 max-w-full space-y-4 rounded-[1.6rem] border-2 border-orange bg-white p-5 lg:sticky lg:top-28">
         <p className="kicker">Tu reserva</p>
         <dl className="space-y-2 text-sm">
           <Resumen termino="Personas">
@@ -357,9 +357,9 @@ function edadValida(edad: number) {
 
 function Resumen({ termino, children }: { termino: string; children: ReactNode }) {
   return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-ink/60">{termino}</dt>
-      <dd className="text-right font-semibold">{children}</dd>
+    <div className="flex min-w-0 justify-between gap-3">
+      <dt className="min-w-0 text-ink/60">{termino}</dt>
+      <dd className="min-w-0 max-w-[58%] break-words text-right font-semibold">{children}</dd>
     </div>
   )
 }

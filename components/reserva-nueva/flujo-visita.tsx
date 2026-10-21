@@ -11,7 +11,7 @@ import { CalendarioDisponible } from "@/components/reserva-nueva/calendario-disp
 import { Contador } from "@/components/reserva-nueva/contador"
 import { PasoLugar } from "@/components/reserva-nueva/paso-lugar"
 import { Button } from "@/components/ui/button"
-import { avisarError, avisarRevisar, falloDeRed, irAlPrimerCampo, llamar } from "@/lib/avisos"
+import { avisarError, avisarRevisar, falloDeRed, irAlPrimerCampo, llamar, subirAlRecuadro } from "@/lib/avisos"
 import type { LugarDisponible } from "@/lib/disponibilidad"
 import { camposDe } from "@/lib/errores-de-campos"
 import { porCategoria } from "@/lib/panel/local"
@@ -21,7 +21,7 @@ import { personasQueOcupan, revisarEleccion } from "@/lib/predio/eleccion"
 import { fechaLarga, sumarDiasIso } from "@/lib/predio/fechas"
 import { HORARIO_RESTAURANTE, textoDeHora, type Franja } from "@/lib/predio/horario"
 import { inventario, MAX_PERSONAS_PARRILLA } from "@/lib/predio/inventario"
-import { pesos, type TipoDeDia } from "@/lib/predio/tarifas"
+import { pesos, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto } from "@/lib/reserva-familia"
 import { esFranjaDeNado, grupoWeb, MAX_HORAS_DE_NADO, MAX_PERSONAS_BUNGALOWS, titularWeb, type FormaDePagoWeb } from "@/lib/reserva-visita"
 import { enlaceWhatsappDelPredio } from "@/lib/site"
@@ -153,7 +153,7 @@ export function FlujoVisita({
 
   function ir(destino: Paso) {
     setPaso(destino)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    subirAlRecuadro()
   }
 
   function avanzar() {
@@ -235,11 +235,11 @@ export function FlujoVisita({
   const titularCompleto = [titular.nombre, titular.apellido].filter(Boolean).join(" ")
 
   return (
-    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="space-y-6">
+    <div className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="min-w-0 space-y-6">
         <ol className="flex gap-1.5 md:gap-2" aria-label="Pasos de la reserva">
           {pasos.map((item, posicion) => (
-            <li key={item} className="flex-1">
+            <li key={item} className="min-w-0 flex-1">
               <button
                 type="button"
                 disabled={posicion >= indice}
@@ -261,7 +261,7 @@ export function FlujoVisita({
           ))}
         </ol>
 
-        <section className="rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6">
+        <section className="min-w-0 max-w-full rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6">
           <p className="kicker">Paso {indice + 1}</p>
           <h2 className="font-display mt-1 text-3xl tracking-tight">{tipo === "nado" && paso === "fecha" ? "¿Qué día y en qué horario nadan?" : titulos[paso]}</h2>
 
@@ -410,7 +410,7 @@ export function FlujoVisita({
             ) : null}
           </div>
 
-          <div className="mt-6 flex items-center justify-between gap-3 border-t border-ink/10 pt-5">
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
             {indice > 0 ? (
               <button type="button" onClick={() => ir(pasos[indice - 1])} className="inline-flex items-center gap-2 font-semibold text-ink/70 hover:text-ink">
                 <ArrowLeft className="size-4" aria-hidden />
@@ -420,11 +420,11 @@ export function FlujoVisita({
               <span />
             )}
             {paso !== "confirmar" ? (
-              <Button type="button" className="h-12 px-6 text-base text-white" onClick={avanzar}>
+              <Button type="button" className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal text-white sm:w-auto sm:px-6" onClick={avanzar}>
                 Continuar
               </Button>
             ) : (
-              <Button type="button" disabled={enviando} className="h-12 px-6 text-base text-white" onClick={confirmar}>
+              <Button type="button" disabled={enviando} className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal text-white sm:w-auto sm:px-6" onClick={confirmar}>
                 {enviando ? "Guardando…" : modificar ? "Guardar los cambios" : "Confirmar reserva"}
               </Button>
             )}
@@ -432,7 +432,7 @@ export function FlujoVisita({
         </section>
       </div>
 
-      <aside className="space-y-4 rounded-[1.6rem] border-2 border-orange bg-white p-5 lg:sticky lg:top-28">
+      <aside className="min-w-0 max-w-full space-y-4 rounded-[1.6rem] border-2 border-orange bg-white p-5 lg:sticky lg:top-28">
         <p className="kicker">{modificar ? "Tu reserva, con los cambios" : "Tu reserva"}</p>
         <dl className="space-y-2 text-sm">
           <Resumen termino={tipo === "nado" ? "Nadadores" : "Personas"}>
@@ -448,7 +448,9 @@ export function FlujoVisita({
           <p className="border-t border-ink/10 pt-4 text-sm text-ink/60">El total aparece cuando elijas el día y la forma de pago.</p>
         )}
         <p className="text-xs leading-relaxed text-ink/55">
-          {tipo === "bungalow" ? "El bungalow se paga por adelantado, por transferencia." : "No cobramos por adelantado: se paga al ingresar al predio."}
+          {tipo === "bungalow"
+            ? "El bungalow se paga por adelantado, por transferencia. Al confirmar te queda el ticket con el QR del ingreso."
+            : "No cobramos por adelantado: se paga al ingresar. Al confirmar te queda el ticket con código y QR. Con ese código y el celular podés ver la reserva, cambiarla o cancelarla."}
         </p>
       </aside>
     </div>
@@ -490,7 +492,7 @@ function PasoGrupo({
         <h3 className="font-display text-2xl tracking-tight">{tipo === "nado" ? "Nadadores" : "Familia"}</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {tipo === "nado" ? (
-            <Contador etiqueta="Nadadores" detalle="Quienes van a nadar" minimo={1} valor={grupo.adultos} onChange={(valor) => onGrupo({ ...grupo, adultos: valor })} />
+            <Contador etiqueta="Nadadores" detalle="Misma tarifa para todos" minimo={1} valor={grupo.adultos} onChange={(valor) => onGrupo({ ...grupo, adultos: valor })} />
           ) : (
             <>
               <Contador etiqueta="Adultos" detalle="13 años o más" minimo={1} valor={grupo.adultos} onChange={(valor) => onGrupo({ ...grupo, adultos: valor })} />
@@ -505,7 +507,11 @@ function PasoGrupo({
             </>
           )}
         </div>
-        {tipo === "nado" ? <p className="mt-3 text-sm text-ink/65">La tarifa es por nadador e incluye solo el nado en aguas abiertas, no el resto de las actividades del predio.</p> : null}
+        {tipo === "nado" ? (
+          <p className="mt-3 rounded-2xl bg-lake-soft px-4 py-3 text-sm leading-relaxed font-semibold text-lake-ink">
+            La tarifa es {pesos(tarifas.nado.finde)} el finde o feriado y {pesos(tarifas.nado.semana)} de miércoles a viernes. Ya incluye el recargo por transferencia, y solo cubre el nado en aguas abiertas: no el resto de las actividades del predio.
+          </p>
+        ) : null}
       </div>
 
       <fieldset className="space-y-3">
@@ -560,14 +566,18 @@ function PasoGrupo({
 
 function ElegirFranja({ horario, onChange }: { horario: Franja; onChange: (horario: Franja) => void }) {
   const horas = Array.from({ length: HORARIO_RESTAURANTE.cierra - HORARIO_RESTAURANTE.abre + 1 }, (_, indice) => HORARIO_RESTAURANTE.abre + indice)
+  const tramo = Math.max(horario.hasta - horario.desde, 1)
   return (
-    <fieldset className="rounded-2xl bg-sand px-4 py-4">
+    <fieldset>
       <legend className="font-semibold">¿En qué horario nadan?</legend>
-      <p className="mt-1 text-sm text-ink/65">Tocá la hora en que empiezan y después la hora en que terminan. Hasta {MAX_HORAS_DE_NADO} horas seguidas.</p>
-      <div className="mt-3 grid max-w-xs grid-cols-1 gap-1">
+      <p className="mt-1 max-w-md text-sm leading-relaxed text-ink/70">
+        Tocá la hora en que empiezan y después la hora en que terminan. Son hasta {MAX_HORAS_DE_NADO} horas seguidas: de 10 a 13, por ejemplo, queda pintado de 10:00 a 13:00.
+      </p>
+      <div className="mt-4 w-full max-w-[16.5rem] overflow-hidden rounded-[1.4rem] border border-ink/10 bg-white shadow-[0_16px_40px_rgba(58,53,48,0.08)]">
         {horas.map((hora) => {
           const dentro = hora >= horario.desde && hora <= horario.hasta
           const puedeTerminar = hora > horario.desde && hora - horario.desde <= MAX_HORAS_DE_NADO
+          const avance = dentro ? (hora - horario.desde) / tramo : 0
           return (
             <button
               key={hora}
@@ -575,15 +585,21 @@ function ElegirFranja({ horario, onChange }: { horario: Franja; onChange: (horar
               aria-pressed={dentro}
               onClick={() => {
                 if (puedeTerminar && hora !== horario.hasta) onChange({ ...horario, hasta: hora })
-                else if (hora < HORARIO_RESTAURANTE.cierra) onChange({ desde: hora, hasta: hora + 1 })
+                else if (hora < HORARIO_RESTAURANTE.cierra) onChange({ desde: hora, hasta: Math.min(hora + 1, HORARIO_RESTAURANTE.cierra) })
               }}
               className={cn(
-                "flex h-11 items-center justify-between rounded-xl border px-4 text-left font-semibold tabular-nums",
-                dentro ? "border-[#2f7d32] bg-[#4caf50] text-white" : "border-ink/10 bg-white hover:border-ink/30",
+                "flex h-11 w-full items-center justify-between px-4 text-left font-semibold tabular-nums transition-colors",
+                dentro ? "text-white" : "bg-white text-ink hover:bg-sand",
+                !dentro && hora > HORARIO_RESTAURANTE.abre && "border-t border-ink/10",
               )}
+              style={dentro ? { backgroundColor: `hsl(136 46% ${36 - avance * 14}%)` } : undefined}
             >
-              {textoDeHora(hora)}
-              {hora === horario.desde ? <span className="text-xs">Empiezan</span> : hora === horario.hasta ? <span className="text-xs">Terminan</span> : null}
+              <span>{textoDeHora(hora)}</span>
+              {hora === horario.desde ? (
+                <span className="text-[0.68rem] font-bold tracking-[0.14em] uppercase">Empiezan</span>
+              ) : hora === horario.hasta ? (
+                <span className="text-[0.68rem] font-bold tracking-[0.14em] uppercase">Terminan</span>
+              ) : null}
             </button>
           )
         })}
@@ -795,9 +811,9 @@ function AvisoDeWhatsapp({ texto, mensaje }: { texto: string; mensaje: string })
 
 function Resumen({ termino, children }: { termino: string; children: ReactNode }) {
   return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-ink/60">{termino}</dt>
-      <dd className="text-right font-semibold">{children}</dd>
+    <div className="flex min-w-0 justify-between gap-3">
+      <dt className="min-w-0 text-ink/60">{termino}</dt>
+      <dd className="min-w-0 max-w-[58%] break-words text-right font-semibold">{children}</dd>
     </div>
   )
 }

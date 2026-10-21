@@ -169,7 +169,7 @@ export const categories: Category[] = [
     slug: "lago",
     title: "Actividades en el lago",
     kicker: "Agua",
-    summary: "Kayak triplo, canoa y nado en aguas abiertas, con el personal en el agua.",
+    summary: "Kayak y nado en aguas abiertas, con el personal en el agua.",
     reserve: { intereses: ["canotaje"] },
     banner: {
       src: "/covers/lago.jpg",
@@ -177,7 +177,7 @@ export const categories: Category[] = [
       position: "center 42%",
     },
     intro:
-      "El lago se entra con el personal del predio. Hay tres variantes: remo en kayak triplo, remo en canoa y nado en aguas abiertas. El staff abre el turno, entrega el chaleco y se queda en el agua. En el programa de finde, el remo va de 12:00 a 15:00 y cada salida dura unos 20 minutos. En un curso, el personal ordena las tandas sobre estas mismas embarcaciones.",
+      "El lago se entra con el personal del predio. Hay dos propuestas: kayak —que incluye las embarcaciones a remo— y nado en aguas abiertas. El staff abre el turno, entrega el chaleco y se queda en el agua.",
     facts: [
       {
         id: "seguridad",
@@ -202,15 +202,15 @@ export const categories: Category[] = [
       {
         id: "variantes",
         label: "Variantes",
-        value: "Kayak triplo, canoa y nado en aguas abiertas.",
+        value: "Kayak y nado en aguas abiertas.",
       },
     ],
     subactivities: [
       {
         slug: "remo-en-kayak",
-        name: "Remo en kayak",
+        name: "Kayak",
         chip: "Kayak",
-        how: "Se rema en kayaks triplos. El personal entrega el chaleco, acomoda a quienes suben y acompaña la salida dentro de la franja de 12:00 a 15:00. La embarcación sale cuando el staff abre el turno, y la vuelta cierra a los 20 minutos. En familia el grupo rota. En un curso, las tandas se arman con la cantidad de chicos que hay ese día.",
+        how: "Kayak reúne las embarcaciones a remo del lago. El personal entrega el chaleco, acomoda a quienes suben y acompaña la salida.",
         photos: [
           {
             src: "/activities/kayak-rojo.jpg",
@@ -231,24 +231,6 @@ export const categories: Category[] = [
             src: "/activities/kayak-muelle.jpg",
             alt: "El personal acomoda el chaleco de unos chicos junto al kayak, en el muelle del lago.",
             position: "center",
-          },
-        ],
-      },
-      {
-        slug: "remo-en-canoa",
-        name: "Remo en canoa",
-        chip: "Canotaje",
-        how: "La canoa comparte el turno de remo con el kayak: mismo horario, mismo chaleco y el personal en el agua. Cambia la embarcación. La salida también dura unos 20 minutos, entre las 12:00 y las 15:00. Sirve para ir de a varios en la misma barca y recorrer el espejo de cerca, con islas y orilla a la vista.",
-        photos: [
-          {
-            src: "/activities/canotaje.jpg",
-            alt: "El agua del predio vista desde arriba, con la orilla de piedras y las carpas.",
-            position: "center 60%",
-          },
-          {
-            src: "/activities/campamentos.jpg",
-            alt: "Vista aérea del lago junto al sector de carpas y el campo del predio.",
-            position: "center 70%",
           },
         ],
       },
@@ -866,7 +848,7 @@ export const categories: Category[] = [
         slug: "parrillas",
         name: "Parrillas",
         chip: "Parrillas",
-        how: "Puestos numerados en un sector del predio. Cada grupo usa el fuego de su parrilla y puede llegar con la comida y la bebida de casa. El sector está en el campo, cerca de la mesa y de las palapas. Si falta algo en el medio del día, la proveeduría está en el mismo predio.",
+        how: "Puestos numerados en un sector del predio. Cada grupo usa el fuego de su parrilla y puede llegar con la comida y la bebida de casa. El sector está en el campo, cerca de la mesa y de las palapas.",
         photos: [
           {
             src: "/parrilla.jpg",
@@ -934,17 +916,13 @@ export const categories: Category[] = [
         name: "Quincho con cocina",
         text: "Compartido por los bungalows, junto con la pileta de las casas.",
       },
-      {
-        name: "Proveeduría",
-        text: "Por si falta algo mientras el grupo está en la parrilla o en la palapa.",
-      },
     ],
     safetyTitle: "Seguridad e instrucciones",
     safety: [
       "El fuego se hace en la parrilla del puesto, en el sector del día o en la parrilla del bungalow.",
       "Las parrillas del día están numeradas: cada grupo usa la suya.",
       "Las palapas son sombra y mesa. El fuego queda en las parrillas.",
-      "Se puede traer comida y bebida. La proveeduría y el restaurante están en el mismo predio.",
+      "Se puede traer comida y bebida. El restaurante está en el mismo predio.",
       "El fogón del campamento lo coordina el personal, en el sector de carpas. Es distinto de estas parrillas.",
     ],
     grounds,
@@ -953,7 +931,7 @@ export const categories: Category[] = [
     slug: "bar",
     title: "Bar y restaurante",
     kicker: "Mesa",
-    summary: "Restaurante, bar de playa y proveeduría, en el mismo predio que las parrillas.",
+    summary: "Restaurante y bar de playa, en el mismo predio que las parrillas.",
     reserve: { visita: "restaurante", intereses: ["restaurante"] },
     banner: {
       src: "/covers/restaurante.jpg",
@@ -961,7 +939,7 @@ export const categories: Category[] = [
       position: "center 58%",
     },
     intro:
-      "Se puede comer en el predio o traer la comida. Hay tres variantes de mesa: el restaurante, el bar de playa y la proveeduría. El restaurante es la mesa adentro. El bar es la barra de afuera, entre una actividad y la otra. La proveeduría cubre lo que falte en el medio del día. Los tres están junto al sector de parrillas y palapas. Los findes y feriados el predio abre de 10:00 a 19:00.",
+      "Se puede comer en el predio o traer la comida. El restaurante es la mesa adentro y su carta digital se puede consultar más abajo. El bar de playa es la barra de afuera, entre una actividad y la otra; su menú se consulta presencialmente. Ambos están junto al sector de parrillas y palapas. Los findes y feriados el predio abre de 10:00 a 19:00.",
     facts: [
       {
         id: "seguridad",
@@ -986,7 +964,7 @@ export const categories: Category[] = [
       {
         id: "variantes",
         label: "Variantes",
-        value: "Restaurante, bar de playa y proveeduría.",
+        value: "Restaurante y bar de playa.",
       },
     ],
     subactivities: [
@@ -994,7 +972,7 @@ export const categories: Category[] = [
         slug: "restaurante",
         name: "Restaurante",
         chip: "Restaurante",
-        how: "La mesa del predio, para quien quiere comer ahí. La carta se conversa en el lugar: cambia, y por eso la ficha describe el servicio y no un menú fijo. Queda cerca de las parrillas, de las palapas y del agua. Quien prefiere, trae su comida y usa el sector de fuego.",
+        how: "La mesa del predio, para quien quiere comer ahí. Su carta digital se actualiza con los productos y precios disponibles. Queda cerca de las parrillas, de las palapas y del agua. Quien prefiere, trae su comida y usa el sector de fuego.",
         photos: [
           {
             src: "/activities/restaurante.jpg",
@@ -1007,7 +985,7 @@ export const categories: Category[] = [
         slug: "bar-de-playa",
         name: "Bar de playa",
         chip: "Bar de playa",
-        how: "Barra cerca del agua, para el rato entre la pileta, el lago y la altura. Es el tramo de afuera de la mesa: se está en el día, sin sentarse al comedor. En verano queda junto a la playa. El resto del año sigue en el predio, del lado del agua.",
+        how: "Barra cerca del agua, para el rato entre la pileta, el lago y la altura. Es el tramo de afuera de la mesa: se está en el día, sin sentarse al comedor. Su menú se consulta presencialmente. En verano queda junto a la playa y el resto del año sigue del lado del agua.",
         photos: [
           {
             src: "/playa.jpg",
@@ -1018,19 +996,6 @@ export const categories: Category[] = [
             src: "/activities/campamentos.jpg",
             alt: "El agua y el campo del predio, donde está la barra de afuera.",
             position: "center",
-          },
-        ],
-      },
-      {
-        slug: "proveeduria",
-        name: "Proveeduría",
-        chip: "Proveeduría",
-        how: "Un puesto para lo que falte en el medio del día: completa al restaurante y a quien trajo la comida de casa. Está en las instalaciones del predio, junto con sanitarios y vestuario con duchas.",
-        photos: [
-          {
-            src: "/activities/restaurante.jpg",
-            alt: "El núcleo de techos del predio, donde están la mesa y los servicios.",
-            position: "center 30%",
           },
         ],
       },
@@ -1045,10 +1010,6 @@ export const categories: Category[] = [
         text: "Barra afuera, cerca del agua y del rato de pileta.",
       },
       {
-        name: "Proveeduría",
-        text: "Lo que falte durante el día, al lado de quien trae su comida.",
-      },
-      {
         name: "Sanitarios y vestuario",
         text: "Baños del predio y vestuario con duchas.",
       },
@@ -1059,7 +1020,7 @@ export const categories: Category[] = [
     ],
     safetyTitle: "Seguridad e instrucciones",
     safety: [
-      "El restaurante, el bar de playa y la proveeduría están dentro del predio.",
+      "El restaurante y el bar de playa están dentro del predio.",
       "Se puede comer en la mesa o traer comida y bebida para las parrillas.",
       "Hay sanitarios y vestuario con duchas.",
       "El fuego y la sombra —parrillas numeradas, palapas y las 4 parrillas de bungalow— están en el plano de esa ficha.",
@@ -1484,13 +1445,20 @@ export function getCategory(slug: string) {
 }
 
 export function reserveHref(item: { reserve?: { visita?: VisitType; intereses: string[] } }) {
-  const params = new URLSearchParams()
-  if (item.reserve?.visita) params.set("visita", item.reserve.visita)
-  if (item.reserve && item.reserve.intereses.length > 0) {
-    params.set("interes", item.reserve.intereses.join(","))
+  const destinos: Partial<Record<VisitType, [string, string?]>> = {
+    familia: ["familia"],
+    campamento: ["estudiantil", "campamento"],
+    egresados: ["estudiantil", "egresados"],
+    educativa: ["estudiantil", "salida"],
+    bungalows: ["bungalows"],
+    restaurante: ["familia"],
   }
+  const destino = item.reserve?.visita ? destinos[item.reserve.visita] : item.reserve ? ["aventura"] : undefined
+  const params = new URLSearchParams()
+  if (destino) params.set("propuesta", destino[0])
+  if (destino?.[1]) params.set("opcion", destino[1])
   const query = params.toString()
-  return query ? `/reserva?${query}` : "/reserva"
+  return `/${query ? `?${query}` : ""}#como-reservar`
 }
 
 export const activityRedirects: Record<string, string> = {

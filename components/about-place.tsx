@@ -184,10 +184,10 @@ function ChannelCard({ channel, layout }: { channel: Channel; layout: "direct" |
 
 export function AboutPlace() {
   return (
-    <div className="text-ink" data-nav="nosotros">
+    <div className="text-ink" id="mas-informacion" data-nav="mas-informacion">
       <section id="nosotros" aria-labelledby="nosotros-titulo" className="nosotros-ground">
         <div className="mx-auto max-w-[1120px] px-5 py-20 md:px-8 md:py-28">
-        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-16">
+        <div data-scroll-focus className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-16">
           <div>
             <p className="kicker">Nosotros</p>
             <h2 id="nosotros-titulo" className="font-display mt-3 text-5xl leading-[0.95] tracking-tight md:text-7xl">
@@ -203,7 +203,7 @@ export function AboutPlace() {
           </figure>
         </div>
 
-        <div className="mt-16 text-center md:mt-20">
+        <div id="contacto" data-scroll-focus className="mt-16 scroll-mt-24 text-center md:mt-20">
           <h3 className="font-display text-4xl tracking-tight md:text-6xl">¡Contactanos!</h3>
           <ul aria-label="Canales directos" className="mt-8 grid grid-cols-1 gap-4 text-left md:grid-cols-3">
             {pick(directIds).map((channel) => (
@@ -230,7 +230,7 @@ export function AboutPlace() {
           className="ubicacion-video"
           diferido
         />
-        <div className="ubicacion-frame">
+        <div data-scroll-focus className="ubicacion-frame">
           <div className="ubicacion-layout">
             <div className="ubicacion-col">
               <h2 id="ubicacion-titulo" className="ubicacion-title font-display">

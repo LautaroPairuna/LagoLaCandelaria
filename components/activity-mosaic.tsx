@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react"
 
 import { Foto } from "@/components/foto"
-import { OfferPaper } from "@/components/offer-paper"
 import { getCategory, getStay } from "@/lib/categories"
 
 type Card = {
@@ -97,9 +96,8 @@ function SideCard({ card }: { card: Card }) {
 export function ActivityMosaic() {
   return (
     <div className="offer-world wave-top">
-      <OfferPaper />
       <section className="offer-stage offer-stage-lead" data-nav="actividades" aria-labelledby="actividades">
-        <div className="mx-auto w-full max-w-[1280px] px-4 md:px-6">
+        <div className="mx-auto w-full max-w-[1440px] px-3 md:px-6">
           <h2 id="actividades" className="offer-heading font-display">
             Una entrada, todas las actividades
           </h2>

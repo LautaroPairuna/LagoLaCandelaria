@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button"
 import { avisarError, avisarExito } from "@/lib/avisos"
 import { htmlDelTicket } from "@/lib/ticket-html"
 import type { TicketDatos } from "@/lib/reservas"
+import { cn } from "cn"
 
-export function TicketAcciones({
+export function BotonDescargarTicket({
   ticket,
   qrDataUrl,
   enlace,
+  className,
 }: {
   ticket: TicketDatos
   qrDataUrl?: string
   enlace: string
+  className?: string
 }) {
   async function descargar() {
     try {
@@ -30,16 +33,30 @@ export function TicketAcciones({
       URL.revokeObjectURL(url)
       avisarExito("Listo, el ticket quedó en tus descargas.")
     } catch {
-      avisarError("No pudimos armar el archivo. Tocá «Imprimir o guardar PDF» y elegí guardarlo como PDF.")
+      avisarError("No pudimos armar el archivo. Abrí la reserva completa y elegí «Imprimir o guardar PDF».")
     }
   }
 
   return (
+    <Button type="button" className={cn("px-6", className)} onClick={descargar}>
+      Descargar ticket
+    </Button>
+  )
+}
+
+export function TicketAcciones({
+  ticket,
+  qrDataUrl,
+  enlace,
+}: {
+  ticket: TicketDatos
+  qrDataUrl?: string
+  enlace: string
+}) {
+  return (
     <div className="no-print">
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="button" className="h-12 px-6" onClick={descargar}>
-          Descargar ticket
-        </Button>
+        <BotonDescargarTicket ticket={ticket} qrDataUrl={qrDataUrl} enlace={enlace} className="h-12" />
         <Button type="button" variant="outline" className="h-12 px-6" onClick={() => window.print()}>
           Imprimir o guardar PDF
         </Button>

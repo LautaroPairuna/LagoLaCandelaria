@@ -78,12 +78,7 @@ export const seoDePaginas = {
   restaurante: {
     titulo: "Restaurante y bar de playa",
     descripcion:
-      "Restaurante, bar de playa, parrilla, gazebo y proveeduría en el predio de Tristán Suárez, junto al lago. También se puede traer la comida.",
-  },
-  grupos: {
-    titulo: "Grupos, egresados y salidas educativas",
-    descripcion:
-      "Findes en familia, campamentos estudiantiles, viajes de egresados y salidas educativas en el predio de Tristán Suárez. La visita es con reserva.",
+      "Restaurante, bar de playa, parrilla y gazebo en el predio de Tristán Suárez, junto al lago. También se puede traer la comida.",
   },
   cotizar: {
     titulo: "Cotizá tu visita",
@@ -93,7 +88,7 @@ export const seoDePaginas = {
   "mi-reserva": {
     titulo: "Ver mi reserva",
     descripcion:
-      "Con el código de tu reserva y tu celular, mirá los datos de tu visita a Lago La Candelaria, cambiá la fecha, el lugar o las personas, o cancelala.",
+      "Con el código de tu reserva o el DNI usado al reservar, mirá los datos de tu visita a Lago La Candelaria y descargá el ticket.",
   },
   reserva: {
     titulo: "Reservá tu visita",
@@ -129,9 +124,9 @@ export const seoDeCategorias: Record<string, Texto> = {
       "Parrillas numeradas, palapas del sector gazebo y una parrilla en cada bungalow, en el predio de Tristán Suárez. Para más de 18 personas, quincho.",
   },
   bar: {
-    titulo: "Bar de playa, proveeduría y restaurante",
+    titulo: "Bar de playa y restaurante",
     descripcion:
-      "Restaurante, bar de playa y proveeduría en el mismo predio que las parrillas, en Tristán Suárez. También se puede traer la comida.",
+      "Restaurante y bar de playa en el mismo predio que las parrillas, en Tristán Suárez. Consultá online la carta del restaurante; el menú del bar se ve en el lugar.",
   },
 }
 

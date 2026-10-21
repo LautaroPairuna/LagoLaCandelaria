@@ -1,0 +1,168 @@
+.layout {
+  display: grid;
+  min-width: 0;
+  gap: 1.5rem;
+  transition: grid-template-columns 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(58, 53, 48, 0.08);
+  border-radius: 1.6rem;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 45px rgba(34, 30, 25, 0.08);
+}
+
+.options {
+  animation: reveal 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.collage {
+  position: relative;
+  min-width: 0;
+  min-height: 25rem;
+  opacity: 1;
+  transition:
+    opacity 260ms ease,
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.collageHidden {
+  display: none;
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+@media (max-width: 1023px) {
+  .compact .collage {
+    display: none;
+  }
+}
+
+.photoFrame {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0.42rem 0.42rem 0.9rem;
+  border: 1px solid rgba(86, 64, 42, 0.15);
+  border-radius: 0.45rem;
+  background: #fffaf0;
+  box-shadow: 0 18px 38px rgba(19, 31, 25, 0.28);
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.22rem;
+  object-fit: cover;
+}
+
+.tape {
+  position: absolute;
+  z-index: 2;
+  top: -0.65rem;
+  left: 50%;
+  width: 4.8rem;
+  height: 1.3rem;
+  background: rgba(255, 235, 168, 0.86);
+  box-shadow: 0 2px 4px rgba(62, 45, 27, 0.12);
+  transform: translateX(-50%) rotate(-2deg);
+  clip-path: polygon(3% 8%, 98% 0, 95% 92%, 0 100%);
+}
+
+.photo1 {
+  top: 0.8rem;
+  left: 0.6rem;
+  width: 62%;
+  height: 14.5rem;
+  transform: rotate(-3.5deg);
+}
+
+.photo2 {
+  top: 2rem;
+  right: 0.6rem;
+  width: 47%;
+  height: 12.5rem;
+  transform: rotate(4deg);
+}
+
+.photo3 {
+  right: 13%;
+  bottom: 0.5rem;
+  width: 61%;
+  height: 14rem;
+  transform: rotate(1.8deg);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-0.45rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+    align-items: start;
+  }
+
+  .expanded {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .drawer {
+    padding: 1.25rem;
+  }
+
+  .collage {
+    min-height: 34rem;
+  }
+
+  .compact .collage {
+    min-height: 27rem;
+  }
+
+  .photo1 {
+    width: 60%;
+    height: 19rem;
+  }
+
+  .photo2 {
+    width: 48%;
+    height: 16rem;
+  }
+
+  .photo3 {
+    height: 18rem;
+  }
+
+  .compact .photo1 {
+    top: 0.6rem;
+    height: 15rem;
+  }
+
+  .compact .photo2 {
+    top: 1.5rem;
+    height: 13rem;
+  }
+
+  .compact .photo3 {
+    right: 14%;
+    bottom: 0.35rem;
+    height: 13.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout,
+  .collage,
+  .options {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import type { MouseEvent, ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "cn"
@@ -10,11 +11,13 @@ export function ButtonLink({
   children,
   variant = "default",
   className,
+  onClick,
 }: {
   href: string
-  children: React.ReactNode
+  children: ReactNode
   variant?: "default" | "outline" | "secondary" | "ghost"
   className?: string
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
   return (
     <Button
@@ -25,7 +28,7 @@ export function ButtonLink({
         variant === "default" ? "font-bold" : "font-semibold",
         className,
       )}
-      render={<Link href={href} />}
+      render={<Link href={href} onClick={onClick} />}
     >
       {children}
     </Button>

@@ -5,26 +5,27 @@ import { z } from "zod"
 
 import { accion, exigir, mensajesDelSitio, type Resultado } from "@/lib/errores"
 import { limiteAlcanzado, registrarUso } from "@/lib/limite"
-import { normalizarTelefono } from "@/lib/predio/contacto"
 import { db } from "@/lib/prisma"
+import { ticketDeReserva, type TicketDatos } from "@/lib/reservas"
 
 const INTENTOS = 8
 const VENTANA_MS = 15 * 60 * 1000
 
 const pedido = z.object({
-  codigo: z
+  identificador: z
     .string()
     .trim()
     .toUpperCase()
     .transform((valor) => valor.replace(/\s/g, ""))
-    .transform((valor) => (valor.startsWith("LC-") ? valor : `LC-${valor.replace(/^LC/, "")}`))
-    .refine((valor) => /^LC-[A-Z0-9]{6}$/.test(valor), "El código tiene 6 letras y números, como LC-AB12CD."),
-  telefono: z.string().max(20),
+    .refine(
+      (valor) => /^\d{7,8}$/.test(valor) || /^(?:LC-?)?[A-Z0-9]{6}$/.test(valor),
+      "Escribí un DNI de 7 u 8 números o un código como LC-AB12CD.",
+    ),
 })
 
-/// Busca la reserva con el código y el celular con que se hizo. Los dos datos juntos, y
-/// con pocos intentos, para que no se pueda adivinar la reserva de otro.
-export async function buscarMiReserva(datos: z.input<typeof pedido>): Promise<Resultado<{ token: string }>> {
+/// Busca por uno de los dos identificadores admitidos. Los intentos están limitados por
+/// IP para evitar que se puedan recorrer códigos o documentos en forma automatizada.
+export async function buscarMiReserva(datos: z.input<typeof pedido>): Promise<Resultado<{ token: string; ticket: TicketDatos }>> {
   return accion(
     "buscarMiReserva",
     async () => {
@@ -32,18 +33,30 @@ export async function buscarMiReserva(datos: z.input<typeof pedido>): Promise<Re
       const ip = cabeceras.get("cf-connecting-ip") ?? cabeceras.get("x-real-ip") ?? cabeceras.get("x-forwarded-for")?.split(",").at(-1)?.trim() ?? "desconocida"
       const clave = `mi-reserva:${ip}`
       exigir(!limiteAlcanzado(clave, INTENTOS, VENTANA_MS), "Probaste muchas veces. Esperá unos minutos o escribinos por WhatsApp con tu código.")
-      const { codigo, telefono } = pedido.parse(datos)
-      const normalizado = normalizarTelefono(telefono)
-      exigir(normalizado, "Escribí el celular con característica, 10 números (por ejemplo 11 3009 1020).")
-      const reserva = await db().reserva.findUnique({ where: { codigo }, select: { token: true, detalle: true, cliente: { select: { telefono: true } } } })
-      const propio = (reserva?.detalle as { telefono?: unknown } | null)?.telefono
-      const telefonos = [typeof propio === "string" ? propio : null, reserva?.cliente.telefono ?? null]
-      const coincide = telefonos.some((guardado) => guardado && normalizarTelefono(guardado)?.nacional === normalizado.nacional)
-      if (!coincide) {
+      const { identificador } = pedido.parse(datos)
+      const esDni = /^\d{7,8}$/.test(identificador)
+      const codigo = esDni
+        ? null
+        : identificador.startsWith("LC-")
+          ? identificador
+          : `LC-${identificador.replace(/^LC/, "")}`
+      const reserva = esDni
+        ? await db().reserva.findFirst({
+            where: { cliente: { dni: identificador } },
+            orderBy: [{ desde: "desc" }, { creadaEn: "desc" }],
+            select: { token: true },
+          })
+        : await db().reserva.findUnique({
+            where: { codigo: codigo! },
+            select: { token: true },
+          })
+      if (!reserva) {
         registrarUso(clave, VENTANA_MS)
-        exigir(false, "No encontramos una reserva con ese código y ese celular. Revisá los dos datos: están en tu ticket.")
+        exigir(false, "No encontramos una reserva con ese código o DNI. Revisá el dato e intentá nuevamente.")
       }
-      return { ok: true, token: reserva!.token }
+      const ticket = await ticketDeReserva(reserva.token)
+      exigir(ticket, "Encontramos la reserva, pero no pudimos abrir el ticket. Probá nuevamente.")
+      return { ok: true, token: reserva.token, ticket: ticket! }
     },
     mensajesDelSitio,
   )

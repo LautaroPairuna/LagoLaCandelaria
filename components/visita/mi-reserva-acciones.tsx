@@ -31,20 +31,22 @@ export function MiReservaAcciones({ token }: { token: string }) {
     <div className="no-print rounded-[1.6rem] border border-ink/10 bg-white p-5">
       <p className="font-display text-2xl tracking-tight">¿Cambió algo?</p>
       <p className="mt-1 text-ink/70">Podés cambiar el día, el lugar, la cantidad de personas o la forma de pago, o cancelar la reserva.</p>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setConfirmando(true)}
+          className="inline-flex h-14 items-center justify-center gap-2 rounded-full border-2 border-ink/15 px-5 font-bold hover:border-[#c62828] hover:text-[#c62828]"
+        >
+          <XCircle className="size-5" aria-hidden />
+          Cancelar
+        </button>
         <Link
           href={`/reserva/t/${token}/modificar`}
-          className="inline-flex h-12 items-center gap-2 rounded-full bg-orange px-5 font-bold text-sobre-naranja hover:bg-orange-hover"
+          className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-orange px-5 font-bold text-sobre-naranja hover:bg-orange-hover"
         >
           <CalendarClock className="size-5" aria-hidden />
           Modificar mi reserva
         </Link>
-        {!confirmando ? (
-          <button type="button" onClick={() => setConfirmando(true)} className="inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/15 px-5 font-bold hover:border-[#c62828] hover:text-[#c62828]">
-            <XCircle className="size-5" aria-hidden />
-            Cancelar
-          </button>
-        ) : null}
       </div>
       {confirmando ? (
         <div className="mt-4 rounded-2xl bg-[#fde8e4] p-4" role="alertdialog" aria-labelledby="cancelar-titulo">

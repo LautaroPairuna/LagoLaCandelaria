@@ -1,0 +1,306 @@
+.scene {
+  position: relative;
+  min-height: 44rem;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: inset 0 16px 36px rgba(255, 255, 255, 0.12), inset 0 -18px 42px rgba(72, 36, 12, 0.1);
+  isolation: isolate;
+}
+
+.scene::before,
+.scene::after {
+  position: absolute;
+  z-index: -1;
+  display: block;
+  border-radius: 999px;
+  content: "";
+  opacity: 0.35;
+  filter: blur(1px);
+}
+
+.scene::before {
+  top: -7rem;
+  right: -5rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.scene::after {
+  bottom: -8rem;
+  left: -4rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(255, 240, 96, 0.72);
+}
+
+.orange {
+  background-image:
+    radial-gradient(ellipse at 82% 12%, rgba(255, 246, 206, 0.18), transparent 42%),
+    linear-gradient(135deg, #ff7814 0%, #ff9b19 54%, #f2b72f 100%);
+}
+
+.blue {
+  background-image:
+    radial-gradient(ellipse at 16% 88%, rgba(222, 251, 244, 0.16), transparent 44%),
+    linear-gradient(140deg, #168fc5 0%, #27b3c6 54%, #5bc9ae 100%);
+}
+
+.green {
+  background-image:
+    radial-gradient(ellipse at 84% 14%, rgba(248, 246, 204, 0.16), transparent 43%),
+    linear-gradient(135deg, #57a84e 0%, #83be4c 55%, #b8c946 100%);
+}
+
+.coral {
+  background-image:
+    radial-gradient(ellipse at 18% 86%, rgba(255, 239, 210, 0.16), transparent 44%),
+    linear-gradient(140deg, #ef5a55 0%, #f77755 52%, #f5a646 100%);
+}
+
+.wood {
+  background-image:
+    radial-gradient(ellipse at 82% 12%, rgba(244, 217, 178, 0.12), transparent 42%),
+    linear-gradient(135deg, #77513a 0%, #946b4a 54%, #ad8259 100%);
+}
+
+.sand {
+  background-image:
+    radial-gradient(ellipse at 16% 88%, rgba(255, 247, 218, 0.16), transparent 44%),
+    linear-gradient(140deg, #b68a4a 0%, #d1ae6c 54%, #e0c98e 100%);
+}
+
+.wine {
+  background-image:
+    radial-gradient(ellipse at 84% 14%, rgba(238, 198, 185, 0.12), transparent 43%),
+    linear-gradient(135deg, #663139 0%, #7e3d45 55%, #98545a 100%);
+}
+
+.photos {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 80rem);
+  transform: translateX(-50%);
+}
+
+.photoFrame {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: 0.45rem 0.45rem 1rem;
+  border: 1px solid rgba(111, 72, 37, 0.16);
+  border-radius: 0.45rem 0.6rem 0.42rem 0.52rem;
+  background: #fffaf0;
+  box-shadow: 0 14px 28px rgba(49, 31, 18, 0.28);
+  transform-origin: center;
+}
+
+.photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.22rem;
+  object-fit: cover;
+}
+
+.photoTape {
+  position: absolute;
+  z-index: 4;
+  top: -0.65rem;
+  left: 50%;
+  display: block;
+  width: 4.5rem;
+  height: 1.35rem;
+  background: rgba(255, 240, 183, 0.8);
+  box-shadow: 0 1px 2px rgba(70, 45, 21, 0.12);
+  transform: translateX(-50%) rotate(-2deg);
+  clip-path: polygon(3% 8%, 98% 0, 95% 92%, 0 100%);
+}
+
+.photo1 {
+  top: 1.8rem;
+  left: 1.1rem;
+  width: 62%;
+  height: 15.5rem;
+  transform: rotate(-4deg);
+}
+
+.photo2 {
+  right: 1.1rem;
+  bottom: 1.8rem;
+  width: 62%;
+  height: 15.5rem;
+  transform: rotate(4deg);
+}
+
+.photo3 {
+  top: 2.4rem;
+  right: 1rem;
+  width: 47%;
+  height: 11.8rem;
+  transform: rotate(5deg);
+}
+
+.photo4 {
+  bottom: 2.2rem;
+  left: 1rem;
+  width: 47%;
+  height: 11.8rem;
+  transform: rotate(-4deg);
+}
+
+.copy {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  width: min(calc(100% - 2rem), 34rem);
+  padding: 1.35rem 1.35rem 1.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 0.85rem 1.4rem 0.75rem 1.15rem;
+  background: #fff8e9;
+  box-shadow: 0 16px 34px rgba(45, 27, 14, 0.28);
+}
+
+.copyCounterClockwise {
+  transform: translate(-50%, -50%) rotate(-1.2deg);
+}
+
+.copyClockwise {
+  transform: translate(-50%, -50%) rotate(1.2deg);
+}
+
+.fastener {
+  position: absolute;
+  z-index: 8;
+  display: block;
+  pointer-events: none;
+}
+
+.pin {
+  top: -0.7rem;
+  left: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0.22rem solid rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  background: #ed3f37;
+  box-shadow: 0 4px 7px rgba(75, 26, 18, 0.35);
+  transform: translateX(-50%);
+}
+
+.pin::after {
+  position: absolute;
+  top: 1.05rem;
+  left: 50%;
+  width: 0.12rem;
+  height: 0.9rem;
+  background: #806353;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.clip {
+  top: -1.25rem;
+  left: 50%;
+  width: 1.75rem;
+  height: 3.2rem;
+  border: 0.23rem solid #176f9f;
+  border-radius: 1rem;
+  box-shadow: inset 0 0 0 0.16rem #fff8e9;
+  transform: translateX(-50%) rotate(12deg);
+}
+
+.tape {
+  top: -0.78rem;
+  left: 50%;
+  width: 6rem;
+  height: 1.55rem;
+  background: rgba(255, 222, 111, 0.9);
+  box-shadow: 0 2px 3px rgba(70, 45, 21, 0.16);
+  transform: translateX(-50%) rotate(-2deg);
+  clip-path: polygon(2% 10%, 98% 0, 95% 92%, 0 100%);
+}
+
+.sticker {
+  top: -1.3rem;
+  right: 1.2rem;
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  background: #f3d52f;
+  color: #e25128;
+  filter: drop-shadow(0 5px 5px rgba(74, 37, 10, 0.24));
+  clip-path: polygon(50% 0%, 61% 20%, 82% 8%, 83% 32%, 100% 38%, 84% 55%, 94% 76%, 69% 76%, 62% 100%, 47% 82%, 27% 96%, 25% 71%, 0% 68%, 18% 49%, 4% 30%, 29% 27%);
+}
+
+.sticker::after {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  content: "★";
+}
+
+@media (min-width: 768px) {
+  .scene {
+    min-height: 39rem;
+  }
+
+  .photo1 {
+    top: 2.2rem;
+    left: 2.8rem;
+    width: 40%;
+    height: 20.5rem;
+  }
+
+  .photo2 {
+    right: 2.8rem;
+    bottom: 2.2rem;
+    width: 39%;
+    height: 19.5rem;
+  }
+
+  .photo3 {
+    top: 2.3rem;
+    right: 3.4rem;
+    width: 32%;
+    height: 15rem;
+  }
+
+  .photo4 {
+    bottom: 2.3rem;
+    left: 4.4rem;
+    width: 31%;
+    height: 14.5rem;
+  }
+
+  .copy {
+    width: min(46%, 34rem);
+    padding: 1.7rem 1.85rem 1.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .photoFrame {
+    transition: transform 260ms ease, box-shadow 260ms ease;
+  }
+
+  .scene:hover .photo1 {
+    transform: rotate(-3deg) translateY(-0.2rem);
+  }
+
+  .scene:hover .photo2 {
+    transform: rotate(3deg) translateY(-0.2rem);
+  }
+
+  .scene:hover .photo3 {
+    transform: rotate(4deg) translateY(-0.2rem);
+  }
+
+  .scene:hover .photo4 {
+    transform: rotate(-3deg) translateY(-0.2rem);
+  }
+}

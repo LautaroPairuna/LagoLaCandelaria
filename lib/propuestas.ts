@@ -50,15 +50,15 @@ export const propuestas: Propuesta[] = [
   },
   {
     id: "aventura",
-    nombre: "Actividad de aventura",
+    nombre: "Deportes en la naturaleza",
     detalle: "Aguas abiertas, kayak, senderismo, trail running y escalada deportiva.",
     foto: "/covers/lago.jpg",
     opciones: [
       {
         id: "nado",
         nombre: "Nado en aguas abiertas",
-        detalle: "Elegí el día y el horario, y reservá para los nadadores.",
-        foto: "/activities/nado-boya.jpg",
+        detalle: "Elegí el día y hasta 3 horas seguidas. La tarifa incluye solo el nado, no el resto del predio.",
+        foto: "/activities/nado-grupo.jpg",
         flujo: "nado",
       },
       {
@@ -352,5 +352,5 @@ const visitasViejas: Record<string, [string, string?]> = {
 
 export function destinoDeVisitaVieja(visita: string | undefined) {
   const destino = visita ? visitasViejas[visita] : undefined
-  return destino ? `/reserva?propuesta=${destino[0]}${destino[1] ? `&opcion=${destino[1]}` : ""}` : null
+  return destino ? `/?propuesta=${destino[0]}${destino[1] ? `&opcion=${destino[1]}` : ""}#como-reservar` : null
 }

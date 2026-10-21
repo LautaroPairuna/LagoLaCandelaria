@@ -189,7 +189,7 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
         </p>
         <p className="text-sm leading-relaxed text-ink/70">
           Este formulario es un pedido de servicio. El predio arma el presupuesto según la propuesta y las bonificaciones, y la reserva
-          se confirma con el pago del 50 % del total. Pagando en efectivo, 10 % menos.
+          se confirma con el pago del 50 % del total. Pagando en efectivo, 10 % menos. Al enviar te queda el ticket del pedido.
         </p>
         <Button type="submit" disabled={enviando || !datos.desde} className="h-14 w-full text-base">
           {enviando ? "Enviando…" : "Enviar solicitud"}

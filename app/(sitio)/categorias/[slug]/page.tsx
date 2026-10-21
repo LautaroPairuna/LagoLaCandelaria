@@ -4,7 +4,10 @@ import { notFound } from "next/navigation"
 
 import { CategoryDetail } from "@/components/category-detail"
 import { categories, getCategory } from "@/lib/categories"
+import { menuDelLocal } from "@/lib/panel/cuentas"
 import { seoDeCategorias, seoDePagina } from "@/lib/seo"
+
+export const dynamic = "force-dynamic"
 
 export function generateStaticParams() {
   return categories.map((category) => ({ slug: category.slug }))
@@ -36,6 +39,10 @@ export default async function CategoryPage({
   if (!category) notFound()
 
   const others = categories.filter((item) => item.slug !== category.slug)
+  const restaurantMenu =
+    category.slug === "bar"
+      ? await menuDelLocal("RESTAURANTE", true).catch(() => [])
+      : undefined
 
   return (
     <main>
@@ -46,7 +53,7 @@ export default async function CategoryPage({
           { nombre: category.title, ruta: `/categorias/${category.slug}` },
         ]}
       />
-      <CategoryDetail category={category} others={others} compact />
+      <CategoryDetail category={category} others={others} restaurantMenu={restaurantMenu} compact />
     </main>
   )
 }

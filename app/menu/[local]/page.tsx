@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: PageProps<"/menu/[local]">): Promise<Metadata> {
   const local = localDelSlug((await params).local)
-  if (!local) return {}
+  if (!local || local.id !== "RESTAURANTE") return {}
   return {
     title: `Menú del ${local.nombre.toLowerCase()}`,
     description: `La carta del ${local.nombre.toLowerCase()} de Lago La Candelaria, con precios del día.`,
@@ -31,7 +31,7 @@ function ancla(categoria: string) {
 /// El menú digital al que lleva el QR de las mesas. Muestra solo lo que hay.
 export default async function MenuDigital({ params }: PageProps<"/menu/[local]">) {
   const local = localDelSlug((await params).local)
-  if (!local) notFound()
+  if (!local || local.id !== "RESTAURANTE") notFound()
   const grupos = porCategoria(await menuDelLocal(local.id, true))
 
   return (
