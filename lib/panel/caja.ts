@@ -260,7 +260,7 @@ export function tipoDeRenglon(renglon: Renglon) {
   return renglon.sentido === "ingreso" ? "Ingreso" : "Egreso"
 }
 
-function celda(valor: string | number) {
+export function celda(valor: string | number) {
   const texto = String(valor)
   return /[";\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
 }

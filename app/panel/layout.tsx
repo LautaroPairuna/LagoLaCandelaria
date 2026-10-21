@@ -30,8 +30,8 @@ export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
   const rol = rolesDe(sesion.user.role).map((item) => etiquetaDeRol[item]).join(" · ")
 
   return (
-    <div className="min-h-svh bg-panel text-panel-ink">
-      <aside className="sticky top-0 z-30 flex flex-col gap-3 bg-panel-ink px-3 py-3 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-60 lg:gap-6 lg:overflow-y-auto lg:px-4 lg:py-6">
+    <div className="min-h-svh bg-panel text-panel-ink print:bg-white">
+      <aside className="print:hidden sticky top-0 z-30 flex flex-col gap-3 bg-panel-ink px-3 py-3 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-60 lg:gap-6 lg:overflow-y-auto lg:px-4 lg:py-6">
         <div className="flex items-center gap-1">
           <Link href="/panel" className="flex min-w-0 items-center gap-3 rounded-xl p-1 hover:bg-white/5">
             <LogoMark className="size-10 shrink-0 lg:size-11" />
@@ -88,7 +88,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
           </form>
         </div>
       </aside>
-      <div className="min-w-0 lg:pl-60">{children}</div>
+      <div className="min-w-0 lg:pl-60 print:pl-0">{children}</div>
     </div>
   )
 }

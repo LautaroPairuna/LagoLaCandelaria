@@ -1,4 +1,4 @@
-import { MessageCircle, Search } from "lucide-react"
+import { ClipboardList, MessageCircle, Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
@@ -73,6 +73,13 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
         >
           <MessageCircle className="size-4 text-[#25a95a]" aria-hidden />
           Confirmar las de mañana
+        </Link>
+        <Link
+          href="/panel/reservas/planilla"
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted"
+        >
+          <ClipboardList className="size-4 text-panel-tostado" aria-hidden />
+          Planilla del día
         </Link>
         <NuevaReserva hoy={hoy} feriados={await feriadosDelAnio(hoy)} enPuerta={false} puedeCobrar={puedeVer(sesion.user.role, "puerta") || puedeVer(sesion.user.role, "caja")} />
       </div>

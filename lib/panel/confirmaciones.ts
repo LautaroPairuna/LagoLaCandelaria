@@ -56,6 +56,8 @@ export async function paraConfirmar(fecha: string) {
       telefono: telefono?.nacional ?? fila.cliente.telefono ?? "",
       whatsapp: telefono ? `https://wa.me/${telefono.whatsapp}?text=${encodeURIComponent(mensajeDeConfirmacion(fila.token))}` : null,
       personas: fila.adultos + fila.menores + fila.sinCargo,
+      adultos: fila.adultos,
+      menores: fila.menores,
       sinCargo: fila.sinCargo,
       lugares: fila.ocupaciones
         .map((item) => item.unidad)
