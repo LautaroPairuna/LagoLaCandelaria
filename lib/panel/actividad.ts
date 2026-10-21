@@ -11,6 +11,7 @@ export const seccionesDeActividad = {
   bar: "Bar",
   actividades: "Actividades",
   usuarios: "Usuarios",
+  sitio: "Sitio web",
 } as const
 
 export type SeccionDeActividad = keyof typeof seccionesDeActividad

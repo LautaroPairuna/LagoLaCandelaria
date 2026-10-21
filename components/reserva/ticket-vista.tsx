@@ -2,7 +2,6 @@ import { LogoMark } from "@/components/logo-mark"
 import { lineasSegunForma, nombreDeFormaWeb, textoDelEfectivo, textoDelTotal, totalSegunForma } from "@/lib/predio/cotizacion"
 import { pesos } from "@/lib/predio/tarifas"
 import type { TicketDatos } from "@/lib/reservas"
-import { phones } from "@/lib/site"
 import { esGrupo, filasDelTicket, titularDelTicket } from "@/lib/ticket"
 
 function Fila({ termino, detalle }: { termino: string; detalle: string }) {
@@ -14,7 +13,7 @@ function Fila({ termino, detalle }: { termino: string; detalle: string }) {
   )
 }
 
-export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos; qrDataUrl?: string; enlace?: string }) {
+export function TicketVista({ ticket, qrDataUrl, enlace, telefonos }: { ticket: TicketDatos; qrDataUrl?: string; enlace?: string; telefonos: { label: string }[] }) {
   const grupo = esGrupo(ticket)
   const conForma = Boolean(ticket.formaPago && nombreDeFormaWeb[ticket.formaPago] && !grupo && !ticket.cotizacion.consumo)
   const notas = ticket.personas.filter((persona) => persona.notas || persona.cud)
@@ -132,7 +131,7 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
 
         <p className="mt-8 text-sm text-text-muted">
           Para consultas o para cambiar la cantidad de personas, escribinos por WhatsApp o llamá al{" "}
-          {phones.map((phone) => phone.label).join(" o al ")}.
+          {telefonos.map((telefono) => telefono.label).join(" o al ")}.
         </p>
       </div>
     </article>

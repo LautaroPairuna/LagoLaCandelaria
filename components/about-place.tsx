@@ -3,10 +3,8 @@ import { GoogleReviews } from "@/components/google-reviews"
 import { PlaceMap } from "@/components/place-map"
 import { VideoFondo } from "@/components/video-fondo"
 import { fotoUrl } from "@/lib/fotos"
-import { channels } from "@/lib/site"
-
-type Channel = (typeof channels)[number]
-type ChannelId = Channel["id"]
+import { canalesDe, type Canal as Channel, type IdDeCanal as ChannelId } from "@/lib/contenido/derivados"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
 
 const directIds = ["whatsapp", "phone", "mail"] as const satisfies readonly ChannelId[]
 const socialIds = ["facebook", "instagram", "youtube", "tiktok"] as const satisfies readonly ChannelId[]
@@ -25,7 +23,7 @@ const surfaces: Record<ChannelId, string> = {
   tiktok: "bg-black text-white shadow-[0_16px_34px_rgba(0,0,0,0.38)] ring-1 ring-white/12",
 }
 
-function pick(ids: readonly ChannelId[]) {
+function pick(channels: Channel[], ids: readonly ChannelId[]) {
   return ids.map((id) => {
     const channel = channels.find((item) => item.id === id)
     if (!channel) throw new Error(`Canal faltante: ${id}`)
@@ -182,7 +180,9 @@ function ChannelCard({ channel, layout }: { channel: Channel; layout: "direct" |
   )
 }
 
-export function AboutPlace() {
+export async function AboutPlace() {
+  const { contacto, inicio } = await contenidoDelSitio()
+  const channels = canalesDe(contacto)
   return (
     <div className="text-ink" id="mas-informacion" data-nav="mas-informacion">
       <section id="nosotros" aria-labelledby="nosotros-titulo" className="nosotros-ground">
@@ -191,14 +191,14 @@ export function AboutPlace() {
           <div>
             <p className="kicker">Nosotros</p>
             <h2 id="nosotros-titulo" className="font-display mt-3 text-5xl leading-[0.95] tracking-tight md:text-7xl">
-              Nuestro equipo
+              {inicio.nosotrosTitulo}
             </h2>
             <p className="font-display mt-6 max-w-xl text-[1.65rem] leading-[1.25] tracking-tight text-balance md:text-3xl">
-              Lago La Candelaria es un espacio recreativo para compartir y disfrutar de actividades de aventura y descanso con amigos, familia y grupos estudiantiles.
+              {inicio.nosotrosTexto}
             </p>
           </div>
           <figure className="team-print">
-            <EquipoFotos />
+            <EquipoFotos fotos={inicio.fotosDelEquipo.map((item) => item.foto)} />
             <figcaption>Equipo de Lago La Candelaria</figcaption>
           </figure>
         </div>
@@ -206,14 +206,14 @@ export function AboutPlace() {
         <div id="contacto" data-scroll-focus className="mt-16 scroll-mt-24 text-center md:mt-20">
           <h3 className="font-display text-4xl tracking-tight md:text-6xl">¡Contactanos!</h3>
           <ul aria-label="Canales directos" className="mt-8 grid grid-cols-1 gap-4 text-left md:grid-cols-3">
-            {pick(directIds).map((channel) => (
+            {pick(channels, directIds).map((channel) => (
               <li key={channel.id}>
                 <ChannelCard channel={channel} layout="direct" />
               </li>
             ))}
           </ul>
           <ul aria-label="Redes sociales" className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {pick(socialIds).map((channel) => (
+            {pick(channels, socialIds).map((channel) => (
               <li key={channel.id}>
                 <ChannelCard channel={channel} layout="social" />
               </li>

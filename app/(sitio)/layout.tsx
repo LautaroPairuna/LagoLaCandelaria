@@ -1,14 +1,17 @@
+import { ProveedorDeContenido } from "@/components/contenido-del-sitio"
 import { DatosEstructurados } from "@/components/datos-estructurados"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
 
-export default function SitioLayout({ children }: LayoutProps<"/">) {
+export default async function SitioLayout({ children }: LayoutProps<"/">) {
+  const contenido = await contenidoDelSitio()
   return (
-    <>
-      <DatosEstructurados />
+    <ProveedorDeContenido contenido={contenido}>
+      <DatosEstructurados contacto={contenido.contacto} />
       <SiteHeader />
       <div className="flex-1">{children}</div>
-      <SiteFooter />
-    </>
+      <SiteFooter inicio={contenido.inicio} />
+    </ProveedorDeContenido>
   )
 }

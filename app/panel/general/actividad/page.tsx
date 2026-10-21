@@ -31,6 +31,7 @@ const colorDeSeccion: Record<SeccionDeActividad, string> = {
   bar: "bg-[#efe6fb] text-[#5b2d91]",
   actividades: "bg-[#e3f4f4] text-[#1d5c5c]",
   usuarios: "bg-[#fde9e7] text-[#a32020]",
+  sitio: "bg-[#fdeee2] text-[#8a4512]",
 };
 
 function primero(valor: string | string[] | undefined) {

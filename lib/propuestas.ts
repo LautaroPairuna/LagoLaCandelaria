@@ -13,13 +13,6 @@ export type Opcion = {
 
 export type Propuesta = { id: "familia" | "bungalows" | "estudiantil" | "aventura"; nombre: string; detalle: string; foto: string; opciones: Opcion[] }
 
-/// Los profes que coordinan el resto de las actividades de aventura (kayak, senderismo,
-/// trail running, escalada): se arregla directamente con ellos por WhatsApp.
-export const profesDeAventura = [
-  { nombre: "Profe Santi", telefono: "11 6213-7303", whatsapp: "5491162137303" },
-  { nombre: "Profe Mica", telefono: "11 5103-2295", whatsapp: "5491151032295" },
-] as const
-
 export const propuestas: Propuesta[] = [
   {
     id: "familia",

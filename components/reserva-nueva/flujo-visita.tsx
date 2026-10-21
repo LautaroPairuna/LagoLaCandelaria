@@ -24,7 +24,8 @@ import { inventario, MAX_PERSONAS_PARRILLA } from "@/lib/predio/inventario"
 import { pesos, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto } from "@/lib/reserva-familia"
 import { esFranjaDeNado, grupoWeb, MAX_HORAS_DE_NADO, MAX_PERSONAS_BUNGALOWS, titularWeb, type FormaDePagoWeb } from "@/lib/reserva-visita"
-import { enlaceWhatsappDelPredio } from "@/lib/site"
+import { useContenido } from "@/components/contenido-del-sitio"
+import { enlaceWhatsapp } from "@/lib/contenido/derivados"
 import { cn } from "cn"
 
 export type TipoDeVisita = "finde" | "bungalow" | "nado"
@@ -793,11 +794,12 @@ function PasoAlmuerzo({ valor, onChange, platos }: { valor: boolean | null; onCh
 }
 
 function AvisoDeWhatsapp({ texto, mensaje }: { texto: string; mensaje: string }) {
+  const { contacto } = useContenido()
   return (
     <div className="rounded-2xl bg-sand px-4 py-4">
       <p className="font-semibold">{texto}</p>
       <a
-        href={enlaceWhatsappDelPredio(mensaje)}
+        href={enlaceWhatsapp(contacto.whatsapp, mensaje)}
         target="_blank"
         rel="noreferrer"
         className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#25d366] px-5 py-2.5 font-bold text-white"

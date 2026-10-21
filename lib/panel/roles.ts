@@ -11,6 +11,7 @@ export const paneles = [
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: true, rol: "bar" },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: true, rol: "restaurante" },
   { id: "actividades", nombre: "Actividades", href: "/panel/actividades", listo: true, rol: "profesor" },
+  { id: "sitio", nombre: "Sitio web", href: "/panel/sitio", listo: true, rol: "admin" },
   { id: "general", nombre: "General", href: "/panel/general", listo: true, rol: "admin" },
 ] as const satisfies readonly { id: string; nombre: string; href: string; listo: boolean; rol: Rol }[]
 

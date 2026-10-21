@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
-  serverExternalPackages: ["@prisma/client", "@prisma/adapter-mariadb", "mariadb"],
+  serverExternalPackages: ["@prisma/client", "@prisma/adapter-mariadb", "mariadb", "sharp"],
   async headers() {
     return [
       { source: "/:path*", headers: headersDeSeguridad },

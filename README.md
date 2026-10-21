@@ -109,6 +109,18 @@ Hay una caja por sección y una general que las junta (`lib/panel/caja.ts`, `lib
 - Anotar nunca frena la operación: si falla el registro, la acción igual se hace (los cobros y movimientos sí se anotan en la misma transacción).
 - La caja (`/panel/caja/actividad`) sigue mostrando solo lo que mueve plata.
 
+### Sitio web editable
+
+`/panel/sitio` (solo administración) edita los textos y las fotos de la página, sección por sección. Cada sección se guarda entera en la tabla `contenidos` como JSON; mientras no se guarda, el sitio muestra lo que trae el código (`lib/contenido/secciones.ts`), así que se ve igual que antes.
+
+- Secciones de esta etapa: **Contacto y redes** (WhatsApp, fijo, correo y redes, que alimentan «Más información», el ticket, los botones de WhatsApp y los datos estructurados), **Inicio** (portada, «Cómo reservar», «Nosotros» con las fotos del equipo y el pie) y **Propuestas** (tarjetas del recuadro, deportes en la naturaleza y profes).
+- Cada sección se describe una sola vez con sus campos (`lib/contenido/campos.ts`): de ahí salen el formulario y la validación del servidor. Agregar una sección es sumar su tipo, sus valores de fábrica y sus campos.
+- Las páginas del sitio leen el contenido en cada visita (una consulta por pedido), así lo guardado se ve al instante. Si la base no responde, se muestra lo de fábrica.
+- «Volver al texto original» borra lo guardado de esa sección. Todo cambio queda en Actividad del equipo, sección «Sitio web».
+- Fotos: se elige una de las del sitio o se sube una nueva (JPG, PNG, WEBP; hasta 15 MB). Al subirla se generan las versiones AVIF, WebP y JPG en los mismos anchos que `npm run fotos`, con 2560 px como máximo, y se sirven desde `/subidas/...`. El nombre de cada foto lleva su tamaño, así no hace falta otra tabla.
+
+**Carpeta de fotos en producción.** Las fotos subidas no pueden quedar dentro del contenedor (se pierden en cada deploy). En Dokploy, en Advanced → Volumes, agregar un *Bind Mount* con Host Path `/srv/uploads/lago-la-candelaria` y Mount Path `/srv/uploads/lago-la-candelaria`, y en Environment `UPLOADS_DIR=/srv/uploads/lago-la-candelaria`. En el VPS, crear la carpeta antes del deploy (`mkdir -p /srv/uploads/lago-la-candelaria`) y sumarla a los backups. Sin `UPLOADS_DIR`, el panel no ofrece subir fotos (se pueden elegir las del sitio). En local se guardan en `subidas/`, que no se commitea.
+
 ### Reservas de la web: finde, bungalows y nado
 
 Según el documento de modificaciones del predio (`components/reserva-nueva/flujo-visita.tsx`, `app/(sitio)/reserva/acciones.ts`).
@@ -174,7 +186,7 @@ npm run db:migrar-legado
 npm run usuario:crear -- correo@dominio.com "Nombre" admin
 ```
 
-En Dokploy tienen que estar `DATABASE_URL`, `SITE_URL` (también en el build) y `BETTER_AUTH_SECRET` (`openssl rand -base64 32`).
+En Dokploy tienen que estar `DATABASE_URL`, `SITE_URL` (también en el build), `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) y `UPLOADS_DIR` con su bind mount (ver «Sitio web editable»).
 
 `db:migrar-legado` copia las solicitudes de la tabla vieja `reservation_inquiries` a las tablas nuevas, con el mismo link de ticket. Se puede correr más de una vez: saltea lo que ya pasó. La tabla vieja queda hasta confirmar que está todo; después se borra con una migración.
 

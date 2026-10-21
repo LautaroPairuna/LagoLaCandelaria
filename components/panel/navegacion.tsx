@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarCheck, CalendarRange, DoorOpen, LayoutGrid, MapPin, Martini, Sailboat, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react"
+import { CalendarCheck, CalendarRange, DoorOpen, Globe, LayoutGrid, MapPin, Martini, Sailboat, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -16,6 +16,7 @@ const iconos: Record<PanelId, LucideIcon> = {
   bar: Martini,
   restaurante: UtensilsCrossed,
   actividades: Sailboat,
+  sitio: Globe,
   general: LayoutGrid,
 }
 

@@ -1,9 +1,11 @@
-import { channels, mapPoint, phones } from "@/lib/site"
+import { canalesDe, telefonosDe } from "@/lib/contenido/derivados"
+import type { Contacto } from "@/lib/contenido/secciones"
+import { mapPoint } from "@/lib/site"
 import { urlSitio } from "@/lib/url-sitio"
 
 const redes = ["facebook", "instagram", "youtube", "tiktok"]
 
-export function DatosEstructurados() {
+export function DatosEstructurados({ contacto }: { contacto: Contacto }) {
   const negocio = {
     "@type": ["LocalBusiness", "TouristAttraction"],
     "@id": `${urlSitio}/#negocio`,
@@ -14,8 +16,8 @@ export function DatosEstructurados() {
       "Predio recreativo de 27 hectáreas en Tristán Suárez con canotaje, tirolesa, parque aéreo, restaurante, bungalows y campamentos estudiantiles.",
     url: urlSitio,
     image: `${urlSitio}/opengraph-image.jpg`,
-    telephone: phones.map((phone) => phone.href.replace("tel:", "")),
-    email: "lagolacandelaria@gmail.com",
+    telephone: telefonosDe(contacto).map((telefono) => telefono.href.replace("tel:", "")),
+    email: contacto.email,
     address: {
       "@type": "PostalAddress",
       addressLocality: "Tristán Suárez",
@@ -23,7 +25,7 @@ export function DatosEstructurados() {
       addressCountry: "AR",
     },
     geo: { "@type": "GeoCoordinates", latitude: mapPoint.lat, longitude: mapPoint.lng },
-    sameAs: channels.filter((channel) => redes.includes(channel.id)).map((channel) => channel.href),
+    sameAs: canalesDe(contacto).filter((channel) => redes.includes(channel.id)).map((channel) => channel.href),
   }
   const sitio = { "@type": "WebSite", "@id": `${urlSitio}/#sitio`, url: urlSitio, name: "Lago La Candelaria", inLanguage: "es-AR", publisher: { "@id": `${urlSitio}/#negocio` } }
   const datos = { "@context": "https://schema.org", "@graph": [negocio, sitio] }

@@ -446,3 +446,14 @@ model Ajuste {
 
   @@map("ajustes")
 }
+
+/// Los textos y fotos del sitio que se editan desde el panel, una fila por sección
+/// (contacto, inicio, propuestas...). Lo que no está guardado sale del código.
+model Contenido {
+  clave          String   @id @db.VarChar(40)
+  valor          Json
+  actualizadoEn  DateTime @updatedAt
+  actualizadoPor String?  @db.VarChar(120)
+
+  @@map("contenidos")
+}

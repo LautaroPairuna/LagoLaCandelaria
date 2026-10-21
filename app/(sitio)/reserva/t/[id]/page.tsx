@@ -8,9 +8,10 @@ import { MiReservaAcciones } from "@/components/visita/mi-reserva-acciones"
 import { leerAjustes } from "@/lib/ajustes"
 import { fechaLarga, hoyEnElPredio } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
+import { enlaceWhatsapp } from "@/lib/contenido/derivados"
 import { reglamentoDe } from "@/lib/reglamentos"
 import { ticketDeReserva } from "@/lib/reservas"
-import { enlaceWhatsappDelPredio } from "@/lib/site"
 import { urlSitio } from "@/lib/url-sitio"
 
 export const dynamic = "force-dynamic"
@@ -43,7 +44,8 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/r
 
   if (!ticket) notFound()
 
-  const whatsapp = enlaceWhatsappDelPredio(`Hola, tengo la reserva ${ticket.codigo}. Quiero hacer una consulta.`)
+  const { contacto } = await contenidoDelSitio()
+  const whatsapp = enlaceWhatsapp(contacto.whatsapp, `Hola, tengo la reserva ${ticket.codigo}. Quiero hacer una consulta.`)
   const reglamento = reglamentoDe(ticket.modulo)
   const viva = ticket.estado !== "CANCELADA"
   const modificable = Boolean(reglamento) && viva && !ticket.ingresado && ticket.desde >= hoyEnElPredio()
@@ -102,7 +104,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/r
               <p className="mt-2 text-ink/75">Escribinos por WhatsApp y te pasamos los datos para transferir.</p>
             )}
             <a
-              href={enlaceWhatsappDelPredio(`Hola, te mando el comprobante de la transferencia de la reserva ${ticket.codigo} (bungalow, ${fechaLarga(ticket.desde).toLowerCase()}).`)}
+              href={enlaceWhatsapp(contacto.whatsapp, `Hola, te mando el comprobante de la transferencia de la reserva ${ticket.codigo} (bungalow, ${fechaLarga(ticket.desde).toLowerCase()}).`)}
               target="_blank"
               rel="noreferrer"
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#25d366] px-5 py-3 font-bold text-white"
