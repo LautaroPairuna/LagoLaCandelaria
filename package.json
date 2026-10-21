@@ -2,6 +2,9 @@
   "name": "lago-la-candelaria",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "fotos": "node scripts/optimizar-fotos.mjs",
     "predev": "npm run fotos",

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "build": {
+      "commands": ["...", "sh scripts/preparar-standalone.sh"]
+    }
+  },
+  "deploy": {
+    "aptPackages": ["openssl"],
+    "inputs": [
+      {
+        "step": "packages:mise",
+        "include": ["/mise/shims", "/mise/installs", "/usr/local/bin/mise", "/etc/mise/config.toml", "/root/.local/state/mise"]
+      },
+      { "step": "build", "include": [".next/standalone"] }
+    ],
+    "startCommand": "sh .next/standalone/arrancar.sh",
+    "variables": { "HOSTNAME": "0.0.0.0", "PORT": "4721", "MALLOC_ARENA_MAX": "2" }
+  }
+}

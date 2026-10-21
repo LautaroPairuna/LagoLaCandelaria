@@ -147,11 +147,24 @@ Los títulos, descripciones e imágenes al compartir de cada página están en `
 
 ### Migraciones al desplegar
 
-`npm start` aplica las migraciones pendientes (`prisma migrate deploy`) antes de levantar la app, así cada deploy deja la base al día. Las migraciones son aditivas (columnas e índices nuevos); si alguna llegara a ser destructiva hay que sacar un backup antes. Se corre desde el arranque y no desde el build porque el contenedor de build no ve la red interna de la base. Con más de una réplica conviene sacar este paso del arranque.
+En producción el sitio corre en modo standalone con Railpack (ver "Imagen de producción") y `arrancar.sh` aplica las migraciones pendientes (`prisma migrate deploy`) antes de levantar el servidor, así cada deploy deja la base al día. En local, `npm start` hace lo mismo. Las migraciones son aditivas (columnas e índices nuevos); si alguna llegara a ser destructiva hay que sacar un backup antes. Se corre desde el arranque y no desde el build porque el contenedor de build no ve la red interna de la base. Con más de una réplica conviene sacar este paso del arranque.
 
-Si una migración falla, la app **arranca igual** (el error queda en el log, arriba de "ATENCION: las migraciones no se aplicaron"): así no se pierde el acceso al contenedor ni al resto del sistema mientras se corrige. Lo que dependa de la migración fallida va a dar error hasta resolverla. Para destrabarla: ver el motivo en `_prisma_migrations.logs`, corregir la base y marcarla como aplicada (`npx prisma migrate resolve --applied <nombre>` desde la consola del contenedor, o completando `finished_at` en `_prisma_migrations`).
+Si una migración falla, la app **arranca igual** (el error queda en el log, arriba de "ATENCION: las migraciones no se aplicaron"): así no se pierde el acceso al contenedor ni al resto del sistema mientras se corrige. Lo que dependa de la migración fallida va a dar error hasta resolverla. Para destrabarla: ver el motivo en `_prisma_migrations.logs`, corregir la base y marcarla como aplicada (desde la consola del contenedor: `node .next/standalone/migraciones/node_modules/prisma/build/index.js migrate resolve --applied <nombre> --config .next/standalone/migraciones/prisma7.config.ts`, o completando `finished_at` en `_prisma_migrations`).
 
 Si hace falta aplicar una a mano (por ejemplo desde phpMyAdmin), además del SQL de `prisma/migrations/<nombre>/migration.sql` hay que anotarla en `_prisma_migrations` para que Prisma no la repita.
+
+### Imagen de producción (Railpack + standalone)
+
+`next.config.ts` tiene `output: "standalone"` y `railpack.json` arma una imagen que lleva solo `.next/standalone`. Sobre la plantilla base de standalone, este proyecto suma lo necesario para **migrar al arrancar**:
+
+- `scripts/preparar-standalone.sh` (último paso del build): copia `.next/static` y `public/`, borra el `.env` que Next copia al standalone, e instala en `.next/standalone/migraciones/` el CLI de Prisma y `dotenv` en la versión del lockfile, con `prisma/` y `prisma7.config.ts`.
+- `deploy.aptPackages: ["openssl"]`: el motor de migraciones de Prisma necesita la librería de OpenSSL. Sin ella no detecta la versión e intenta bajar otro motor al arrancar.
+- `startCommand: sh .next/standalone/arrancar.sh`: aplica las migraciones (si fallan, sigue) y termina en `exec node --max-old-space-size=384 server.js`, así el único proceso que queda vivo es Node.
+- `PORT=4721` y `HOSTNAME=0.0.0.0` en las variables del deploy; Node 22 fijado en `engines`.
+
+El CLI de Prisma suma unos 250 MB a la imagen (trae Prisma Studio, que el CLI carga al iniciar y no se puede sacar). La app en sí son ~125 MB.
+
+En Dokploy: Build Type **Railpack 0.39 o superior**, sin `NODE_OPTIONS` en Environment, Memory Limit de 768 MB y el dominio apuntando al puerto 4721. En el log del primer deploy tiene que aparecer "All migrations have been successfully applied" o "No pending migrations to apply".
 
 ### Pasar a producción
 
