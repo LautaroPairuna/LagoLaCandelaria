@@ -79,7 +79,7 @@ export function Cotizador() {
                   {opcion.icono}
                   {opcion.nombre}
                 </span>
-                <span className="mt-1 block text-sm text-ink/60">{opcion.detalle}</span>
+                <span className="mt-1 block text-sm text-text-muted">{opcion.detalle}</span>
               </button>
             ))}
           </div>
@@ -113,7 +113,7 @@ export function Cotizador() {
                 <li key={linea.concepto} className="flex justify-between gap-3">
                   <span>
                     {linea.concepto}
-                    <span className="block text-xs text-ink/55">{linea.detalle}</span>
+                    <span className="block text-xs text-text-muted">{linea.detalle}</span>
                   </span>
                   <span className="font-semibold">{pesos(linea.importe)}</span>
                 </li>
@@ -122,7 +122,7 @@ export function Cotizador() {
             <div className="mt-3 flex flex-col gap-3 border-t border-ink/10 pt-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="font-display text-4xl leading-none tracking-tight">{pesos(totalSegunForma(cotizacion, forma))}</p>
-                <p className="mt-1 max-w-sm text-xs leading-relaxed text-ink/60">Incluye las actividades. El restaurante se abona aparte.</p>
+                <p className="mt-1 max-w-sm text-xs leading-relaxed text-text-muted">Incluye las actividades. El restaurante se abona aparte.</p>
               </div>
               <Link href="/?propuesta=familia#como-reservar" className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-orange px-6 font-bold text-sobre-naranja hover:bg-orange-hover">
               Reservar
@@ -130,7 +130,7 @@ export function Cotizador() {
             </div>
           </>
         ) : (
-          <p className="mt-3 text-sm text-ink/60">Elegí cuándo querés venir y cómo pagarían para ver el total.</p>
+          <p className="mt-3 text-sm text-text-muted">Elegí cuándo querés venir y cómo pagarían para ver el total.</p>
         )}
         </div>
       </section>

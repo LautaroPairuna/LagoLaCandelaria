@@ -1,23 +1,20 @@
 import type { Metadata } from "next"
 import { MapPin } from "lucide-react"
+import { Suspense } from "react"
 
 import { AboutPlace } from "@/components/about-place"
 import { ActivityMosaic } from "@/components/activity-mosaic"
 import { PortalesInicio } from "@/components/portales-inicio"
-import { RecuadroReservas } from "@/components/reserva-nueva/recuadro-reservas"
+import { RecuadroReservas, RecuadroReservasDelEnlace } from "@/components/reserva-nueva/recuadro-reservas"
 import { VideoFondo } from "@/components/video-fondo"
 import { fotoUrl } from "@/lib/fotos"
 import { seoDeInicio } from "@/lib/seo"
 
 export const metadata: Metadata = seoDeInicio()
 
-function primero(valor: string | string[] | undefined) {
-  return Array.isArray(valor) ? valor[0] : valor
-}
-
-export default async function HomePage({ searchParams }: PageProps<"/">) {
-  const params = await searchParams
-
+// La portada se pregenera: la propuesta que llega por el enlace (?propuesta=...) la lee
+// el recuadro de reservas en el navegador.
+export default function HomePage() {
   return (
     <main>
       <section className="hero-on-video sticky top-0 z-0 flex min-h-svh flex-col overflow-hidden text-cream">
@@ -77,7 +74,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                 Elegí la propuesta, completá los datos y al confirmar te queda el ticket con el QR del ingreso.
               </p>
             </div>
-            <RecuadroReservas propuestaInicial={primero(params.propuesta)} opcionInicial={primero(params.opcion)} />
+            <Suspense fallback={<RecuadroReservas />}>
+              <RecuadroReservasDelEnlace />
+            </Suspense>
           </div>
         </section>
 

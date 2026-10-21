@@ -7,7 +7,9 @@ import { categories, getCategory } from "@/lib/categories"
 import { menuDelLocal } from "@/lib/panel/cuentas"
 import { seoDeCategorias, seoDePagina } from "@/lib/seo"
 
-export const dynamic = "force-dynamic"
+// Se pregenera; la ficha del bar muestra la carta, que se renueva cada 5 minutos y cada
+// vez que se edita desde el panel.
+export const revalidate = 300
 
 export function generateStaticParams() {
   return categories.map((category) => ({ slug: category.slug }))

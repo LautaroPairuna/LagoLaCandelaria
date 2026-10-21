@@ -143,7 +143,7 @@ export function CalendarioDisponible({
         </p>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-ink/50">
+      <div className="mt-4 grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-text-muted">
         {nombresDeDia.map((letra, indice) => (
           <span key={indice}>{letra}</span>
         ))}
@@ -185,7 +185,7 @@ export function CalendarioDisponible({
         })}
       </div>
 
-      <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-ink/60" aria-label="Referencias">
+      <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-text-muted" aria-label="Referencias">
         <li className="flex items-center gap-2">
           <span className="size-3 rounded border border-[#9fd18f] bg-[#eaf6e4]" /> Disponible
         </li>

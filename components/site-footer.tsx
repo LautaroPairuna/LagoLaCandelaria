@@ -13,7 +13,7 @@ export function SiteFooter() {
           Aventura y descanso entre amigos y familia.
         </p>
         <span aria-hidden className="mt-6 h-px w-16 bg-orange/45" />
-        <p className="mt-4 text-sm text-ink/55">Nos vemos junto al lago.</p>
+        <p className="mt-4 text-sm text-text-muted">Nos vemos junto al lago.</p>
       </div>
       <Link
         href="/panel"

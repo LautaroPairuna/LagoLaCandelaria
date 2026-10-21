@@ -39,7 +39,7 @@ export function BuscarMiReserva() {
 
       <form onSubmit={buscar} className="min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-5 shadow-[0_14px_38px_rgba(58,53,48,0.06)] md:p-6">
         <div className="flex items-center gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-orange text-white">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-orange text-sobre-naranja">
             <Search className="size-5" aria-hidden />
           </span>
           <div>
@@ -61,16 +61,18 @@ export function BuscarMiReserva() {
             {error}
           </p>
         ) : null}
-        <Button type="submit" disabled={buscando || !identificador} className="mt-4 h-11 w-full px-6 text-base text-white">
+        <Button type="submit" disabled={buscando || !identificador} className="mt-4 h-11 w-full px-6 text-base">
           {buscando ? "Buscando…" : "Mostrar mi reserva"}
         </Button>
-        <p className="mt-2 text-xs leading-relaxed text-ink/55">
+        <p className="mt-2 text-xs leading-relaxed text-text-muted">
           Ingresá uno solo de los dos datos: el código del ticket o el DNI usado al reservar.
         </p>
       </form>
     </div>
   )
 }
+
+const nombreDelEstado: Record<TicketDatos["estado"], string> = { PENDIENTE: "A confirmar", CONFIRMADA: "Confirmada", CANCELADA: "Cancelada" }
 
 function ResumenReserva({ resultado }: { resultado: { token: string; ticket: TicketDatos } | null }) {
   const filas = resultado ? filasDelTicket(resultado.ticket) : []
@@ -96,7 +98,7 @@ function ResumenReserva({ resultado }: { resultado: { token: string; ticket: Tic
         </div>
         {resultado ? (
           <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-lake-ink ring-1 ring-ink/10">
-            {resultado.ticket.estado}
+            {nombreDelEstado[resultado.ticket.estado]}
           </span>
         ) : null}
       </div>
@@ -123,7 +125,7 @@ function ResumenReserva({ resultado }: { resultado: { token: string; ticket: Tic
           <Button type="button" disabled className="h-11 w-full">
             Descargar ticket
           </Button>
-          <p className="mt-2 text-xs leading-relaxed text-ink/55">
+          <p className="mt-2 text-xs leading-relaxed text-text-muted">
             Cuando encontremos la reserva, vas a ver acá la fecha, las personas y el lugar.
           </p>
         </div>
@@ -135,7 +137,7 @@ function ResumenReserva({ resultado }: { resultado: { token: string; ticket: Tic
 function Dato({ icono: Icono, termino, detalle }: { icono: typeof CalendarDays; termino: string; detalle: string }) {
   return (
     <div className="min-w-0 rounded-xl bg-white/75 px-3 py-2.5 ring-1 ring-ink/8">
-      <dt className="flex items-center gap-1.5 text-[0.67rem] font-bold tracking-[0.1em] text-ink/50 uppercase">
+      <dt className="flex items-center gap-1.5 text-[0.67rem] font-bold tracking-[0.1em] text-text-muted uppercase">
         <Icono className="size-3.5" aria-hidden />
         {termino}
       </dt>

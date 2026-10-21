@@ -348,7 +348,7 @@ export function FlujoVisita({
                   <AsignacionDePlaya tipo={ubicacion} fecha={fecha} personas={ocupan} onLista={setPlayaLista} sin={modificar?.token} />
                 ) : null}
                 {ocupan < total ? (
-                  <p className="text-sm text-ink/60">Los menores de 5 años no ocupan lugar: contamos {ocupan} {ocupan === 1 ? "persona" : "personas"}.</p>
+                  <p className="text-sm text-text-muted">Los menores de 5 años no ocupan lugar: contamos {ocupan} {ocupan === 1 ? "persona" : "personas"}.</p>
                 ) : null}
               </div>
             ) : null}
@@ -404,7 +404,7 @@ export function FlujoVisita({
                       }}
                     />
                   </div>
-                  <p className="mt-1 text-sm text-ink/55">Característica y número, sin 0 ni 15. Con este celular y el código de la reserva podés verla, cambiarla o cancelarla.</p>
+                  <p className="mt-1 text-sm text-text-muted">Característica y número, sin 0 ni 15. Con este celular y el código de la reserva podés verla, cambiarla o cancelarla.</p>
                 </fieldset>
               </div>
             ) : null}
@@ -420,11 +420,11 @@ export function FlujoVisita({
               <span />
             )}
             {paso !== "confirmar" ? (
-              <Button type="button" className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal text-white sm:w-auto sm:px-6" onClick={avanzar}>
+              <Button type="button" className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal sm:w-auto sm:px-6" onClick={avanzar}>
                 Continuar
               </Button>
             ) : (
-              <Button type="button" disabled={enviando} className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal text-white sm:w-auto sm:px-6" onClick={confirmar}>
+              <Button type="button" disabled={enviando} className="min-h-12 h-auto w-full px-5 py-2 text-center text-base whitespace-normal sm:w-auto sm:px-6" onClick={confirmar}>
                 {enviando ? "Guardando…" : modificar ? "Guardar los cambios" : "Confirmar reserva"}
               </Button>
             )}
@@ -445,9 +445,9 @@ export function FlujoVisita({
         {cotizacion && forma ? (
           <p className="font-display border-t border-ink/10 pt-4 text-4xl tracking-tight">{pesos(totalSegunForma(cotizacion, forma))}</p>
         ) : (
-          <p className="border-t border-ink/10 pt-4 text-sm text-ink/60">El total aparece cuando elijas el día y la forma de pago.</p>
+          <p className="border-t border-ink/10 pt-4 text-sm text-text-muted">El total aparece cuando elijas el día y la forma de pago.</p>
         )}
-        <p className="text-xs leading-relaxed text-ink/55">
+        <p className="text-xs leading-relaxed text-text-muted">
           {tipo === "bungalow"
             ? "El bungalow se paga por adelantado, por transferencia. Al confirmar te queda el ticket con el QR del ingreso."
             : "No cobramos por adelantado: se paga al ingresar. Al confirmar te queda el ticket con código y QR. Con ese código y el celular podés ver la reserva, cambiarla o cancelarla."}
@@ -538,7 +538,7 @@ function PasoGrupo({
               <label htmlFor="titular.notas" className="text-sm font-semibold">
                 Algo importante
               </label>
-              <button type="button" onClick={() => onConNotas(false)} className="inline-flex items-center gap-1 text-sm text-ink/60 hover:text-ink">
+              <button type="button" onClick={() => onConNotas(false)} className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-ink">
                 <X className="size-4" aria-hidden />
                 Quitar
               </button>
@@ -643,7 +643,7 @@ function ElegirForma({
   return (
     <fieldset>
       <legend className="font-semibold">
-        ¿Cómo vas a pagar? <span className="font-normal text-ink/60">· Tarifa de {nombreDelDia[dia].toLowerCase()}</span>
+        ¿Cómo vas a pagar? <span className="font-normal text-text-muted">· Tarifa de {nombreDelDia[dia].toLowerCase()}</span>
       </legend>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {opciones.map((opcion) => (
@@ -660,7 +660,7 @@ function ElegirForma({
               {forma === opcion.id ? <Check className="ml-auto size-5 text-orange" aria-hidden /> : null}
             </span>
             <span className="font-display mt-2 block text-3xl tracking-tight">{pesos(totalSegunForma(cotizacion, opcion.id))}</span>
-            <span className="mt-1 block text-sm text-ink/60">{opcion.detalle}</span>
+            <span className="mt-1 block text-sm text-text-muted">{opcion.detalle}</span>
           </button>
         ))}
       </div>
@@ -678,7 +678,7 @@ function Presupuesto({ cotizacion, forma, tipo, compacto = false }: { cotizacion
           <li key={`${linea.concepto}-${linea.detalle}`} className="flex justify-between gap-3">
             <span>
               {linea.concepto}
-              <span className="block text-xs text-ink/55">{linea.detalle}</span>
+              <span className="block text-xs text-text-muted">{linea.detalle}</span>
             </span>
             <span className="font-semibold">{pesos(linea.importe)}</span>
           </li>
@@ -756,7 +756,7 @@ function PasoAlmuerzo({ valor, onChange, platos }: { valor: boolean | null; onCh
             type="button"
             aria-pressed={valor === opcion}
             onClick={() => onChange(opcion)}
-            className={cn("h-12 rounded-full border-2 text-base font-bold", valor === opcion ? "border-orange bg-orange text-white" : "border-ink/15 bg-white")}
+            className={cn("h-12 rounded-full border-2 text-base font-bold", valor === opcion ? "border-orange bg-orange text-sobre-naranja" : "border-ink/15 bg-white")}
           >
             {opcion ? "Sí" : "No"}
           </button>
@@ -771,13 +771,13 @@ function PasoAlmuerzo({ valor, onChange, platos }: { valor: boolean | null; onCh
           <div className="mt-2 max-h-96 space-y-4 overflow-y-auto pr-1">
             {grupos.map((grupo) => (
               <div key={grupo.categoria}>
-                <p className="text-sm font-semibold text-ink/55">{grupo.categoria}</p>
+                <p className="text-sm font-semibold text-text-muted">{grupo.categoria}</p>
                 <ul className="mt-1 divide-y divide-ink/10">
                   {grupo.items.map((plato) => (
                     <li key={plato.id} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                       <span>
                         <span className="font-semibold">{plato.nombre}</span>
-                        {plato.descripcion ? <span className="block text-ink/60">{plato.descripcion}</span> : null}
+                        {plato.descripcion ? <span className="block text-text-muted">{plato.descripcion}</span> : null}
                       </span>
                       <span className="font-semibold whitespace-nowrap">{pesos(plato.precio)}</span>
                     </li>
@@ -812,7 +812,7 @@ function AvisoDeWhatsapp({ texto, mensaje }: { texto: string; mensaje: string })
 function Resumen({ termino, children }: { termino: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 justify-between gap-3">
-      <dt className="min-w-0 text-ink/60">{termino}</dt>
+      <dt className="min-w-0 text-text-muted">{termino}</dt>
       <dd className="min-w-0 max-w-[58%] break-words text-right font-semibold">{children}</dd>
     </div>
   )

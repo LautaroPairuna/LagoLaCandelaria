@@ -47,7 +47,7 @@ export function PlaceMap() {
 
       const icon = L.divIcon({
         className: "logo-pin",
-        html: `<img src="${fotoUrl("/logo.png", 136)}" alt="" /><i></i>`,
+        html: `<img src="${fotoUrl("/logo.png", 136)}" alt="" width="68" height="68" /><i></i>`,
         iconSize: [72, 86],
         iconAnchor: [36, 82],
       })

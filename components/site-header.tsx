@@ -242,13 +242,14 @@ export function SiteHeader() {
                   className={cn(
                     "button-outline inline-flex h-14 items-center justify-center rounded-full px-6 text-lg font-extrabold whitespace-nowrap xl:h-16 xl:px-8 xl:text-xl",
                     destacado
-                      ? "bg-orange text-white shadow-[0_8px_22px_rgba(20,25,20,0.20)]"
+                      ? "bg-orange text-sobre-naranja shadow-[0_8px_22px_rgba(20,25,20,0.20)]"
                       : onHomeHero
                         ? "bg-cream text-ink shadow-[0_12px_30px_rgba(20,25,20,0.32)]"
                         : "bg-white text-ink shadow-[0_7px_22px_rgba(58,53,48,0.10)]",
                   )}
                 >
                   {item.titulo}
+                  {"oculto" in item ? <span className="sr-only">{item.oculto}</span> : null}
                 </Link>
               )
             })}
@@ -315,11 +316,12 @@ export function SiteHeader() {
                       className={cn(
                         "button-outline inline-flex min-h-16 items-center justify-center rounded-full px-6 text-center text-xl font-extrabold",
                         destacado
-                          ? "bg-orange text-white shadow-[0_8px_22px_rgba(20,25,20,0.20)]"
+                          ? "bg-orange text-sobre-naranja shadow-[0_8px_22px_rgba(20,25,20,0.20)]"
                           : "bg-white text-ink shadow-[0_7px_22px_rgba(58,53,48,0.10)]",
                       )}
                     >
                       {item.titulo}
+                      {"oculto" in item ? <span className="sr-only">{item.oculto}</span> : null}
                     </Link>
                   )
                 })}

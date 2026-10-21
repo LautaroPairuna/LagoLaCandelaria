@@ -87,7 +87,7 @@ export function CategoryDetail({
             return (
               <li key={fact.id} className="rounded-[1.15rem] bg-cream px-4 py-4 ring-1 ring-ink/10">
                 <Icon className="size-5 text-lake-ink" aria-hidden />
-                <p className="mt-3 text-[0.7rem] font-semibold tracking-[0.16em] text-ink/50 uppercase">
+                <p className="mt-3 text-[0.7rem] font-semibold tracking-[0.16em] text-text-muted uppercase">
                   {fact.label}
                 </p>
                 <p className="mt-1.5 text-sm leading-snug">{fact.value}</p>
@@ -320,9 +320,9 @@ function ActivityGalleryCard({
         <p className="text-[0.68rem] font-semibold tracking-[0.16em] text-lake-ink uppercase">
           0{index + 1} — {categoryTitle}
         </p>
-        <h3 className="font-display mt-2 text-4xl leading-[0.94] tracking-tight md:text-6xl">
+        <h2 className="font-display mt-2 text-4xl leading-[0.94] tracking-tight md:text-6xl">
           {item.name}
-        </h3>
+        </h2>
         <p className="mt-3 text-base leading-snug text-ink/75 md:text-lg">{briefText(item.how)}</p>
       </div>
     </section>

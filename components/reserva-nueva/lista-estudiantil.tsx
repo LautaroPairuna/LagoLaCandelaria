@@ -65,11 +65,11 @@ function Seccion({
         </span>
         <span className="min-w-0">
           <span className="font-display block text-[1.75rem] leading-none tracking-tight sm:text-3xl">{grupo.nombre}</span>
-          <span className="mt-1.5 block text-xs font-semibold text-ink/55 sm:text-sm">
+          <span className="mt-1.5 block text-xs font-semibold text-text-muted sm:text-sm">
             {grupo.propuestas.length} opciones
           </span>
         </span>
-        <span className={`grid size-12 shrink-0 place-items-center rounded-full bg-orange text-white shadow-[0_8px_18px_rgba(226,95,17,0.22)] transition-transform duration-300 group-hover:translate-x-1 ${abierta ? "rotate-90" : ""}`}>
+        <span className={`grid size-12 shrink-0 place-items-center rounded-full bg-orange text-sobre-naranja shadow-[0_8px_18px_rgba(226,95,17,0.22)] transition-transform duration-300 group-hover:translate-x-1 ${abierta ? "rotate-90" : ""}`}>
           <ArrowRight className="size-7" strokeWidth={2.4} aria-hidden />
         </span>
       </button>
@@ -93,12 +93,12 @@ function Solapa({ item, onReservar }: { item: ItemEstudiantil; onReservar?: (id:
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-lake-ink">{item.numero}</span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold leading-snug">{item.nombre}</span>
-          <span className="mt-0.5 block text-sm text-ink/60">{item.horario}</span>
+          <span className="mt-0.5 block text-sm text-text-muted">{item.horario}</span>
         </span>
         <span className="flex items-center gap-2 sm:gap-3">
           <span className="text-right">
             <span className="font-display block text-lg leading-none tracking-tight sm:text-2xl">{tarifa?.importe ?? "A consultar"}</span>
-            <span className="mt-1 block text-[0.64rem] font-bold tracking-[0.11em] text-ink/50 uppercase">
+            <span className="mt-1 block text-[0.64rem] font-bold tracking-[0.11em] text-text-muted uppercase">
               {tarifa ? "por alumno" : "precio"}
             </span>
           </span>
@@ -162,14 +162,14 @@ function Ficha({ ficha, id, onReservar }: { ficha: FichaEstudiantil; id: string;
         <button
           type="button"
           onClick={() => onReservar(id)}
-          className="mt-5 inline-flex h-12 items-center rounded-full bg-orange px-6 font-bold text-white hover:bg-orange-hover"
+          className="mt-5 inline-flex h-12 items-center rounded-full bg-orange px-6 font-bold text-sobre-naranja hover:bg-orange-hover"
         >
           Reservar esta propuesta
         </button>
       ) : (
         <Link
           href={`/?propuesta=estudiantil&opcion=${id}#como-reservar`}
-          className="mt-5 inline-flex h-12 items-center rounded-full bg-orange px-6 font-bold text-white hover:bg-orange-hover"
+          className="mt-5 inline-flex h-12 items-center rounded-full bg-orange px-6 font-bold text-sobre-naranja hover:bg-orange-hover"
         >
           Reservar esta propuesta
         </Link>
@@ -197,16 +197,16 @@ function PreciosPorTemporada({ tarifas }: { tarifas: FichaEstudiantil["tarifas"]
               {nombre}
             </span>
             <p className="font-display mt-2 text-3xl leading-none tracking-tight">{tarifa?.importe ?? "A definir"}</p>
-            <p className="mt-1 text-sm text-ink/60">{tarifa?.cuotas ?? "La información se cargará próximamente."}</p>
+            <p className="mt-1 text-sm text-text-muted">{tarifa?.cuotas ?? "La información se cargará próximamente."}</p>
             <div className="mt-3 border-t border-ink/10 pt-3">
-              <p className="text-xs font-bold tracking-wide text-ink/50 uppercase">Pago en efectivo</p>
+              <p className="text-xs font-bold tracking-wide text-text-muted uppercase">Pago en efectivo</p>
               <p className="mt-1 font-semibold">{tarifa?.efectivo ?? "A definir"}</p>
-              {tarifa?.cuotasEfectivo ? <p className="text-sm text-ink/60">{tarifa.cuotasEfectivo}</p> : null}
+              {tarifa?.cuotasEfectivo ? <p className="text-sm text-text-muted">{tarifa.cuotasEfectivo}</p> : null}
             </div>
           </section>
         ))}
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-ink/55">
+      <p className="mt-3 text-xs leading-relaxed text-text-muted">
         Los valores y las fechas de cada temporada se podrán actualizar sin modificar la propuesta.
       </p>
     </aside>
@@ -216,7 +216,7 @@ function PreciosPorTemporada({ tarifas }: { tarifas: FichaEstudiantil["tarifas"]
 function Comidas({ ficha }: { ficha: FichaEstudiantil }) {
   return (
     <div className="rounded-2xl bg-white px-4 py-3">
-      <h4 className="text-xs font-bold tracking-wide text-ink/55 uppercase">Comidas</h4>
+      <h4 className="text-xs font-bold tracking-wide text-text-muted uppercase">Comidas</h4>
       {ficha.comidas?.map((dia) => (
         <div key={dia.dia || "dia"} className="mt-3">
           {dia.dia ? <p className="font-semibold">{dia.dia}</p> : null}

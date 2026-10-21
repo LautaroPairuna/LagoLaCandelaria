@@ -113,7 +113,7 @@ function Familia({
       <div className="flex items-center justify-between gap-3">
         <legend className="font-display text-2xl tracking-tight">Familia {indice + 1}</legend>
         {puedeQuitar ? (
-          <button type="button" onClick={onQuitar} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/60 hover:text-ink">
+          <button type="button" onClick={onQuitar} className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-muted hover:text-ink">
             <Trash2 className="size-4" aria-hidden />
             Quitar familia
           </button>
@@ -192,7 +192,7 @@ function Persona({
   return (
     <li className="rounded-2xl bg-white p-4">
       <p className="text-sm font-bold text-ink">{titulo}</p>
-      {ayuda ? <p className="text-xs text-ink/60">{ayuda}</p> : null}
+      {ayuda ? <p className="text-xs text-text-muted">{ayuda}</p> : null}
       <div className={conDni ? "mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" : "mt-3 grid gap-3 sm:grid-cols-3"}>
         <Campo id={`${prefijo}.nombre`} etiqueta="Nombre" autoComplete="off" valor={persona.nombre} error={errores[`${prefijo}.nombre`]} onChange={(valor) => cambiar("nombre", valor)} />
         <Campo id={`${prefijo}.apellido`} etiqueta="Apellido" autoComplete="off" valor={persona.apellido} error={errores[`${prefijo}.apellido`]} onChange={(valor) => cambiar("apellido", valor)} />

@@ -61,7 +61,7 @@ export function TicketAcciones({
           Imprimir o guardar PDF
         </Button>
       </div>
-      <p className="mt-3 text-sm text-ink/60">El archivo queda en tu teléfono o computadora. El QR abre esta misma reserva.</p>
+      <p className="mt-3 text-sm text-text-muted">El archivo queda en tu teléfono o computadora. El QR abre esta misma reserva.</p>
     </div>
   )
 }

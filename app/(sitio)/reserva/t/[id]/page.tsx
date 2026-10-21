@@ -88,12 +88,12 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/r
             {transferencia?.aliasTransferencia ? (
               <dl className="mt-3 space-y-1">
                 <div className="flex flex-wrap gap-x-2">
-                  <dt className="text-ink/60">Alias:</dt>
+                  <dt className="text-text-muted">Alias:</dt>
                   <dd className="font-bold tracking-wide">{transferencia.aliasTransferencia}</dd>
                 </div>
                 {transferencia.titularTransferencia ? (
                   <div className="flex flex-wrap gap-x-2">
-                    <dt className="text-ink/60">A nombre de:</dt>
+                    <dt className="text-text-muted">A nombre de:</dt>
                     <dd className="font-semibold">{transferencia.titularTransferencia}</dd>
                   </div>
                 ) : null}

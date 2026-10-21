@@ -1,6 +1,7 @@
 "use client"
 
 import { ArrowLeft, ArrowRight } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { cartaDelRestaurante, type CartaPublica } from "@/app/(sitio)/reserva/carta"
@@ -44,6 +45,13 @@ const caminos: { id: Camino; titulo: string; detalle: string; foto: string; alt:
     alt: "Bungalows del predio.",
   },
 ]
+
+/// El recuadro con la propuesta del enlace (/?propuesta=bungalows#como-reservar). Lee la URL
+/// en el navegador para que la portada siga siendo estática.
+export function RecuadroReservasDelEnlace() {
+  const params = useSearchParams()
+  return <RecuadroReservas propuestaInicial={params.get("propuesta") ?? undefined} opcionInicial={params.get("opcion") ?? undefined} />
+}
 
 export function RecuadroReservas({ propuestaInicial, opcionInicial }: { propuestaInicial?: string; opcionInicial?: string }) {
   const caminoInicial = caminos.some((item) => item.id === propuestaInicial) ? (propuestaInicial as Camino) : null
@@ -148,7 +156,7 @@ function Caminos({ onElegir }: { onElegir: (id: Camino) => void }) {
             <span className="flex flex-1 flex-col p-5">
               <span className="font-display text-3xl tracking-tight italic">{item.titulo}</span>
               <span className="mt-2 flex-1 leading-relaxed text-ink/75">{item.detalle}</span>
-              <span className="mt-4 inline-flex items-center gap-2 font-semibold text-orange">
+              <span className="mt-4 inline-flex items-center gap-2 font-semibold text-orange-ink">
                 Empezar
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
               </span>

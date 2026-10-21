@@ -125,6 +125,16 @@ Según el documento de modificaciones del predio (`components/reserva-nueva/fluj
 - **Confirmaciones** (`/panel/reservas/confirmaciones`): las reservas del día siguiente con un botón que abre WhatsApp con el mensaje del predio (y el enlace para cancelar), y "Confirmó" o "No viene" (cancela y libera los lugares).
 - **Ajustes de la web** (`/panel/general/ajustes`): cupo de palapas por la web y alias para la transferencia de los bungalows (tabla `ajustes`).
 
+### Producción (guía de Next)
+
+Se siguió la guía de producción que trae Next (`node_modules/next/dist/docs/01-app/02-guides/production-checklist.md`):
+
+- **Páginas estáticas:** la portada se pregenera (el recuadro de reservas lee `?propuesta=` en el navegador, dentro de un `<Suspense>`). Las fichas de `/categorias` también, con `revalidate = 300` y renovación al editar la carta.
+- **Content Security Policy** en `next.config.ts`, sin nonces para no perder las páginas estáticas: solo recursos propios, más los mosaicos del mapa (ArcGIS). Zod se configura sin `eval` en el navegador (`lib/zod-sin-eval.ts`).
+- **Capa de datos solo del servidor:** `lib/prisma.ts` y `lib/auth.ts` importan `server-only`; si un componente del navegador los toca, la compilación falla. Los scripts (`seed`, `usuario:crear`, `db:migrar-legado`) corren con `--conditions=react-server`.
+- **Server Actions:** cada acción del panel verifica el permiso por sí misma; las públicas tienen límite de intentos o piden el token secreto de la reserva.
+- Lighthouse en celular: accesibilidad, buenas prácticas y SEO en 100 en las páginas internas.
+
 ### Errores y avisos
 
 Ninguna pantalla muestra un error técnico. Las Server Actions pasan por `accion()` de `lib/errores.ts`: si algo sale mal, el detalle queda en el log del servidor (`[nombreDeLaAccion] ...`) y a la persona le llega una frase que dice qué pasó y qué hacer. Cuando el motivo es conocido (la reserva ya no estaba pendiente, no queda lugar) se tira `ErrorHumano` con el texto, o se usa `exigir(condición, "texto")`. El sitio público usa `mensajesDelSitio`, que ofrece el WhatsApp en vez de "avisá a la administración".

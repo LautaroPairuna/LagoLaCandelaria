@@ -285,7 +285,7 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
                 <li key={linea.concepto} className="flex justify-between gap-3">
                   <span>
                     {linea.concepto}
-                    <span className="block text-xs text-ink/55">{linea.detalle}</span>
+                    <span className="block text-xs text-text-muted">{linea.detalle}</span>
                   </span>
                   <span className="font-semibold">{pesos(linea.importe)}</span>
                 </li>
@@ -297,9 +297,9 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
             ) : null}
           </div>
         ) : (
-          <p className="border-t border-ink/10 pt-4 text-sm text-ink/60">El total aparece cuando cargues las edades.</p>
+          <p className="border-t border-ink/10 pt-4 text-sm text-text-muted">El total aparece cuando cargues las edades.</p>
         )}
-        <p className="text-xs leading-relaxed text-ink/55">No se cobra en la web. Te queda un ticket con QR y el predio te confirma por WhatsApp.</p>
+        <p className="text-xs leading-relaxed text-text-muted">No se cobra en la web. Te queda un ticket con QR y el predio te confirma por WhatsApp.</p>
       </aside>
     </div>
   )
@@ -346,7 +346,7 @@ export function ElegirHorario({ horario, onChange }: { horario: Franja; onChange
           </select>
         </label>
       </div>
-      <p className="mt-2 text-xs text-ink/60">La misma mesa puede tener otra reserva antes o después de ese horario.</p>
+      <p className="mt-2 text-xs text-text-muted">La misma mesa puede tener otra reserva antes o después de ese horario.</p>
     </fieldset>
   )
 }
@@ -358,7 +358,7 @@ function edadValida(edad: number) {
 function Resumen({ termino, children }: { termino: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 justify-between gap-3">
-      <dt className="min-w-0 text-ink/60">{termino}</dt>
+      <dt className="min-w-0 text-text-muted">{termino}</dt>
       <dd className="min-w-0 max-w-[58%] break-words text-right font-semibold">{children}</dd>
     </div>
   )
@@ -427,7 +427,7 @@ export function PasoConfirmar({
             onChange={(valor) => onContacto({ ...contacto, email: valor })}
           />
         </div>
-        <p className="mt-1 text-sm text-ink/55">Característica y número, sin 0 ni 15.</p>
+        <p className="mt-1 text-sm text-text-muted">Característica y número, sin 0 ni 15.</p>
       </fieldset>
     </div>
   )

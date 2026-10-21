@@ -22,6 +22,7 @@ async function permiso(cual: Local) {
 function refrescar(cual: Local) {
   revalidatePath(locales[cual].base, "layout")
   revalidatePath(`/menu/${locales[cual].slug}`)
+  revalidatePath("/categorias/bar")
 }
 
 const quien = (sesion: { user: { name: string } }) => sesion.user.name.slice(0, 80)

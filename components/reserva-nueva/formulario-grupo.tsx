@@ -143,7 +143,7 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[28rem] text-sm">
                 <thead>
-                  <tr className="text-left text-ink/60">
+                  <tr className="text-left text-text-muted">
                     <th className="py-2 font-semibold" />
                     <th className="py-2 font-semibold">Celíacos</th>
                     <th className="py-2 font-semibold">Vegetarianos</th>

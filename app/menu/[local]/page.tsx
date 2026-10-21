@@ -83,7 +83,7 @@ export default async function MenuDigital({ params }: PageProps<"/menu/[local]">
             </section>
           ))
         )}
-        <p className="pt-2 text-center text-xs text-ink/55">Precios en pesos. Pagando en el local se aceptan efectivo, débito y transferencia.</p>
+        <p className="pt-2 text-center text-xs text-text-muted">Precios en pesos. Pagando en el local se aceptan efectivo, débito y transferencia.</p>
       </div>
     </main>
   )

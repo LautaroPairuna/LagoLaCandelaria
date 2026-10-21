@@ -100,7 +100,7 @@ export function RestaurantCatalog({ items }: { items: RestaurantMenuItem[] }) {
           </nav>
 
           <div className="mt-5 flex items-center justify-between gap-4">
-            <p className="text-sm font-semibold text-ink/60" aria-live="polite">
+            <p className="text-sm font-semibold text-text-muted" aria-live="polite">
               {visibleItems.length} {visibleItems.length === 1 ? "producto" : "productos"}
             </p>
             {category !== ALL || query ? (
@@ -136,7 +136,7 @@ export function RestaurantCatalog({ items }: { items: RestaurantMenuItem[] }) {
                         </span>
                       </div>
                       {item.descripcion ? (
-                        <p className="mt-1.5 text-sm leading-snug text-ink/60">{item.descripcion}</p>
+                        <p className="mt-1.5 text-sm leading-snug text-text-muted">{item.descripcion}</p>
                       ) : null}
                     </div>
                   </div>
@@ -150,7 +150,7 @@ export function RestaurantCatalog({ items }: { items: RestaurantMenuItem[] }) {
                   ? "Estamos actualizando la carta del restaurante."
                   : "No encontramos productos con esos filtros."}
               </p>
-              <p className="mt-1 text-sm text-ink/60">
+              <p className="mt-1 text-sm text-text-muted">
                 {items.length === 0
                   ? "Podés consultarla nuevamente más tarde."
                   : "Probá otra categoría o una búsqueda más corta."}

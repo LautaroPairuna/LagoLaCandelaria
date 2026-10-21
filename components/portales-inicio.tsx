@@ -6,7 +6,7 @@ export const accesosInicio = [
   { href: "/mi-reserva", id: "mi-reserva", titulo: "Ver mi reserva" },
   { href: "/cotizar", id: "cotizar", titulo: "Cotizar" },
   { href: "/#como-reservar", id: "como-reservar", titulo: "Reservar", destacado: true },
-  { href: "/#mas-informacion", id: "mas-informacion", titulo: "Más información" },
+  { href: "/#mas-informacion", id: "mas-informacion", titulo: "Más información", oculto: " sobre el predio" },
 ] as const
 
 /// En escritorio este punto marca el origen de la navegación que se acopla al header.
@@ -23,11 +23,12 @@ export function PortalesInicio() {
               className={cn(
                 "button-outline inline-flex min-h-16 w-full items-center justify-center rounded-full px-3 py-3 text-center text-lg leading-tight font-extrabold transition sm:h-16 sm:px-5 sm:text-xl",
                 "destacado" in acceso && acceso.destacado
-                  ? "bg-orange text-white shadow-[0_10px_24px_rgba(20,25,20,0.24)]"
+                  ? "bg-orange text-sobre-naranja shadow-[0_10px_24px_rgba(20,25,20,0.24)]"
                   : "bg-cream text-ink shadow-[0_12px_32px_rgba(20,25,20,0.34)]",
               )}
             >
               {acceso.titulo}
+              {"oculto" in acceso ? <span className="sr-only">{acceso.oculto}</span> : null}
             </Link>
           </li>
         ))}

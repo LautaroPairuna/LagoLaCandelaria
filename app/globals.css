@@ -13,10 +13,12 @@
   --font-mono: var(--font-outfit), "Outfit", sans-serif;
   --color-orange: #ff7a14;
   --color-orange-hover: #e86a0c;
+  /* Naranja para texto chico sobre blanco o crema: contraste 5,5. */
+  --color-orange-ink: #a8500c;
   /* Texto sobre el naranja de la marca: el blanco da 2,6:1 y este, 6,3:1. */
   --color-sobre-naranja: #241f1a;
   --color-lake: #1f7fb5;
-  --color-lake-ink: #1c71a1;
+  --color-lake-ink: #1a6694;
   --color-lake-deep: #1d77aa;
   --color-lake-soft: #e3f1f9;
   --color-green: #5daa4f;

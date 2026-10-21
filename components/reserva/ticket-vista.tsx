@@ -8,7 +8,7 @@ import { esGrupo, filasDelTicket, titularDelTicket } from "@/lib/ticket"
 function Fila({ termino, detalle }: { termino: string; detalle: string }) {
   return (
     <div className="grid gap-1 border-t border-ink/10 py-3 sm:grid-cols-[11rem_1fr] sm:gap-4">
-      <dt className="text-xs font-semibold tracking-[0.14em] text-ink/50 uppercase">{termino}</dt>
+      <dt className="text-xs font-semibold tracking-[0.14em] text-text-muted uppercase">{termino}</dt>
       <dd className="text-ink">{detalle}</dd>
     </div>
   )
@@ -39,7 +39,7 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
             // eslint-disable-next-line @next/next/no-img-element
             <img src={qrDataUrl} alt={`Código QR de la reserva ${ticket.codigo}`} className="size-40" />
           ) : (
-            <p className="px-3 text-center text-sm text-ink/60">Generando el código QR…</p>
+            <p className="px-3 text-center text-sm text-text-muted">Generando el código QR…</p>
           )}
         </div>
         <div>
@@ -130,7 +130,7 @@ export function TicketVista({ ticket, qrDataUrl, enlace }: { ticket: TicketDatos
           {ticket.contacto.email ? <Fila termino="Correo" detalle={ticket.contacto.email} /> : null}
         </dl>
 
-        <p className="mt-8 text-sm text-ink/60">
+        <p className="mt-8 text-sm text-text-muted">
           Para consultas o para cambiar la cantidad de personas, escribinos por WhatsApp o llamá al{" "}
           {phones.map((phone) => phone.label).join(" o al ")}.
         </p>

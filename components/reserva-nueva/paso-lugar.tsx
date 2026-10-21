@@ -166,7 +166,7 @@ export function PasoLugar({
         <section key={seccion.titulo} aria-label={seccion.titulo}>
           <h3 className="flex flex-wrap items-baseline justify-between gap-x-3">
             <span className="font-semibold">{seccion.titulo}</span>
-            <span className="text-sm text-ink/60">
+            <span className="text-sm text-text-muted">
               {seccion.detalle} · {seccion.lugares.filter((lugar) => lugar.estado === "libre").length} libres
             </span>
           </h3>
@@ -200,7 +200,7 @@ export function PasoLugar({
         </section>
       ))}
 
-      <ul aria-label="Referencias" className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-ink/60">
+      <ul aria-label="Referencias" className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-text-muted">
         <li className="flex items-center gap-2">
           <span className="size-3.5 rounded border border-[#9fd18f] bg-[#eaf6e4]" /> Libre
         </li>
