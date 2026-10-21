@@ -1,4 +1,4 @@
-import type { Campo, FotoConTexto } from "@/lib/contenido/campos"
+import type { Campo, FotoConTexto, VideoDeFondo } from "@/lib/contenido/campos"
 
 /// Las secciones del sitio que se editan desde el panel. Los valores por defecto son los
 /// que el sitio tenía escritos: mientras nadie guarde una sección, se ve igual que antes.
@@ -16,6 +16,9 @@ export type Contacto = {
 export type Inicio = {
   titulo: string
   subtitulo: string
+  videoPortada: VideoDeFondo
+  videoComoReservar: VideoDeFondo
+  videoUbicacion: VideoDeFondo
   comoReservarTitulo: string
   comoReservarTexto: string
   nosotrosTitulo: string
@@ -52,6 +55,9 @@ export const contenidoPorDefecto: ContenidoDelSitio = {
   inicio: {
     titulo: "Aventura y descanso entre amigos y familia",
     subtitulo: "Estamos en Tristán Suárez, a tan solo 30 minutos de Capital Federal",
+    videoPortada: { src: "/hero.mp4", poster: "/posters/hero.jpg" },
+    videoComoReservar: { src: "/para-quien.mp4", poster: "/posters/para-quien.jpg" },
+    videoUbicacion: { src: "/ubicacion.mp4?v=5", poster: "/posters/ubicacion.jpg" },
     comoReservarTitulo: "¿Cómo reservar?",
     comoReservarTexto: "Elegí la propuesta, completá los datos y al confirmar te queda el ticket con el QR del ingreso.",
     nosotrosTitulo: "Nuestro equipo",
@@ -137,10 +143,13 @@ export const secciones: Record<ClaveDeSeccion, { nombre: string; descripcion: st
   },
   inicio: {
     nombre: "Inicio",
-    descripcion: "Los textos grandes de la portada, la sección «Nosotros» con las fotos del equipo y el pie de todas las páginas.",
+    descripcion: "Los textos y videos de la portada, la sección «Nosotros» con las fotos del equipo y el pie de todas las páginas.",
     campos: [
       { tipo: "texto", clave: "titulo", etiqueta: "Título de la portada", max: 80 },
       { tipo: "texto", clave: "subtitulo", etiqueta: "Bajada de la portada", max: 120 },
+      { tipo: "video", clave: "videoPortada", etiqueta: "Video de la portada", ayuda: "Se ve detrás del título, sin sonido y en bucle." },
+      { tipo: "video", clave: "videoComoReservar", etiqueta: "Video de «Cómo reservar»" },
+      { tipo: "video", clave: "videoUbicacion", etiqueta: "Video de «Ubicación»" },
       { tipo: "texto", clave: "comoReservarTitulo", etiqueta: "Título de «Cómo reservar»", max: 60 },
       { tipo: "texto", clave: "comoReservarTexto", etiqueta: "Texto de «Cómo reservar»", max: 220, multilinea: true },
       { tipo: "texto", clave: "nosotrosTitulo", etiqueta: "Título de «Nosotros»", max: 60 },

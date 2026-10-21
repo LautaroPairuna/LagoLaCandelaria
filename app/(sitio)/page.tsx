@@ -21,8 +21,8 @@ export default async function HomePage() {
     <main>
       <section className="hero-on-video sticky top-0 z-0 flex min-h-svh flex-col overflow-hidden text-cream">
         <VideoFondo
-          src="/hero.mp4"
-          poster={fotoUrl("/posters/hero.jpg", 1280)}
+          src={inicio.videoPortada.src}
+          poster={fotoUrl(inicio.videoPortada.poster, 1280)}
           className="pointer-events-none absolute inset-0 size-full object-cover"
         />
         <div aria-hidden className="hero-video-shade pointer-events-none absolute inset-0" />
@@ -60,8 +60,8 @@ export default async function HomePage() {
         >
           <div className="pointer-events-none sticky top-[calc(var(--site-header)-2px)] z-0 h-[calc(100svh-var(--site-header)+2px)]">
             <VideoFondo
-              src="/para-quien.mp4"
-              poster={fotoUrl("/posters/para-quien.jpg", 1280)}
+              src={inicio.videoComoReservar.src}
+              poster={fotoUrl(inicio.videoComoReservar.poster, 1280)}
               className="absolute inset-0 size-full object-cover"
               diferido
             />

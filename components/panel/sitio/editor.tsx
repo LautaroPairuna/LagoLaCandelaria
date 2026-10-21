@@ -1,14 +1,14 @@
 "use client"
 
-import { ArrowDown, ArrowUp, ImagePlus, Images, Plus, RotateCcw, Trash2, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Film, ImagePlus, Images, Plus, RotateCcw, Trash2, X } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
 
 import { guardarContenido, restaurarContenido } from "@/app/panel/sitio/acciones"
 import { Foto } from "@/components/foto"
 import { avisarError, conAviso, llamar } from "@/lib/avisos"
-import type { Campo, CampoDeFoto, CampoDeLista, CampoDeTexto, FotoConTexto } from "@/lib/contenido/campos"
+import { videosDelSitio, type Campo, type CampoDeFoto, type CampoDeLista, type CampoDeTexto, type CampoDeVideo, type FotoConTexto, type VideoDeFondo } from "@/lib/contenido/campos"
 import type { Fallo } from "@/lib/errores"
-import { esFotoValida } from "@/lib/fotos"
+import { esFotoValida, fotoUrl } from "@/lib/fotos"
 import { cn } from "cn"
 
 type Valor = Record<string, unknown>
@@ -37,7 +37,7 @@ function vacio(campos: Campo[]): Valor {
   return Object.fromEntries(
     campos.map((campo) => [
       campo.clave,
-      campo.tipo === "texto" ? "" : campo.tipo === "foto" ? { src: "", alt: "" } : Array.from({ length: campo.min }, () => vacio(campo.campos)),
+      campo.tipo === "texto" ? "" : campo.tipo === "foto" ? { src: "", alt: "" } : campo.tipo === "video" ? { src: "", poster: "" } : Array.from({ length: campo.min }, () => vacio(campo.campos)),
     ]),
   )
 }
@@ -141,6 +141,7 @@ function Campos({ campos, valor, ruta, contexto }: { campos: Campo[]; valor: Val
     const rutaDelCampo = [...ruta, campo.clave]
     if (campo.tipo === "texto") return <CampoTexto key={campo.clave} campo={campo} valor={String(valor[campo.clave] ?? "")} ruta={rutaDelCampo} contexto={contexto} />
     if (campo.tipo === "foto") return <CampoFoto key={campo.clave} campo={campo} valor={valor[campo.clave] as FotoConTexto} ruta={rutaDelCampo} contexto={contexto} />
+    if (campo.tipo === "video") return <CampoVideo key={campo.clave} campo={campo} valor={valor[campo.clave] as VideoDeFondo} ruta={rutaDelCampo} contexto={contexto} />
     return <CampoLista key={campo.clave} campo={campo} valor={(valor[campo.clave] as Valor[]) ?? []} ruta={rutaDelCampo} contexto={contexto} />
   })
 }
@@ -201,7 +202,7 @@ function CampoFoto({ campo, valor, ruta, contexto }: { campo: CampoDeFoto; valor
     setSubiendo(true)
     const cuerpo = new FormData()
     cuerpo.set("foto", elegido)
-    const resultado = await llamar(async () => (await fetch("/panel/sitio/fotos", { method: "POST", body: cuerpo })).json() as Promise<{ ok: true; src: string } | Fallo>)
+    const resultado = await llamar(async () => (await fetch("/api/subir/foto", { method: "POST", body: cuerpo })).json() as Promise<{ ok: true; src: string } | Fallo>)
     setSubiendo(false)
     if (resultado.ok) contexto.cambiar([...ruta, "src"], resultado.src)
     else avisarError(resultado.error)
@@ -256,6 +257,103 @@ function CampoFoto({ campo, valor, ruta, contexto }: { campo: CampoDeFoto; valor
           }}
         />
       ) : null}
+    </div>
+  )
+}
+
+const nombreDeVideo: Record<string, string> = { "/hero.mp4": "Portada", "/para-quien.mp4": "Cómo reservar", "/ubicacion.mp4?v=5": "Ubicación" }
+const posterDeVideo: Record<string, string> = { "/hero.mp4": "/posters/hero.jpg", "/para-quien.mp4": "/posters/para-quien.jpg", "/ubicacion.mp4?v=5": "/posters/ubicacion.jpg" }
+const esperar = (milisegundos: number) => new Promise((listo) => setTimeout(listo, milisegundos))
+
+type RespuestaDeVideo = ({ ok: true } & ({ estado: "procesando"; id?: string } | { estado: "listo"; src: string; poster: string } | { estado: "error"; error: string })) | Fallo
+
+function CampoVideo({ campo, valor, ruta, contexto }: { campo: CampoDeVideo; valor: VideoDeFondo | undefined; ruta: Ruta; contexto: Contexto }) {
+  const video = valor ?? { src: "", poster: "" }
+  const [aviso, setAviso] = useState<string | null>(null)
+  const archivo = useRef<HTMLInputElement>(null)
+  const montado = useRef(true)
+  // Corta la espera del procesamiento si se sale de la página.
+  useEffect(() => {
+    montado.current = true
+    return () => {
+      montado.current = false
+    }
+  }, [])
+
+  async function subir(evento: React.ChangeEvent<HTMLInputElement>) {
+    const elegido = evento.target.files?.[0]
+    evento.target.value = ""
+    if (!elegido) return
+    setAviso("Subiendo el video…")
+    const subida = await llamar(async () =>
+      (
+        await fetch("/api/subir/video", {
+          method: "POST",
+          body: elegido,
+          headers: { "Content-Type": elegido.type || "video/mp4", "X-Nombre": encodeURIComponent(elegido.name) },
+        })
+      ).json() as Promise<{ ok: true; id: string } | Fallo>,
+    )
+    if (!subida.ok) {
+      setAviso(null)
+      return avisarError(subida.error)
+    }
+    setAviso("Procesando el video para la web. Puede tardar unos minutos; no cierres esta página.")
+    for (let intento = 0; intento < 400 && montado.current; intento += 1) {
+      await esperar(3000)
+      const estado = await llamar(async () => (await fetch(`/api/subir/video?id=${subida.id}`)).json() as Promise<RespuestaDeVideo>)
+      if (estado.ok && estado.estado === "procesando") continue
+      setAviso(null)
+      if (estado.ok && estado.estado === "listo") return contexto.cambiar(ruta, { src: estado.src, poster: estado.poster })
+      return avisarError(estado.ok ? (estado.estado === "error" ? estado.error : "") : estado.error)
+    }
+    setAviso(null)
+  }
+
+  return (
+    <div className="text-sm">
+      <p className="font-semibold text-panel-ink">{campo.etiqueta}</p>
+      {campo.ayuda ? <p className="text-xs text-panel-muted">{campo.ayuda}</p> : null}
+      <div className="mt-1 grid gap-3 sm:grid-cols-[16rem_minmax(0,1fr)]">
+        <div className="relative aspect-video overflow-hidden rounded-2xl bg-panel">
+          {video.src ? (
+            <video key={video.src} src={video.src} poster={esFotoValida(video.poster) ? fotoUrl(video.poster, 640) : undefined} muted loop playsInline controls preload="metadata" className="size-full object-cover" />
+          ) : (
+            <span className="grid size-full place-items-center text-xs text-panel-muted">Sin video elegido</span>
+          )}
+          {aviso ? <span className="absolute inset-0 grid place-items-center bg-white/85 px-4 text-center text-xs font-semibold">{aviso}</span> : null}
+        </div>
+        <div className="min-w-0 space-y-2">
+          {contexto.puedeSubir ? (
+            <>
+              <button type="button" onClick={() => archivo.current?.click()} disabled={aviso !== null} className={botonChico}>
+                <Film className="size-4" aria-hidden />
+                Subir video
+              </button>
+              <input ref={archivo} type="file" accept="video/mp4,video/quicktime,video/webm,video/*" onChange={subir} className="hidden" />
+              <p className="text-xs text-panel-muted">MP4 o MOV de hasta 300 MB. Se deja en 720p, sin sonido y hasta 1 minuto; la imagen de espera sale del primer cuadro.</p>
+            </>
+          ) : (
+            <p className="text-xs text-panel-muted">Para subir videos falta configurar la carpeta del servidor.</p>
+          )}
+          <label className="block text-xs font-semibold text-panel-muted">
+            O usar uno de los del sitio
+            <select
+              value={videosDelSitio.includes(video.src) ? video.src : ""}
+              onChange={(evento) => evento.target.value && contexto.cambiar(ruta, { src: evento.target.value, poster: posterDeVideo[evento.target.value] })}
+              className="mt-1 block h-10 w-full rounded-xl border border-panel-line bg-white px-3 text-sm text-panel-ink"
+            >
+              <option value="">{videosDelSitio.includes(video.src) ? "" : "Video subido"}</option>
+              {videosDelSitio.map((src) => (
+                <option key={src} value={src}>
+                  {nombreDeVideo[src]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ErrorDeCampo ruta={[...ruta, "src"]} contexto={contexto} />
+        </div>
+      </div>
     </div>
   )
 }

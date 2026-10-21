@@ -10,6 +10,7 @@ type Comun = { clave: string; etiqueta: string; ayuda?: string }
 
 export type CampoDeTexto = Comun & { tipo: "texto"; max: number; multilinea?: boolean; formato?: "telefono" | "email" | "usuario" }
 export type CampoDeFoto = Comun & { tipo: "foto" }
+export type CampoDeVideo = Comun & { tipo: "video" }
 export type CampoDeLista = Comun & {
   tipo: "lista"
   campos: Campo[]
@@ -25,9 +26,17 @@ export type CampoDeLista = Comun & {
   titulo?: string
 }
 
-export type Campo = CampoDeTexto | CampoDeFoto | CampoDeLista
+export type Campo = CampoDeTexto | CampoDeFoto | CampoDeVideo | CampoDeLista
 
 export type FotoConTexto = { src: string; alt: string }
+export type VideoDeFondo = { src: string; poster: string }
+
+/// Los videos que ya trae el sitio en public/. Los subidos se llaman /subidas/<id>.mp4.
+export const videosDelSitio = ["/hero.mp4", "/para-quien.mp4", "/ubicacion.mp4?v=5"]
+
+export function esVideoValido(src: string) {
+  return videosDelSitio.includes(src) || /^\/subidas\/[a-z0-9]{16}\.mp4$/.test(src)
+}
 
 /// Los teléfonos del predio se escriben como en la web; los de 8 cifras son de CABA y GBA (11).
 export function telefonoDelPredio(texto: string) {
@@ -48,9 +57,15 @@ const esquemaDeFoto = z.object({
   alt: z.string().trim().min(1, "Describí la foto en pocas palabras: la leen quienes no la ven.").max(200, "La descripción es muy larga: hasta 200 letras."),
 })
 
+const esquemaDeVideo = z.object({
+  src: z.string().refine(esVideoValido, "Elegí uno de los videos del sitio o subí uno nuevo."),
+  poster: z.string().refine(esFotoValida, "Falta la imagen que se ve mientras carga el video."),
+})
+
 function esquemaDeCampo(campo: Campo): z.ZodType {
   if (campo.tipo === "texto") return esquemaDeTexto(campo)
   if (campo.tipo === "foto") return esquemaDeFoto
+  if (campo.tipo === "video") return esquemaDeVideo
   const item = esquemaDe(campo.campos)
   return z
     .array(item)

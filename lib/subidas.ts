@@ -1,7 +1,8 @@
 import "server-only"
 
 import { randomBytes } from "node:crypto"
-import { mkdir, readFile } from "node:fs/promises"
+import { createReadStream } from "node:fs"
+import { mkdir, stat } from "node:fs/promises"
 import path from "node:path"
 
 import sharp from "sharp"
@@ -60,16 +61,25 @@ export async function guardarFoto(archivo: Buffer) {
   return srcDeSubida(id, ancho, alto)
 }
 
-const archivoValido = /^[a-z0-9]{16}-\d{2,4}\.(avif|webp|jpg)$/
-const tipos = { avif: "image/avif", webp: "image/webp", jpg: "image/jpeg" } as const
+const archivoValido = /^[a-z0-9]{16}(-\d{2,4}\.(avif|webp|jpg)|\.mp4)$/
+const tipos = { avif: "image/avif", webp: "image/webp", jpg: "image/jpeg", mp4: "video/mp4" } as const
 
-export async function leerSubida(nombre: string) {
+/// Abre un archivo subido para servirlo, entero o el tramo pedido (los navegadores piden
+/// los videos de a pedazos con Range, y Safari no los reproduce sin eso).
+export async function abrirSubida(nombre: string, rango: string | null) {
   const carpeta = carpetaDeSubidas()
   if (!carpeta || !archivoValido.test(nombre)) return null
-  try {
-    const contenido = await readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ carpeta, nombre))
-    return { contenido, tipo: tipos[nombre.split(".").pop() as keyof typeof tipos] }
-  } catch {
-    return null
+  const ruta = path.join(/*turbopackIgnore: true*/ carpeta, nombre)
+  const datos = await stat(/*turbopackIgnore: true*/ ruta).catch(() => null)
+  if (!datos?.isFile()) return null
+  const tipo = tipos[nombre.split(".").pop() as keyof typeof tipos]
+  const total = datos.size
+  const pedido = rango ? /^bytes=(\d*)-(\d*)$/.exec(rango) : null
+  if (pedido && (pedido[1] || pedido[2])) {
+    const inicio = pedido[1] ? Number(pedido[1]) : Math.max(total - Number(pedido[2]), 0)
+    const fin = pedido[1] && pedido[2] ? Math.min(Number(pedido[2]), total - 1) : total - 1
+    if (inicio > fin || inicio >= total) return { tipo, total, fuera: true as const }
+    return { tipo, total, inicio, fin, flujo: createReadStream(/*turbopackIgnore: true*/ ruta, { start: inicio, end: fin }) }
   }
+  return { tipo, total, flujo: createReadStream(/*turbopackIgnore: true*/ ruta) }
 }

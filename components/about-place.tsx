@@ -225,8 +225,8 @@ export async function AboutPlace() {
 
       <section id="ubicacion" aria-labelledby="ubicacion-titulo" className="ubicacion-section section-snap">
         <VideoFondo
-          src="/ubicacion.mp4?v=5"
-          poster={fotoUrl("/posters/ubicacion.jpg", 1280)}
+          src={inicio.videoUbicacion.src}
+          poster={fotoUrl(inicio.videoUbicacion.poster, 1280)}
           className="ubicacion-video"
           diferido
         />

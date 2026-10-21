@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { esquemaDe } from "@/lib/contenido/campos"
+import { esquemaDe, esVideoValido } from "@/lib/contenido/campos"
 import { canalesDe, enlaceWhatsapp, telefonosDe } from "@/lib/contenido/derivados"
 import { contenidoPorDefecto, secciones, type ClaveDeSeccion } from "@/lib/contenido/secciones"
 import { esFotoValida, fotoGenerada, fotoUrl } from "@/lib/fotos"
@@ -51,6 +51,13 @@ describe("fotos subidas", () => {
     expect(esFotoValida(src)).toBe(true)
     expect(fotoGenerada(src)).toEqual({ ancho: 1600, alto: 1067, anchos: [480, 768, 1024, 1600], base: "/subidas/0123456789abcdef", respaldo: "/subidas/0123456789abcdef-1024.jpg" })
     expect(fotoUrl(src, 900, "avif")).toBe("/subidas/0123456789abcdef-1024.avif")
+  })
+
+  it("acepta solo los videos del sitio y los subidos", () => {
+    expect(esVideoValido("/hero.mp4")).toBe(true)
+    expect(esVideoValido("/subidas/0123456789abcdef.mp4")).toBe(true)
+    expect(esVideoValido("/subidas/0123456789abcdef.mp4?x")).toBe(false)
+    expect(esVideoValido("https://otro.sitio/video.mp4")).toBe(false)
   })
 
   it("no acepta rutas inventadas", () => {
