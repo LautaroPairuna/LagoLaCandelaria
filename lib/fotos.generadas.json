@@ -1,0 +1,604 @@
+{
+  "/activities/bungalows.jpg": {
+    "ancho": 640,
+    "alto": 460,
+    "anchos": [
+      480,
+      640
+    ],
+    "base": "/img/activities/bungalows",
+    "respaldo": "/img/activities/bungalows-640.jpg",
+    "huella": "02115a97da7af198"
+  },
+  "/activities/campamentos.jpg": {
+    "ancho": 760,
+    "alto": 480,
+    "anchos": [
+      480,
+      760
+    ],
+    "base": "/img/activities/campamentos",
+    "respaldo": "/img/activities/campamentos-760.jpg",
+    "huella": "23060fcf3a0fa9f4"
+  },
+  "/activities/canotaje.jpg": {
+    "ancho": 720,
+    "alto": 520,
+    "anchos": [
+      480,
+      720
+    ],
+    "base": "/img/activities/canotaje",
+    "respaldo": "/img/activities/canotaje-720.jpg",
+    "huella": "ad2a3288d2748475"
+  },
+  "/activities/kayak-grupo.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/kayak-grupo",
+    "respaldo": "/img/activities/kayak-grupo-1024.jpg",
+    "huella": "9164cfd810140848"
+  },
+  "/activities/kayak-muelle.jpg": {
+    "ancho": 1024,
+    "alto": 699,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/kayak-muelle",
+    "respaldo": "/img/activities/kayak-muelle-1024.jpg",
+    "huella": "872aebff6ee2d3fc"
+  },
+  "/activities/kayak-rojo.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/kayak-rojo",
+    "respaldo": "/img/activities/kayak-rojo-1024.jpg",
+    "huella": "2f38c8370324d5ac"
+  },
+  "/activities/kayak-verde.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/kayak-verde",
+    "respaldo": "/img/activities/kayak-verde-1024.jpg",
+    "huella": "bdcae59b51b69af8"
+  },
+  "/activities/nado-boya.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/nado-boya",
+    "respaldo": "/img/activities/nado-boya-1024.jpg",
+    "huella": "4b39b4af17a09e29"
+  },
+  "/activities/nado-grupo.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/nado-grupo",
+    "respaldo": "/img/activities/nado-grupo-1024.jpg",
+    "huella": "86c138ee70712671"
+  },
+  "/activities/nado-muelle.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/nado-muelle",
+    "respaldo": "/img/activities/nado-muelle-1024.jpg",
+    "huella": "b6db784917a9bc60"
+  },
+  "/activities/palestra-nino.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/palestra-nino",
+    "respaldo": "/img/activities/palestra-nino-1024.jpg",
+    "huella": "7ac2c6f4289df1eb"
+  },
+  "/activities/palestra-pared.jpg": {
+    "ancho": 683,
+    "alto": 1024,
+    "anchos": [
+      480,
+      683
+    ],
+    "base": "/img/activities/palestra-pared",
+    "respaldo": "/img/activities/palestra-pared-683.jpg",
+    "huella": "b662a146619bc5c0"
+  },
+  "/activities/palestra-rincon.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/palestra-rincon",
+    "respaldo": "/img/activities/palestra-rincon-1024.jpg",
+    "huella": "5d920c09b6976fad"
+  },
+  "/activities/palestra-rosa.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/palestra-rosa",
+    "respaldo": "/img/activities/palestra-rosa-1024.jpg",
+    "huella": "d3bac09f1b056638"
+  },
+  "/activities/palestra-seguro.jpg": {
+    "ancho": 576,
+    "alto": 1024,
+    "anchos": [
+      480,
+      576
+    ],
+    "base": "/img/activities/palestra-seguro",
+    "respaldo": "/img/activities/palestra-seguro-576.jpg",
+    "huella": "5434dec8d21ea911"
+  },
+  "/activities/puente-adulto-letras.jpg": {
+    "ancho": 576,
+    "alto": 1024,
+    "anchos": [
+      480,
+      576
+    ],
+    "base": "/img/activities/puente-adulto-letras",
+    "respaldo": "/img/activities/puente-adulto-letras-576.jpg",
+    "huella": "23a738b9bb064049"
+  },
+  "/activities/puente-adulto-tablas.jpg": {
+    "ancho": 819,
+    "alto": 1024,
+    "anchos": [
+      480,
+      768,
+      819
+    ],
+    "base": "/img/activities/puente-adulto-tablas",
+    "respaldo": "/img/activities/puente-adulto-tablas-819.jpg",
+    "huella": "7567c098721fe36f"
+  },
+  "/activities/puente-adulto-vigas.jpg": {
+    "ancho": 576,
+    "alto": 1024,
+    "anchos": [
+      480,
+      576
+    ],
+    "base": "/img/activities/puente-adulto-vigas",
+    "respaldo": "/img/activities/puente-adulto-vigas-576.jpg",
+    "huella": "e3eeec6d45c26ec1"
+  },
+  "/activities/puente-ninos-guia.jpg": {
+    "ancho": 1024,
+    "alto": 682,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/puente-ninos-guia",
+    "respaldo": "/img/activities/puente-ninos-guia-1024.jpg",
+    "huella": "91aca68a000e38ec"
+  },
+  "/activities/puente-ninos-plataforma.jpg": {
+    "ancho": 576,
+    "alto": 1024,
+    "anchos": [
+      480,
+      576
+    ],
+    "base": "/img/activities/puente-ninos-plataforma",
+    "respaldo": "/img/activities/puente-ninos-plataforma-576.jpg",
+    "huella": "2e7c63c662708d99"
+  },
+  "/activities/puente-ninos-tablas.jpg": {
+    "ancho": 576,
+    "alto": 1024,
+    "anchos": [
+      480,
+      576
+    ],
+    "base": "/img/activities/puente-ninos-tablas",
+    "respaldo": "/img/activities/puente-ninos-tablas-576.jpg",
+    "huella": "f001320e555dd5d5"
+  },
+  "/activities/puente-ninos-tronco.jpg": {
+    "ancho": 682,
+    "alto": 1024,
+    "anchos": [
+      480,
+      682
+    ],
+    "base": "/img/activities/puente-ninos-tronco",
+    "respaldo": "/img/activities/puente-ninos-tronco-682.jpg",
+    "huella": "d92f7bac7eb7df1d"
+  },
+  "/activities/restaurante.jpg": {
+    "ancho": 640,
+    "alto": 480,
+    "anchos": [
+      480,
+      640
+    ],
+    "base": "/img/activities/restaurante",
+    "respaldo": "/img/activities/restaurante-640.jpg",
+    "huella": "59e929b0a7d5b384"
+  },
+  "/activities/tirolesa-nino.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/tirolesa-nino",
+    "respaldo": "/img/activities/tirolesa-nino-1024.jpg",
+    "huella": "75c635b839e370b8"
+  },
+  "/activities/tirolesa-pasto.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/tirolesa-pasto",
+    "respaldo": "/img/activities/tirolesa-pasto-1024.jpg",
+    "huella": "0d182f863102d070"
+  },
+  "/activities/tirolesa-torre.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/tirolesa-torre",
+    "respaldo": "/img/activities/tirolesa-torre-1024.jpg",
+    "huella": "5cb659e6f46ccf62"
+  },
+  "/activities/tirolesa-vuelo.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/activities/tirolesa-vuelo",
+    "respaldo": "/img/activities/tirolesa-vuelo-1024.jpg",
+    "huella": "e831e74f5466990f"
+  },
+  "/activities/tirolesa.jpg": {
+    "ancho": 780,
+    "alto": 520,
+    "anchos": [
+      480,
+      768,
+      780
+    ],
+    "base": "/img/activities/tirolesa",
+    "respaldo": "/img/activities/tirolesa-780.jpg",
+    "huella": "ca4a3e2e7fe58c5f"
+  },
+  "/bungalow.jpg": {
+    "ancho": 1000,
+    "alto": 667,
+    "anchos": [
+      480,
+      768,
+      1000
+    ],
+    "base": "/img/bungalow",
+    "respaldo": "/img/bungalow-1000.jpg",
+    "huella": "87dbfa56fe2ecda7"
+  },
+  "/canchas.jpg": {
+    "ancho": 1000,
+    "alto": 667,
+    "anchos": [
+      480,
+      768,
+      1000
+    ],
+    "base": "/img/canchas",
+    "respaldo": "/img/canchas-1000.jpg",
+    "huella": "2c6309e96f951e68"
+  },
+  "/covers/bungalows.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/bungalows",
+    "respaldo": "/img/covers/bungalows-1024.jpg",
+    "huella": "ccfdb93911540211"
+  },
+  "/covers/campamento.jpg": {
+    "ancho": 935,
+    "alto": 1024,
+    "anchos": [
+      480,
+      768,
+      935
+    ],
+    "base": "/img/covers/campamento",
+    "respaldo": "/img/covers/campamento-935.jpg",
+    "huella": "a8c91b50ead21774"
+  },
+  "/covers/canchas.jpg": {
+    "ancho": 828,
+    "alto": 490,
+    "anchos": [
+      480,
+      768,
+      828
+    ],
+    "base": "/img/covers/canchas",
+    "respaldo": "/img/covers/canchas-828.jpg",
+    "huella": "f952b9423a4519d2"
+  },
+  "/covers/grupos-estudiantiles.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/grupos-estudiantiles",
+    "respaldo": "/img/covers/grupos-estudiantiles-1024.jpg",
+    "huella": "0a004f6c03ec5539"
+  },
+  "/covers/lago.jpg": {
+    "ancho": 1024,
+    "alto": 589,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/lago",
+    "respaldo": "/img/covers/lago-1024.jpg",
+    "huella": "b65cdde89c542bbc"
+  },
+  "/covers/parque-aereo.jpg": {
+    "ancho": 1024,
+    "alto": 696,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/parque-aereo",
+    "respaldo": "/img/covers/parque-aereo-1024.jpg",
+    "huella": "de4e080405ecc62a"
+  },
+  "/covers/parrillas.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/parrillas",
+    "respaldo": "/img/covers/parrillas-1024.jpg",
+    "huella": "a702af955497f0c6"
+  },
+  "/covers/playa.jpg": {
+    "ancho": 1024,
+    "alto": 480,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/playa",
+    "respaldo": "/img/covers/playa-1024.jpg",
+    "huella": "33ecc5dd1a4317ff"
+  },
+  "/covers/restaurante.jpg": {
+    "ancho": 1024,
+    "alto": 680,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/covers/restaurante",
+    "respaldo": "/img/covers/restaurante-1024.jpg",
+    "huella": "528d3bd6f36d12da"
+  },
+  "/equipo-juegos.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/equipo-juegos",
+    "respaldo": "/img/equipo-juegos-1024.jpg",
+    "huella": "de3a565a230ac278"
+  },
+  "/equipo-palestra.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/equipo-palestra",
+    "respaldo": "/img/equipo-palestra-1024.jpg",
+    "huella": "08440ad6701a95ae"
+  },
+  "/equipo-predio.jpg": {
+    "ancho": 1024,
+    "alto": 723,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/equipo-predio",
+    "respaldo": "/img/equipo-predio-1024.jpg",
+    "huella": "039f6899ef78400d"
+  },
+  "/equipo.jpg": {
+    "ancho": 1024,
+    "alto": 768,
+    "anchos": [
+      480,
+      768,
+      1024
+    ],
+    "base": "/img/equipo",
+    "respaldo": "/img/equipo-1024.jpg",
+    "huella": "c95e302f3f86f94a"
+  },
+  "/lago.jpg": {
+    "ancho": 1000,
+    "alto": 668,
+    "anchos": [
+      480,
+      768,
+      1000
+    ],
+    "base": "/img/lago",
+    "respaldo": "/img/lago-1000.jpg",
+    "huella": "a4dc25748bccdbb8"
+  },
+  "/logo.png": {
+    "ancho": 199,
+    "alto": 199,
+    "anchos": [
+      199
+    ],
+    "base": "/img/logo",
+    "respaldo": "/img/logo-199.png",
+    "huella": "9e855972ada2ad56"
+  },
+  "/parque.jpg": {
+    "ancho": 1000,
+    "alto": 722,
+    "anchos": [
+      480,
+      768,
+      1000
+    ],
+    "base": "/img/parque",
+    "respaldo": "/img/parque-1000.jpg",
+    "huella": "924e553c1e0833af"
+  },
+  "/parrilla.jpg": {
+    "ancho": 1000,
+    "alto": 1333,
+    "anchos": [
+      480,
+      768,
+      1000
+    ],
+    "base": "/img/parrilla",
+    "respaldo": "/img/parrilla-1000.jpg",
+    "huella": "d19c16111bcd24c1"
+  },
+  "/playa.jpg": {
+    "ancho": 900,
+    "alto": 600,
+    "anchos": [
+      480,
+      768,
+      900
+    ],
+    "base": "/img/playa",
+    "respaldo": "/img/playa-900.jpg",
+    "huella": "5784d55537fa75a5"
+  },
+  "/posters/hero.jpg": {
+    "ancho": 1280,
+    "alto": 720,
+    "anchos": [
+      480,
+      768,
+      1024,
+      1280
+    ],
+    "base": "/img/posters/hero",
+    "respaldo": "/img/posters/hero-1024.jpg",
+    "huella": "afb35af07251ab25"
+  },
+  "/posters/para-quien.jpg": {
+    "ancho": 1280,
+    "alto": 720,
+    "anchos": [
+      480,
+      768,
+      1024,
+      1280
+    ],
+    "base": "/img/posters/para-quien",
+    "respaldo": "/img/posters/para-quien-1024.jpg",
+    "huella": "3400642060144b5e"
+  },
+  "/posters/ubicacion.jpg": {
+    "ancho": 1280,
+    "alto": 720,
+    "anchos": [
+      480,
+      768,
+      1024,
+      1280
+    ],
+    "base": "/img/posters/ubicacion",
+    "respaldo": "/img/posters/ubicacion-1024.jpg",
+    "huella": "0dca90642540104f"
+  }
+}

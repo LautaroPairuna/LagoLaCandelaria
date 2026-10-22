@@ -208,7 +208,7 @@ El catálogo de actividades está en `lib/activities.ts` para editarlo sin tocar
 
 ## Fotos y videos
 
-Las fotos originales van en `fotos/`. `npm run fotos` (corre solo antes de `dev` y `build`) las pasa por sharp y deja en `public/img/` las versiones AVIF, WebP y JPG en varios anchos, más `lib/fotos.generadas.json` con las medidas. Nada de eso se commitea. En el código se usa `<Foto src="/covers/lago.jpg" … />` con la ruta relativa a `fotos/`.
+Las fotos originales van en `fotos/`. `npm run fotos` (corre solo antes de `dev` y `build`) las pasa por sharp y deja en `public/img/` las versiones AVIF, WebP y JPG en varios anchos, más `lib/fotos.generadas.json` con las medidas y la huella de cada original. **Las variantes y el manifiesto se commitean**: así el build de cada deploy no las vuelve a generar (eran 337 archivos y unos 2 minutos de CPU por deploy). Una foto se procesa solo si cambió su original o le falta alguna variante, y las variantes de fotos que se sacan de `fotos/` se borran solas. Al agregar o cambiar una foto: `npm run fotos` y commitear `fotos/`, `public/img/` y el manifiesto juntos. En el código se usa `<Foto src="/covers/lago.jpg" … />` con la ruta relativa a `fotos/`.
 
 Los videos de fondo están en `public/` a 720p y alrededor de 1,5 Mbps. Si se cambia uno, recodificarlo igual y sacar el póster en `fotos/posters/`:
 
