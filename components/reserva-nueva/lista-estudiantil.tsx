@@ -4,9 +4,10 @@ import { ArrowRight, ChevronDown, Sun } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
+import { useContenido } from "@/components/contenido-del-sitio"
 import { Foto } from "@/components/foto"
 import styles from "@/components/student-options.module.css"
-import { seccionesEstudiantiles, type FichaEstudiantil, type ItemEstudiantil, type SeccionEstudiantil } from "@/lib/propuestas"
+import type { FichaEstudiantil, ItemEstudiantil, SeccionEstudiantil } from "@/lib/propuestas"
 
 const iconoDeSeccion = {
   campamento: { Icono: Carpa, fondo: "bg-green-soft text-green" },
@@ -16,6 +17,7 @@ const iconoDeSeccion = {
 
 export function ListaEstudiantil({ onReservar }: { onReservar?: (id: string) => void }) {
   const [seccionAbierta, setSeccionAbierta] = useState<SeccionEstudiantil["id"] | null>(null)
+  const { estudiantiles: seccionesEstudiantiles } = useContenido()
 
   return (
     <div className={`${styles.layout} ${seccionAbierta ? styles.expanded : styles.compact}`}>

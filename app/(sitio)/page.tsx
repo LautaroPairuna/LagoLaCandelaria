@@ -7,7 +7,8 @@ import { ActivityMosaic } from "@/components/activity-mosaic"
 import { PortalesInicio } from "@/components/portales-inicio"
 import { RecuadroReservas, RecuadroReservasDelEnlace } from "@/components/reserva-nueva/recuadro-reservas"
 import { VideoFondo } from "@/components/video-fondo"
-import { contenidoDelSitio } from "@/lib/contenido/leer"
+import { tarjetasDeActividades } from "@/lib/contenido/fichas"
+import { contenidoDelSitio, fichasDelSitio } from "@/lib/contenido/leer"
 import { fotoUrl } from "@/lib/fotos"
 import { seoDeInicio } from "@/lib/seo"
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = seoDeInicio()
 // La propuesta que llega por el enlace (?propuesta=...) la lee el recuadro de reservas en
 // el navegador.
 export default async function HomePage() {
-  const { inicio } = await contenidoDelSitio()
+  const [{ inicio }, { actividades, estadias }] = await Promise.all([contenidoDelSitio(), fichasDelSitio()])
   return (
     <main>
       <section className="hero-on-video sticky top-0 z-0 flex min-h-svh flex-col overflow-hidden text-cream">
@@ -50,7 +51,7 @@ export default async function HomePage() {
       </section>
 
       <div className="relative z-10">
-        <ActivityMosaic />
+        <ActivityMosaic titulo={inicio.actividadesTitulo} tarjetas={tarjetasDeActividades(actividades, estadias)} />
 
         <section
           id="como-reservar"

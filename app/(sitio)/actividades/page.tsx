@@ -2,21 +2,23 @@ import Link from "next/link"
 
 import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
-import { categories } from "@/lib/categories"
+import { contenidoDelSitio, fichasDelSitio } from "@/lib/contenido/leer"
 import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
 export const metadata = seoDePagina({ ...seoDePaginas.actividades, ruta: "/actividades" })
 
-export default function ActividadesPage() {
+export default async function ActividadesPage() {
+  const [{ paginas }, { actividades }] = await Promise.all([contenidoDelSitio(), fichasDelSitio()])
+  const encabezado = paginas.actividades
   return (
     <main className="bg-foam text-ink">
-      <PageHero kicker="Actividades" title={<>El predio, actividad por actividad.</>}>
-        La entrada es una sola, al predio. Cada ficha cuenta cómo se hace: el agua, la altura, las canchas, la playa, las parrillas y la mesa. Adentro están la infraestructura, la seguridad y las variantes.
+      <PageHero kicker={encabezado.kicker} title={encabezado.titulo}>
+        {encabezado.texto}
       </PageHero>
 
       <div className="mx-auto max-w-[1120px] px-5 pb-20 md:px-8">
         <ul className="grid gap-6">
-          {categories.map((category) => (
+          {actividades.map((category) => (
             <li key={category.slug}>
               <Link
                 href={`/categorias/${category.slug}`}

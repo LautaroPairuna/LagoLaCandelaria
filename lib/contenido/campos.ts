@@ -8,9 +8,18 @@ import { normalizarTelefono } from "@/lib/predio/contacto"
 
 type Comun = { clave: string; etiqueta: string; ayuda?: string }
 
-export type CampoDeTexto = Comun & { tipo: "texto"; max: number; multilinea?: boolean; formato?: "telefono" | "email" | "usuario" }
+export type CampoDeTexto = Comun & {
+  tipo: "texto"
+  max: number
+  multilinea?: boolean
+  formato?: "telefono" | "email" | "usuario" | "numero" | "estrellas"
+  /// Puede quedar vacío: lo que muestra se saltea.
+  opcional?: boolean
+}
 export type CampoDeFoto = Comun & { tipo: "foto" }
 export type CampoDeVideo = Comun & { tipo: "video" }
+/// Varios campos que van juntos en una tarjeta (el plano de una ficha, un reglamento).
+export type CampoDeGrupo = Comun & { tipo: "grupo"; campos: Campo[] }
 export type CampoDeLista = Comun & {
   tipo: "lista"
   campos: Campo[]
@@ -26,7 +35,7 @@ export type CampoDeLista = Comun & {
   titulo?: string
 }
 
-export type Campo = CampoDeTexto | CampoDeFoto | CampoDeVideo | CampoDeLista
+export type Campo = CampoDeTexto | CampoDeFoto | CampoDeVideo | CampoDeGrupo | CampoDeLista
 
 export type FotoConTexto = { src: string; alt: string }
 export type VideoDeFondo = { src: string; poster: string }
@@ -45,7 +54,11 @@ export function telefonoDelPredio(texto: string) {
 }
 
 function esquemaDeTexto(campo: CampoDeTexto) {
-  const base = z.string(`Completá «${campo.etiqueta}».`).trim().min(1, `Completá «${campo.etiqueta}».`).max(campo.max, `«${campo.etiqueta}» es muy largo: hasta ${campo.max} letras.`)
+  const largo = z.string(`Completá «${campo.etiqueta}».`).trim().max(campo.max, `«${campo.etiqueta}» es muy largo: hasta ${campo.max} letras.`)
+  if (campo.opcional) return largo
+  const base = largo.min(1, `Completá «${campo.etiqueta}».`)
+  if (campo.formato === "numero") return base.refine((valor) => /^\d+([.,]\d+)?$/.test(valor), `«${campo.etiqueta}» tiene que ser un número.`)
+  if (campo.formato === "estrellas") return base.refine((valor) => /^[1-5]$/.test(valor), "Las estrellas van de 1 a 5.")
   if (campo.formato === "telefono") return base.refine((valor) => telefonoDelPredio(valor) !== null, "Escribí el número con característica, por ejemplo 11 3009-1020.")
   if (campo.formato === "email") return base.pipe(z.email("Revisá el correo."))
   if (campo.formato === "usuario") return base.transform((valor) => valor.replace(/^[@/]+/, "")).refine((valor) => /^[\w.-]+$/.test(valor), "Escribí solo el usuario, sin espacios ni enlaces.")
@@ -66,6 +79,7 @@ function esquemaDeCampo(campo: Campo): z.ZodType {
   if (campo.tipo === "texto") return esquemaDeTexto(campo)
   if (campo.tipo === "foto") return esquemaDeFoto
   if (campo.tipo === "video") return esquemaDeVideo
+  if (campo.tipo === "grupo") return esquemaDe(campo.campos)
   const item = esquemaDe(campo.campos)
   return z
     .array(item)

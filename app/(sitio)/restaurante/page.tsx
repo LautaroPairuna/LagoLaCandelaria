@@ -1,6 +1,7 @@
 
 import { ButtonLink } from "@/components/button-link"
 import { PageHero } from "@/components/page-hero"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
 import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
 export const metadata = seoDePagina({ ...seoDePaginas.restaurante, ruta: "/restaurante" })
@@ -24,11 +25,12 @@ const sectors = [
   },
 ]
 
-export default function RestaurantePage() {
+export default async function RestaurantePage() {
+  const encabezado = (await contenidoDelSitio()).paginas.restaurante
   return (
     <main className="bg-foam text-ink">
-      <PageHero kicker="Restaurante" title={<>La mesa también es parte del día.</>}>
-        Se puede comer en el predio o traer la comida y la bebida. Las dos cosas conviven. El sector —restaurante, parrilla, gazebo o bar de playa— se define cuando reservan.
+      <PageHero kicker={encabezado.kicker} title={encabezado.titulo}>
+        {encabezado.texto}
       </PageHero>
 
       <section className="mx-auto max-w-[1120px] px-5 py-16 md:px-8 md:py-24">

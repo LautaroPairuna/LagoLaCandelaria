@@ -2,16 +2,21 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 
-import { contenidoPorDefecto, type ContenidoDelSitio } from "@/lib/contenido/secciones"
+import type { Contacto, Propuestas } from "@/lib/contenido/secciones"
+import type { SeccionEstudiantil } from "@/lib/propuestas"
 
-/// Lleva a los componentes del navegador (el recuadro de reservas, los profes) lo que se
-/// editó desde el panel. Lo carga el layout del sitio.
-const Contexto = createContext<ContenidoDelSitio>(contenidoPorDefecto)
+/// Lleva a los componentes del navegador (el recuadro de reservas, los profes, el ticket)
+/// lo que se editó desde el panel. Lo carga el layout del sitio con solo lo que usan.
+export type ContenidoPublico = { contacto: Contacto; propuestas: Propuestas; estudiantiles: SeccionEstudiantil[] }
 
-export function ProveedorDeContenido({ contenido, children }: { contenido: ContenidoDelSitio; children: ReactNode }) {
+const Contexto = createContext<ContenidoPublico | null>(null)
+
+export function ProveedorDeContenido({ contenido, children }: { contenido: ContenidoPublico; children: ReactNode }) {
   return <Contexto value={contenido}>{children}</Contexto>
 }
 
 export function useContenido() {
-  return useContext(Contexto)
+  const contenido = useContext(Contexto)
+  if (!contenido) throw new Error("useContenido fuera de ProveedorDeContenido: va dentro del layout del sitio")
+  return contenido
 }

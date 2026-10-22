@@ -4,12 +4,9 @@ import { notFound } from "next/navigation"
 
 import { CategoryDetail } from "@/components/category-detail"
 import { categories, getCategory } from "@/lib/categories"
+import { fichasDelSitio } from "@/lib/contenido/leer"
 import { menuDelLocal } from "@/lib/panel/cuentas"
 import { seoDeCategorias, seoDePagina } from "@/lib/seo"
-
-// Se pregenera; la ficha del bar muestra la carta, que se renueva cada 5 minutos y cada
-// vez que se edita desde el panel.
-export const revalidate = 300
 
 export function generateStaticParams() {
   return categories.map((category) => ({ slug: category.slug }))
@@ -37,10 +34,11 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const category = getCategory(slug)
+  const { actividades } = await fichasDelSitio()
+  const category = actividades.find((item) => item.slug === slug)
   if (!category) notFound()
 
-  const others = categories.filter((item) => item.slug !== category.slug)
+  const others = actividades.filter((item) => item.slug !== category.slug)
   const restaurantMenu =
     category.slug === "bar"
       ? await menuDelLocal("RESTAURANTE", true).catch(() => [])

@@ -2,21 +2,23 @@ import Link from "next/link"
 
 import { Foto } from "@/components/foto"
 import { PageHero } from "@/components/page-hero"
-import { stays } from "@/lib/categories"
+import { contenidoDelSitio, fichasDelSitio } from "@/lib/contenido/leer"
 import { seoDePagina, seoDePaginas } from "@/lib/seo"
 
 export const metadata = seoDePagina({ ...seoDePaginas.estadia, ruta: "/estadia" })
 
-export default function EstadiaPage() {
+export default async function EstadiaPage() {
+  const [{ paginas }, { estadias }] = await Promise.all([contenidoDelSitio(), fichasDelSitio()])
+  const encabezado = paginas.estadia
   return (
     <main className="bg-foam text-ink">
-      <PageHero kicker="Estadía" title={<>Dormir en el predio, o pasar el día y volver.</>}>
-        Bungalows para pocos, campamento para el curso, o el día sin quedarse. Cada ficha cuenta qué incluye, dónde está en el predio y cómo sigue la reserva.
+      <PageHero kicker={encabezado.kicker} title={encabezado.titulo}>
+        {encabezado.texto}
       </PageHero>
 
       <div className="mx-auto max-w-[1120px] px-5 pb-20 md:px-8">
         <ul className="grid gap-6">
-          {stays.map((stay) => (
+          {estadias.map((stay) => (
             <li key={stay.slug}>
               <Link
                 href={`/estadia/${stay.slug}`}

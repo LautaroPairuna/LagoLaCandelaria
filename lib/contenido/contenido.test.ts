@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest"
 
 import { esquemaDe, esVideoValido } from "@/lib/contenido/campos"
 import { canalesDe, enlaceWhatsapp, telefonosDe } from "@/lib/contenido/derivados"
-import { contenidoPorDefecto, secciones, type ClaveDeSeccion } from "@/lib/contenido/secciones"
+import { registro } from "@/lib/contenido/registro"
+import { contenidoPorDefecto, secciones } from "@/lib/contenido/secciones"
 import { esFotoValida, fotoGenerada, fotoUrl } from "@/lib/fotos"
 
-const claves = Object.keys(secciones) as ClaveDeSeccion[]
-
 describe("contenido del sitio", () => {
-  it.each(claves)("el contenido de fábrica de %s pasa su propia validación sin cambios", (clave) => {
-    expect(esquemaDe(secciones[clave].campos).parse(contenidoPorDefecto[clave])).toEqual(contenidoPorDefecto[clave])
+  it.each(registro.map((definicion) => [definicion.clave, definicion] as const))("el contenido de fábrica de %s pasa su propia validación sin cambios", (_clave, definicion) => {
+    expect(esquemaDe(definicion.campos).parse(definicion.porDefecto)).toEqual(definicion.porDefecto)
+  })
+
+  it("las claves entran en la columna de la tabla", () => {
+    expect(Math.max(...registro.map((definicion) => definicion.clave.length))).toBeLessThanOrEqual(40)
   })
 
   it("arma los mismos enlaces que tenía el sitio", () => {

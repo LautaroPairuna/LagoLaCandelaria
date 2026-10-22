@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 
 import { CategoryDetail } from "@/components/category-detail"
 import { getStay, stays } from "@/lib/categories"
+import { fichasDelSitio } from "@/lib/contenido/leer"
 import { seoDeEstadias, seoDePagina } from "@/lib/seo"
 
 export function generateStaticParams() {
@@ -32,10 +33,11 @@ export default async function StayPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const stay = getStay(slug)
+  const { estadias } = await fichasDelSitio()
+  const stay = estadias.find((item) => item.slug === slug)
   if (!stay) notFound()
 
-  const others = stays.filter((item) => item.slug !== stay.slug)
+  const others = estadias.filter((item) => item.slug !== stay.slug)
 
   return (
     <main>

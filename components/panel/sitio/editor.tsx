@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { guardarContenido, restaurarContenido } from "@/app/panel/sitio/acciones"
 import { Foto } from "@/components/foto"
 import { avisarError, conAviso, llamar } from "@/lib/avisos"
-import { videosDelSitio, type Campo, type CampoDeFoto, type CampoDeLista, type CampoDeTexto, type CampoDeVideo, type FotoConTexto, type VideoDeFondo } from "@/lib/contenido/campos"
+import { videosDelSitio, type Campo, type CampoDeFoto, type CampoDeLista, type CampoDeTexto, type CampoDeGrupo, type CampoDeVideo, type FotoConTexto, type VideoDeFondo } from "@/lib/contenido/campos"
 import type { Fallo } from "@/lib/errores"
 import { esFotoValida, fotoUrl } from "@/lib/fotos"
 import { cn } from "cn"
@@ -37,7 +37,7 @@ function vacio(campos: Campo[]): Valor {
   return Object.fromEntries(
     campos.map((campo) => [
       campo.clave,
-      campo.tipo === "texto" ? "" : campo.tipo === "foto" ? { src: "", alt: "" } : campo.tipo === "video" ? { src: "", poster: "" } : Array.from({ length: campo.min }, () => vacio(campo.campos)),
+      campo.tipo === "texto" ? "" : campo.tipo === "foto" ? { src: "", alt: "" } : campo.tipo === "video" ? { src: "", poster: "" } : campo.tipo === "grupo" ? vacio(campo.campos) : Array.from({ length: campo.min }, () => vacio(campo.campos)),
     ]),
   )
 }
@@ -141,6 +141,7 @@ function Campos({ campos, valor, ruta, contexto }: { campos: Campo[]; valor: Val
     const rutaDelCampo = [...ruta, campo.clave]
     if (campo.tipo === "texto") return <CampoTexto key={campo.clave} campo={campo} valor={String(valor[campo.clave] ?? "")} ruta={rutaDelCampo} contexto={contexto} />
     if (campo.tipo === "foto") return <CampoFoto key={campo.clave} campo={campo} valor={valor[campo.clave] as FotoConTexto} ruta={rutaDelCampo} contexto={contexto} />
+    if (campo.tipo === "grupo") return <CampoGrupo key={campo.clave} campo={campo} valor={(valor[campo.clave] as Valor) ?? {}} ruta={rutaDelCampo} contexto={contexto} />
     if (campo.tipo === "video") return <CampoVideo key={campo.clave} campo={campo} valor={valor[campo.clave] as VideoDeFondo} ruta={rutaDelCampo} contexto={contexto} />
     return <CampoLista key={campo.clave} campo={campo} valor={(valor[campo.clave] as Valor[]) ?? []} ruta={rutaDelCampo} contexto={contexto} />
   })
@@ -168,7 +169,10 @@ function CampoTexto({ campo, valor, ruta, contexto }: { campo: CampoDeTexto; val
   return (
     <label className="block text-sm font-semibold text-panel-muted" htmlFor={id(ruta)}>
       <span className="flex items-baseline justify-between gap-3">
-        <span className="text-panel-ink">{campo.etiqueta}</span>
+        <span className="text-panel-ink">
+          {campo.etiqueta}
+          {campo.opcional ? <span className="font-normal text-panel-muted"> (opcional)</span> : null}
+        </span>
         <span className="text-xs font-normal tabular-nums">
           {valor.length}/{campo.max}
         </span>
@@ -391,6 +395,20 @@ function ElegirFoto({ fotos, onElegir, onCerrar }: { fotos: string[]; onElegir: 
         ))}
       </ul>
     </dialog>
+  )
+}
+
+function CampoGrupo({ campo, valor, ruta, contexto }: { campo: CampoDeGrupo; valor: Valor; ruta: Ruta; contexto: Contexto }) {
+  return (
+    <section className={tarjeta} aria-labelledby={`${id(ruta)}-titulo`}>
+      <h2 id={`${id(ruta)}-titulo`} className="font-display text-2xl tracking-tight">
+        {campo.etiqueta}
+      </h2>
+      {campo.ayuda ? <p className="mt-1 text-sm text-panel-muted">{campo.ayuda}</p> : null}
+      <div className="mt-4 space-y-4">
+        <Campos campos={campo.campos} valor={valor} ruta={ruta} contexto={contexto} />
+      </div>
+    </section>
   )
 }
 

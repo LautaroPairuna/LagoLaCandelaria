@@ -40,6 +40,7 @@ export function RecuadroReservas({ propuestaInicial, opcionInicial }: { propuest
     caminoInicial === "aventura" && (aventuraInicial === "nado" || aventuraInicial === "profes") ? aventuraInicial : null,
   )
   const [carta, setCarta] = useState<CartaPublica[]>([])
+  const { estudiantiles } = useContenido()
   const cartaLista = useRef(false)
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export function RecuadroReservas({ propuestaInicial, opcionInicial }: { propuest
     subirAlRecuadro()
   }
 
-  const estudiantil = estudiantilId ? buscarPropuestaEstudiantil(estudiantilId) : undefined
+  const estudiantil = estudiantilId ? estudiantiles.flatMap((seccion) => seccion.propuestas).find((item) => item.id === estudiantilId) : undefined
   const volverTexto = estudiantilId ? "Volver a las propuestas" : aventura ? "Volver a las actividades" : "Elegir otra visita"
 
   return (

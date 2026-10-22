@@ -1,4 +1,5 @@
-import { googleRating, googleReviews, type GoogleReview } from "@/lib/google-reviews"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
+import type { GoogleReview } from "@/lib/google-reviews"
 import { mapUrl } from "@/lib/site"
 
 function StarGlyph() {
@@ -43,11 +44,11 @@ function ReviewCard({ review }: { review: GoogleReview }) {
   )
 }
 
-function ReviewLoop() {
+function ReviewLoop({ reviews }: { reviews: GoogleReview[] }) {
   return (
     <div className="review-loop">
-      {googleReviews.map((review) => (
-        <div key={review.name} className="review-slot">
+      {reviews.map((review, indice) => (
+        <div key={`${indice}-${review.name}`} className="review-slot">
           <ReviewCard review={review} />
         </div>
       ))}
@@ -55,7 +56,10 @@ function ReviewLoop() {
   )
 }
 
-export function GoogleReviews() {
+export async function GoogleReviews() {
+  const { resenas } = await contenidoDelSitio()
+  const googleRating = { score: Number(resenas.puntaje.replace(",", ".")), count: Number(resenas.cantidad.replace(/\D/g, "")) }
+  const googleReviews: GoogleReview[] = resenas.resenas.map((resena) => ({ ...resena, rating: Number(resena.rating) }))
   const score = googleRating.score.toLocaleString("es-AR", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
@@ -74,9 +78,9 @@ export function GoogleReviews() {
       </a>
       <div className="review-marquee">
         <div className="review-track">
-          <ReviewLoop />
+          <ReviewLoop reviews={googleReviews} />
           <div aria-hidden>
-            <ReviewLoop />
+            <ReviewLoop reviews={googleReviews} />
           </div>
         </div>
       </div>

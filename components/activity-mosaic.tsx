@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 
 import { Foto } from "@/components/foto"
-import { getCategory, getStay } from "@/lib/categories"
 
-type Card = {
+export type Card = {
   title: string
   chips: string[]
   image: string
@@ -14,31 +13,6 @@ type Card = {
   position?: string
   compact?: boolean
 }
-
-const activityLayout: { slug: string; side: "left" | "right"; stay?: boolean; title?: string }[] = [
-  { slug: "lago", side: "left" },
-  { slug: "parque-aereo", side: "right" },
-  { slug: "canchas", side: "left" },
-  { slug: "playa", side: "right" },
-  { slug: "parrillas", side: "left" },
-  { slug: "bar", side: "right" },
-  { slug: "bungalows", side: "left", stay: true },
-  { slug: "campamento", side: "right", stay: true, title: "Propuestas estudiantiles" },
-]
-
-const activities: Card[] = activityLayout.map(({ slug, side, stay, title }) => {
-  const item = stay ? getStay(slug) : getCategory(slug)
-  if (!item) throw new Error(`Falta la ficha ${slug}`)
-  return {
-    title: title ?? item.title,
-    chips: item.subactivities.map((sub) => sub.chip),
-    image: item.banner.src,
-    href: stay ? `/estadia/${slug}` : `/categorias/${slug}`,
-    side,
-    position: slug === "parrillas" ? item.banner.position : undefined,
-    compact: stay,
-  }
-})
 
 function SideCard({ card }: { card: Card }) {
   const ref = useRef<HTMLAnchorElement>(null)
@@ -93,16 +67,16 @@ function SideCard({ card }: { card: Card }) {
   )
 }
 
-export function ActivityMosaic() {
+export function ActivityMosaic({ titulo, tarjetas }: { titulo: string; tarjetas: Card[] }) {
   return (
     <div className="offer-world wave-top">
       <section className="offer-stage offer-stage-lead" data-nav="actividades" aria-labelledby="actividades">
         <div className="mx-auto w-full max-w-[1440px] px-3 md:px-6">
           <h2 id="actividades" className="offer-heading font-display">
-            Una entrada, todas las actividades
+            {titulo}
           </h2>
           <div className="offer-field offer-activities">
-            {activities.map((card) => (
+            {tarjetas.map((card) => (
               <SideCard key={card.title} card={card} />
             ))}
           </div>

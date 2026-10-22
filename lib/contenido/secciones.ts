@@ -1,4 +1,7 @@
 import type { Campo, FotoConTexto, VideoDeFondo } from "@/lib/contenido/campos"
+import { googleReviews } from "@/lib/google-reviews"
+import { HORARIO_DEL_PREDIO, horarioDeActividades, reglamentos as reglamentosDeFabrica, type TipoDeReglamento } from "@/lib/reglamentos"
+import { googleRating } from "@/lib/site"
 
 /// Las secciones del sitio que se editan desde el panel. Los valores por defecto son los
 /// que el sitio tenía escritos: mientras nadie guarde una sección, se ve igual que antes.
@@ -15,6 +18,7 @@ export type Contacto = {
 
 export type Inicio = {
   titulo: string
+  actividadesTitulo: string
   subtitulo: string
   videoPortada: VideoDeFondo
   videoComoReservar: VideoDeFondo
@@ -39,10 +43,21 @@ export type Propuestas = {
   profes: Profe[]
 }
 
-export type ContenidoDelSitio = { contacto: Contacto; inicio: Inicio; propuestas: Propuestas }
-export type ClaveDeSeccion = keyof ContenidoDelSitio
+type Encabezado = { kicker: string; titulo: string; texto: string }
+export type Paginas = { actividades: Encabezado; estadia: Encabezado; restaurante: Encabezado }
 
-export const contenidoPorDefecto: ContenidoDelSitio = {
+type ReglamentoEditable = { titulo: string; reglas: { texto: string }[]; parrafos: { texto: string }[] }
+export type Reglamentos = Record<TipoDeReglamento, ReglamentoEditable> & {
+  horarioDelPredio: string
+  horarios: { actividad: string; horario: string; nota: string }[]
+}
+
+export type Resenas = { puntaje: string; cantidad: string; resenas: { name: string; rating: string; when: string; text: string }[] }
+
+export type SeccionesFijas = { contacto: Contacto; inicio: Inicio; propuestas: Propuestas; paginas: Paginas; reglamentos: Reglamentos; resenas: Resenas }
+export type ClaveFija = keyof SeccionesFijas
+
+export const contenidoPorDefecto: SeccionesFijas = {
   contacto: {
     whatsapp: "11 3009-1020",
     telefonoFijo: "4851-1060",
@@ -54,6 +69,7 @@ export const contenidoPorDefecto: ContenidoDelSitio = {
   },
   inicio: {
     titulo: "Aventura y descanso entre amigos y familia",
+    actividadesTitulo: "Una entrada, todas las actividades",
     subtitulo: "Estamos en Tristán Suárez, a tan solo 30 minutos de Capital Federal",
     videoPortada: { src: "/hero.mp4", poster: "/posters/hero.jpg" },
     videoComoReservar: { src: "/para-quien.mp4", poster: "/posters/para-quien.jpg" },
@@ -111,6 +127,40 @@ export const contenidoPorDefecto: ContenidoDelSitio = {
       { nombre: "Profe Mica", telefono: "11 5103-2295" },
     ],
   },
+  paginas: {
+    actividades: {
+      kicker: "Actividades",
+      titulo: "El predio, actividad por actividad.",
+      texto:
+        "La entrada es una sola, al predio. Cada ficha cuenta cómo se hace: el agua, la altura, las canchas, la playa, las parrillas y la mesa. Adentro están la infraestructura, la seguridad y las variantes.",
+    },
+    estadia: {
+      kicker: "Estadía",
+      titulo: "Dormir en el predio, o pasar el día y volver.",
+      texto: "Bungalows para pocos, campamento para el curso, o el día sin quedarse. Cada ficha cuenta qué incluye, dónde está en el predio y cómo sigue la reserva.",
+    },
+    restaurante: {
+      kicker: "Restaurante",
+      titulo: "La mesa también es parte del día.",
+      texto:
+        "Se puede comer en el predio o traer la comida y la bebida. Las dos cosas conviven. El sector —restaurante, parrilla, gazebo o bar de playa— se define cuando reservan.",
+    },
+  },
+  reglamentos: {
+    ...(Object.fromEntries(
+      Object.entries(reglamentosDeFabrica).map(([tipo, reglamento]) => [
+        tipo,
+        { titulo: reglamento.titulo, reglas: reglamento.reglas.map((texto) => ({ texto })), parrafos: reglamento.parrafos.map((texto) => ({ texto })) },
+      ]),
+    ) as Record<TipoDeReglamento, ReglamentoEditable>),
+    horarioDelPredio: HORARIO_DEL_PREDIO,
+    horarios: horarioDeActividades.map(({ actividad, horario, nota }) => ({ actividad, horario, nota: nota ?? "" })),
+  },
+  resenas: {
+    puntaje: String(googleRating.score),
+    cantidad: String(googleRating.count),
+    resenas: googleReviews.map(({ name, rating, when, text }) => ({ name, rating: String(rating), when, text })),
+  },
 }
 
 const foto: Campo = { tipo: "foto", clave: "foto", etiqueta: "Foto" }
@@ -127,7 +177,25 @@ const tarjeta = (nombres: string[]): Campo => ({
   campos: [{ tipo: "texto", clave: "titulo", etiqueta: "Título", max: 60 }, { tipo: "texto", clave: "detalle", etiqueta: "Texto", max: 220, multilinea: true }, foto],
 })
 
-export const secciones: Record<ClaveDeSeccion, { nombre: string; descripcion: string; campos: Campo[] }> = {
+const texto = (clave: string, etiqueta: string, max: number, extra: Partial<Extract<Campo, { tipo: "texto" }>> = {}): Campo => ({ tipo: "texto", clave, etiqueta, max, ...extra })
+const encabezado = (clave: string, etiqueta: string): Campo => ({
+  tipo: "grupo",
+  clave,
+  etiqueta,
+  campos: [texto("kicker", "Antetítulo", 30), texto("titulo", "Título", 90), texto("texto", "Texto", 400, { multilinea: true })],
+})
+const reglamento = (clave: TipoDeReglamento): Campo => ({
+  tipo: "grupo",
+  clave,
+  etiqueta: reglamentosDeFabrica[clave].titulo,
+  campos: [
+    texto("titulo", "Título", 80),
+    { tipo: "lista", clave: "reglas", etiqueta: "Reglas", item: "Regla", min: 1, max: 30, campos: [texto("texto", "Texto", 400, { multilinea: true })] },
+    { tipo: "lista", clave: "parrafos", etiqueta: "Párrafos del final", item: "Párrafo", min: 0, max: 8, campos: [texto("texto", "Texto", 600, { multilinea: true })] },
+  ],
+})
+
+export const secciones: Record<ClaveFija, { nombre: string; descripcion: string; campos: Campo[] }> = {
   contacto: {
     nombre: "Contacto y redes",
     descripcion: "Los teléfonos, el correo y las redes que aparecen en «Más información», en el ticket de cada reserva y en los botones de WhatsApp.",
@@ -148,6 +216,7 @@ export const secciones: Record<ClaveDeSeccion, { nombre: string; descripcion: st
       { tipo: "texto", clave: "titulo", etiqueta: "Título de la portada", max: 80 },
       { tipo: "texto", clave: "subtitulo", etiqueta: "Bajada de la portada", max: 120 },
       { tipo: "video", clave: "videoPortada", etiqueta: "Video de la portada", ayuda: "Se ve detrás del título, sin sonido y en bucle." },
+      { tipo: "texto", clave: "actividadesTitulo", etiqueta: "Título de las actividades", ayuda: "Encabeza las tarjetas de actividades; las tarjetas salen de cada ficha.", max: 80 },
       { tipo: "video", clave: "videoComoReservar", etiqueta: "Video de «Cómo reservar»" },
       { tipo: "video", clave: "videoUbicacion", etiqueta: "Video de «Ubicación»" },
       { tipo: "texto", clave: "comoReservarTitulo", etiqueta: "Título de «Cómo reservar»", max: 60 },
@@ -178,6 +247,50 @@ export const secciones: Record<ClaveDeSeccion, { nombre: string; descripcion: st
           { tipo: "texto", clave: "nombre", etiqueta: "Nombre", max: 40 },
           { tipo: "texto", clave: "telefono", etiqueta: "WhatsApp", max: 20, formato: "telefono" },
         ],
+      },
+    ],
+  },
+  paginas: {
+    nombre: "Encabezados de páginas",
+    descripcion: "El título grande y el texto de entrada de Actividades, Estadía y Restaurante.",
+    campos: [encabezado("actividades", "Actividades"), encabezado("estadia", "Estadía"), encabezado("restaurante", "Restaurante")],
+  },
+  reglamentos: {
+    nombre: "Reglamentos y horarios",
+    descripcion: "Lo que se ve en cada ticket y en /reglamento, y lo que quien reserva le reenvía al grupo por WhatsApp.",
+    campos: [
+      reglamento("finde"),
+      reglamento("bungalow"),
+      reglamento("nado"),
+      texto("horarioDelPredio", "Horario del predio", 40, { ayuda: "Como se lee: «De 10 a 19 hs». También va en el mensaje para el grupo." }),
+      {
+        tipo: "lista",
+        clave: "horarios",
+        etiqueta: "Horario de actividades",
+        ayuda: "Se manda a quienes reservan finde en familia o bungalow.",
+        item: "Actividad",
+        min: 1,
+        max: 20,
+        titulo: "actividad",
+        campos: [texto("actividad", "Actividad", 60), texto("horario", "Horario", 60), texto("nota", "Nota", 160, { opcional: true })],
+      },
+    ],
+  },
+  resenas: {
+    nombre: "Reseñas",
+    descripcion: "El puntaje de Google y las opiniones que se muestran en «Puntuación».",
+    campos: [
+      texto("puntaje", "Puntaje en Google", 4, { formato: "numero", ayuda: "Por ejemplo 4,7." }),
+      texto("cantidad", "Cantidad de opiniones", 7, { formato: "numero" }),
+      {
+        tipo: "lista",
+        clave: "resenas",
+        etiqueta: "Opiniones",
+        item: "Opinión",
+        min: 1,
+        max: 12,
+        titulo: "name",
+        campos: [texto("name", "Nombre", 60), texto("rating", "Estrellas", 1, { formato: "estrellas" }), texto("when", "Cuándo", 40), texto("text", "Texto", 900, { multilinea: true })],
       },
     ],
   },

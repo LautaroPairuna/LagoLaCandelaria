@@ -104,6 +104,7 @@ export function esTipoDeReglamento(valor: string): valor is TipoDeReglamento {
 }
 
 /// El texto que el titular reenvía a su grupo por WhatsApp.
-export function mensajeParaElGrupo(tipo: TipoDeReglamento, fecha: string, enlace: string) {
-  return `¡Hola! Tenemos reserva en Lago La Candelaria el ${fecha}. El horario del predio es de 10 a 19 hs. Acá está el reglamento${reglamentos[tipo].conHorarios ? " y los horarios de las actividades" : ""}, leanlo antes de ir: ${enlace}`
+export function mensajeParaElGrupo(tipo: TipoDeReglamento, fecha: string, enlace: string, horario = HORARIO_DEL_PREDIO) {
+  const horarioEnLaFrase = horario.charAt(0).toLowerCase() + horario.slice(1)
+  return `¡Hola! Tenemos reserva en Lago La Candelaria el ${fecha}. El horario del predio es ${horarioEnLaFrase}. Acá está el reglamento${reglamentos[tipo].conHorarios ? " y los horarios de las actividades" : ""}, leanlo antes de ir: ${enlace}`
 }

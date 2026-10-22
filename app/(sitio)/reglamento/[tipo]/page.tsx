@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { PageHero } from "@/components/page-hero"
 import { ReglamentoVista } from "@/components/visita/reglamento"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
 import { esTipoDeReglamento, reglamentos } from "@/lib/reglamentos"
 
 export function generateStaticParams() {
@@ -22,9 +23,10 @@ export async function generateMetadata({ params }: PageProps<"/reglamento/[tipo]
 export default async function ReglamentoPage({ params }: PageProps<"/reglamento/[tipo]">) {
   const { tipo } = await params
   if (!esTipoDeReglamento(tipo)) notFound()
+  const titulo = (await contenidoDelSitio()).reglamentos[tipo].titulo
   return (
     <main className="bg-foam text-ink">
-      <PageHero kicker="Antes de venir" title={reglamentos[tipo].titulo}>
+      <PageHero kicker="Antes de venir" title={titulo}>
         Leelo antes de la visita: vale para todos los integrantes de la reserva.
       </PageHero>
       <section className="mx-auto max-w-3xl px-5 pb-20 md:px-8">

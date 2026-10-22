@@ -1,8 +1,15 @@
-import { HORARIO_DEL_PREDIO, horarioDeActividades, reglamentos, type TipoDeReglamento } from "@/lib/reglamentos"
+import { contenidoDelSitio } from "@/lib/contenido/leer"
+import { reglamentos as deFabrica, type TipoDeReglamento } from "@/lib/reglamentos"
 
 /// El reglamento de un tipo de reserva y, si corresponde, el horario de actividades.
-export function ReglamentoVista({ tipo, titulo = true }: { tipo: TipoDeReglamento; titulo?: boolean }) {
-  const reglamento = reglamentos[tipo]
+export async function ReglamentoVista({ tipo, titulo = true }: { tipo: TipoDeReglamento; titulo?: boolean }) {
+  const { reglamentos } = await contenidoDelSitio()
+  const reglamento = {
+    titulo: reglamentos[tipo].titulo,
+    reglas: reglamentos[tipo].reglas.map((item) => item.texto),
+    parrafos: reglamentos[tipo].parrafos.map((item) => item.texto),
+    conHorarios: deFabrica[tipo].conHorarios,
+  }
   return (
     <div className="space-y-6">
       <div>
@@ -28,7 +35,7 @@ export function ReglamentoVista({ tipo, titulo = true }: { tipo: TipoDeReglament
         <div>
           <h2 className="font-display text-3xl tracking-tight">Horario de actividades</h2>
           <dl className="mt-3 divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-white">
-            {horarioDeActividades.map((fila) => (
+            {reglamentos.horarios.map((fila) => (
               <div key={fila.actividad} className="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:gap-4">
                 <dt>
                   <span className="font-semibold">{fila.actividad}</span>
@@ -39,7 +46,7 @@ export function ReglamentoVista({ tipo, titulo = true }: { tipo: TipoDeReglament
             ))}
             <div className="grid gap-1 bg-green-soft px-4 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:gap-4">
               <dt className="font-semibold">Horario del predio</dt>
-              <dd className="font-semibold tabular-nums sm:text-right">{HORARIO_DEL_PREDIO}</dd>
+              <dd className="font-semibold tabular-nums sm:text-right">{reglamentos.horarioDelPredio}</dd>
             </div>
           </dl>
         </div>
