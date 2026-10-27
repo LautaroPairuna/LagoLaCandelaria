@@ -11,18 +11,32 @@ import mariadb from "mariadb";
 
 async function main() {
   const dir = process.env.MIGRATIONS_DIR ?? path.join(process.cwd(), "prisma", "migrations");
-  const url = new URL(process.env.DATABASE_URL);
+  // Con DATABASE_HOST, las variables sueltas que usan algunas apps en runtime
+  // (studio-edit, la API de costas); si no, DATABASE_URL.
+  const env = process.env;
+  const url = env.DATABASE_HOST ? null : new URL(env.DATABASE_URL);
+  const conexion = url
+    ? {
+        host: url.hostname,
+        port: Number(url.port || 3306),
+        user: decodeURIComponent(url.username),
+        password: decodeURIComponent(url.password),
+        database: decodeURIComponent(url.pathname.slice(1)),
+      }
+    : {
+        host: env.DATABASE_HOST,
+        port: Number(env.DATABASE_PORT || 3306),
+        user: env.DATABASE_USER,
+        password: env.DATABASE_PASSWORD,
+        database: env.DATABASE_NAME,
+      };
 
   // Los parámetros de la URL (?ssl=..., ?allowPublicKeyRetrieval=...) pasan al driver.
   const extra = Object.fromEntries(
-    [...url.searchParams].map(([k, v]) => [k, v === "true" ? true : v === "false" ? false : /^\d+$/.test(v) ? Number(v) : v]),
+    [...(url?.searchParams ?? [])].map(([k, v]) => [k, v === "true" ? true : v === "false" ? false : /^\d+$/.test(v) ? Number(v) : v]),
   );
   const opciones = {
-    host: url.hostname,
-    port: Number(url.port || 3306),
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: decodeURIComponent(url.pathname.slice(1)),
+    ...conexion,
     // MySQL 8 (caching_sha2_password) sin SSL: sin esto falla con la caché de
     // autenticación fría, por ejemplo después de reiniciar MySQL.
     allowPublicKeyRetrieval: true,
@@ -52,6 +66,19 @@ async function main() {
     const [{ got }] = await conn.query("SELECT GET_LOCK('prisma_migrate', 60) AS got");
     if (Number(got) !== 1) throw new Error("No se pudo tomar el lock de migraciones.");
 
+    // Una base con tablas y sin historial se armó con `db push` o a mano: aplicar la
+    // primera migración ahí fallaría y dejaría una fila a medias. Primero va un baseline.
+    const [{ tablas, historial }] = await conn.query(
+      `SELECT SUM(table_name <> '_prisma_migrations') AS tablas, SUM(table_name = '_prisma_migrations') AS historial
+       FROM information_schema.tables WHERE table_schema = DATABASE()`,
+    );
+    const filas = Number(historial) ? Number((await conn.query("SELECT COUNT(*) AS n FROM _prisma_migrations"))[0].n) : 0;
+    if (Number(tablas) > 0 && filas === 0) {
+      throw new Error(
+        "La base ya tiene tablas pero no tiene historial de migraciones (_prisma_migrations vacía): no se aplica nada. Hace falta un baseline (prisma migrate resolve --applied).",
+      );
+    }
+
     await conn.query(`CREATE TABLE IF NOT EXISTS _prisma_migrations (
       id VARCHAR(36) NOT NULL, checksum VARCHAR(64) NOT NULL, finished_at DATETIME(3) NULL,
       migration_name VARCHAR(255) NOT NULL, logs TEXT NULL, rolled_back_at DATETIME(3) NULL,
@@ -61,9 +88,9 @@ async function main() {
 
     // Una migración puede tener varias filas (un intento fallido marcado con
     // `migrate resolve --rolled-back` y el reintento): vale la que no fue revertida.
-    const filas = await conn.query("SELECT * FROM _prisma_migrations ORDER BY started_at");
+    const registro = await conn.query("SELECT * FROM _prisma_migrations ORDER BY started_at");
     const aplicadas = new Map();
-    for (const fila of filas) {
+    for (const fila of registro) {
       if (!fila.rolled_back_at) aplicadas.set(fila.migration_name, fila);
     }
 
