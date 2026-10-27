@@ -6,7 +6,6 @@
     }
   },
   "deploy": {
-    "aptPackages": ["openssl"],
     "inputs": [
       {
         "step": "packages:mise",

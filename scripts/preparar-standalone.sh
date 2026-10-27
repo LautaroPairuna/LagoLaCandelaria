@@ -12,12 +12,14 @@ cp -r public "$destino/public"
 # tienen que quedar guardadas dentro de la imagen.
 rm -f "$destino"/.env*
 
-# Migraciones al arrancar: el CLI de Prisma (y dotenv, que importa la config) en la misma
-# versión del lockfile, aparte de la app, con el esquema, las migraciones y la config.
-mkdir -p "$destino/migraciones"
-cp -r prisma prisma7.config.ts "$destino/migraciones/"
-echo '{"private":true}' > "$destino/migraciones/package.json"
-version() { node -p "require('./node_modules/$1/package.json').version"; }
-npm install --prefix "$destino/migraciones" --omit=dev --no-audit --no-fund --no-save "prisma@$(version prisma)" "dotenv@$(version dotenv)"
+# Migraciones al arrancar sin el CLI de Prisma: el script va empaquetado con su driver
+# (mariadb) y lee las migraciones de prisma/migrations.
+rm -rf "$destino/prisma"
+mkdir -p "$destino/prisma"
+cp -r prisma/migrations "$destino/prisma/"
+npx esbuild scripts/migrate.mjs --bundle --platform=node --target=node24 --format=cjs --log-level=warning --outfile="$destino/migrate.cjs"
 
 cp scripts/arrancar.sh "$destino/arrancar.sh"
+
+# Que el build falle acá y no el arranque si el binario de ffmpeg no quedó adentro.
+test -x "$destino/node_modules/ffmpeg-static/ffmpeg"

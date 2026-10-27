@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-mariadb", "mariadb", "sharp", "ffmpeg-static"],
   // El binario de ffmpeg se usa por ruta: el rastreo de standalone no lo ve solo.
-  outputFileTracingIncludes: { "/api/subir/video": ["./node_modules/ffmpeg-static/ffmpeg"] },
+  outputFileTracingIncludes: { "/**": ["./node_modules/ffmpeg-static/ffmpeg"] },
   async headers() {
     return [
       { source: "/:path*", headers: headersDeSeguridad },
