@@ -5,6 +5,7 @@ import Link from "next/link"
 import { AccionesLlegada } from "@/components/panel/acciones-llegada"
 import { AccionesMasivas, type EnvioDeTicket } from "@/components/panel/acciones-masivas"
 import { CambiarEstado } from "@/components/panel/cambiar-estado"
+import { ElegirFecha } from "@/components/panel/elegir-fecha"
 import { FilaDesplegable } from "@/components/panel/fila-desplegable"
 import { FiltrosDePuerta } from "@/components/panel/filtros-puerta"
 import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
@@ -85,12 +86,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
           <Link href={enlace(sumarDiasIso(fecha, 1))} className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-panel-line md:size-11" aria-label="Día siguiente">
             <ChevronRight className="size-5" aria-hidden />
           </Link>
-          <form action="/panel/puerta" className="flex items-center gap-2 md:ml-3">
-            <input type="date" name="fecha" defaultValue={fecha} aria-label="Elegir otro día" className="h-10 rounded-xl border border-panel-line bg-white px-3 text-sm" />
-            <button type="submit" className="h-10 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted">
-              Ir
-            </button>
-          </form>
+          <ElegirFecha fecha={fecha} />
         </div>
       </header>
       <PestanasDePuerta activa="reservas" fecha={momento === "hoy" ? undefined : fecha} />

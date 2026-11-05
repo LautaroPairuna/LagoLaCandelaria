@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
+import { ElegirFecha } from "@/components/panel/elegir-fecha"
 import { fechaLargaPanel, rangoConMesPanel } from "@/lib/panel/formato"
 import { esZona, ocupacionDeLugares, seccionesDe, zonas, type ReservaEnLugar, type ZonaId } from "@/lib/panel/lugares"
 import { nombreDelModulo } from "@/lib/panel/reservas"
@@ -62,13 +63,7 @@ export async function VistaDeLugares({ params, ruta, arriba }: { params: Params;
           <Link href={enlace(sumarDiasIso(fecha, 1), zona)} className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-panel-line md:size-11" aria-label="Día siguiente">
             <ChevronRight className="size-5" aria-hidden />
           </Link>
-          <form action={ruta} className="flex items-center gap-2 md:ml-3">
-            <input type="hidden" name="zona" value={zona} />
-            <input type="date" name="fecha" defaultValue={fecha} aria-label="Elegir otro día" className="h-10 rounded-xl border border-panel-line bg-white px-3 text-sm" />
-            <button type="submit" className="h-10 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted">
-              Ir
-            </button>
-          </form>
+          <ElegirFecha fecha={fecha} sacar={["unidad"]} />
         </div>
       </header>
       {arriba}
