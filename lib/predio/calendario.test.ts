@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { estadoDelDia, mapaDeEspeciales, tipoDeDia } from "@/lib/predio/calendario"
+import { cierreParaGrupos, estadoDelDia, mapaDeEspeciales, tipoDeDia } from "@/lib/predio/calendario"
 import { feriados2026 } from "@/lib/predio/feriados"
 
 const especiales = mapaDeEspeciales(feriados2026)
@@ -49,5 +49,22 @@ describe("calendario de apertura", () => {
     ])
     expect(estadoDelDia("2026-10-17", conExcepciones)).toEqual({ abierto: false, motivo: "Mantenimiento" })
     expect(estadoDelDia("2026-10-14", conExcepciones).abierto).toBe(true)
+  })
+})
+
+describe("días para grupos estudiantiles", () => {
+  const especiales = mapaDeEspeciales([
+    { fecha: "2026-11-12", tipo: "CERRADO", motivo: "Mantenimiento." },
+    { fecha: "2026-12-25", tipo: "ABIERTO", motivo: "" },
+  ])
+
+  it("pueden venir entre semana fuera del verano", () => {
+    expect(cierreParaGrupos("2026-11-11", especiales)).toBeNull()
+  })
+
+  it("los frenan los cierres cargados en el panel y los anuales, salvo que se abra a mano", () => {
+    expect(cierreParaGrupos("2026-11-12", especiales)).toBe("Mantenimiento.")
+    expect(cierreParaGrupos("2026-12-31", especiales)).toBe("Fin de año")
+    expect(cierreParaGrupos("2026-12-25", especiales)).toBeNull()
   })
 })

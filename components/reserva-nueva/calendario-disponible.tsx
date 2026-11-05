@@ -33,6 +33,7 @@ export function CalendarioDisponible({
   validarRango,
   horas,
   sin,
+  noches,
 }: {
   categoria: Categoria
   personas?: number
@@ -46,6 +47,8 @@ export function CalendarioDisponible({
   horas?: string
   /// Token de la reserva que se modifica: sus lugares cuentan como libres.
   sin?: string
+  /// En modo "dia", una estadía de N noches: al tocar el ingreso se marca sola hasta el egreso.
+  noches?: number
 }) {
   const hoy = hoyEnElPredio()
   const primerMes = hoy.slice(0, 7)
@@ -53,13 +56,13 @@ export function CalendarioDisponible({
   const [meses, setMeses] = useState<Record<string, DatosDelMes>>({})
   const [fallo, setFallo] = useState(false)
   const [intento, setIntento] = useState(0)
-  const clave = `${categoria}-${personas}-${horas ?? ""}`
+  const clave = `${categoria}-${personas}-${horas ?? ""}-${noches ?? 0}`
   const datos = meses[`${clave}|${mes}`]
 
   useEffect(() => {
     if (datos) return
     const controlador = new AbortController()
-    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}${horas ? `&horas=${horas}` : ""}${sin ? `&sin=${sin}` : ""}`, { signal: controlador.signal })
+    fetch(`/api/calendario?mes=${mes}&tipo=${categoria}&personas=${personas}${horas ? `&horas=${horas}` : ""}${sin ? `&sin=${sin}` : ""}${noches ? `&noches=${noches}` : ""}`, { signal: controlador.signal })
       .then((respuesta) => respuesta.json())
       .then((json: { ok: boolean; error?: string } & DatosDelMes) => {
         if (!json.ok) throw new Error(json.error)
@@ -72,7 +75,7 @@ export function CalendarioDisponible({
         avisarError(error instanceof Error && error.message ? error.message : falloDeRed().error, { id: "calendario", reintentar: reintentar })
       })
     return () => controlador.abort()
-  }, [categoria, personas, horas, sin, clave, mes, datos, intento])
+  }, [categoria, personas, horas, sin, noches, clave, mes, datos, intento])
 
   function reintentar() {
     setFallo(false)
@@ -85,7 +88,7 @@ export function CalendarioDisponible({
 
   function elegir(fecha: string) {
     if (modo === "dia" || !desde || hasta || fecha <= desde) {
-      onElegir(fecha, modo === "dia" ? fecha : "", estadoDe(fecha))
+      onElegir(fecha, modo === "dia" ? sumarDiasIso(fecha, noches ?? 0) : "", estadoDe(fecha))
       return
     }
     const rango = fechasEntre(desde, fecha)
@@ -108,7 +111,7 @@ export function CalendarioDisponible({
   const inicio = `${mes}-01`
   const ultimo = sumarDiasIso(`${sumarMes(mes, 1)}-01`, -1)
   const desplazamiento = (diaDeLaSemana(inicio) + 6) % 7
-  const fin = modo === "dia" ? desde : hasta
+  const fin = modo === "dia" && !noches ? desde : hasta
 
   return (
     <div>
@@ -156,7 +159,7 @@ export function CalendarioDisponible({
           const estado = datos?.dias[fecha]
           const libre = estado?.estado === "libre"
           const elegido = fecha === desde || fecha === fin
-          const enRango = modo === "rango" && desde && hasta && fecha > desde && fecha < hasta
+          const enRango = (modo === "rango" || Boolean(noches)) && desde && hasta && fecha > desde && fecha < hasta
           const motivo =
             estado?.estado === "cerrado" ? estado.motivo : estado?.estado === "completo" ? "Sin lugar" : estado?.estado === "pasado" ? "Ya pasó" : ""
           return (

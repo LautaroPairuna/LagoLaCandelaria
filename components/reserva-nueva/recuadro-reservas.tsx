@@ -105,7 +105,7 @@ export function RecuadroReservas({ propuestaInicial, opcionInicial }: { propuest
         {camino === null ? <Caminos onElegir={elegir} /> : null}
         {camino === "familia" ? <FlujoVisita tipo="finde" carta={carta} /> : null}
         {camino === "bungalows" ? <FlujoVisita tipo="bungalow" /> : null}
-        {camino === "estudiantil" && estudiantil ? <FormularioGrupo tipo="CAMPAMENTO" modalidad={estudiantil.titulo} /> : null}
+        {camino === "estudiantil" && estudiantil ? <FormularioGrupo tipo="CAMPAMENTO" modalidad={estudiantil.titulo} noches={estudiantil.noches} /> : null}
         {camino === "estudiantil" && !estudiantil ? <ListaEstudiantil onReservar={elegirEstudiantil} /> : null}
         {camino === "aventura" && aventura === null ? <OpcionesAventura onElegir={elegirAventura} /> : null}
         {camino === "aventura" && aventura === "nado" ? <FlujoVisita tipo="nado" /> : null}

@@ -5,12 +5,13 @@ import { useState, useTransition, type FormEvent } from "react"
 
 import { enviarPedidoDeGrupo } from "@/app/(sitio)/reserva/acciones"
 import { Campo } from "@/components/reserva/campo"
+import { CalendarioDisponible } from "@/components/reserva-nueva/calendario-disponible"
 import { Contador } from "@/components/reserva-nueva/contador"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { Modulo } from "@/generated/prisma/enums"
 import { avisarError, irAlPrimerCampo, llamar } from "@/lib/avisos"
-import { hoyEnElPredio } from "@/lib/predio/fechas"
+import { fechaLarga } from "@/lib/predio/fechas"
 import { cn } from "cn"
 
 type TipoDeGrupo = Extract<Modulo, "CAMPAMENTO" | "SALIDA_EDUCATIVA" | "VIAJE_EGRESADOS" | "ACTIVIDAD_AVENTURA">
@@ -19,9 +20,11 @@ type Dietas = { celiacos: number; vegetarianos: number; veganos: number }
 const modalidadesDeCampamento = ["Jornada de aventura", "Carpa", "Dormis"]
 const sinDietas: Dietas = { celiacos: 0, vegetarianos: 0, veganos: 0 }
 
-export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modalidad?: string }) {
+const duracion = (noches: number) => (noches === 0 ? "de un día" : `de ${noches + 1} días y ${noches} ${noches === 1 ? "noche" : "noches"}`)
+
+/// `noches` es la duración de la propuesta elegida: se elige el ingreso y el egreso sale solo.
+export function FormularioGrupo({ tipo, modalidad, noches }: { tipo: TipoDeGrupo; modalidad?: string; noches: number }) {
   const router = useRouter()
-  const hoy = hoyEnElPredio()
   const esAventura = tipo === "ACTIVIDAD_AVENTURA"
   const [datos, setDatos] = useState({
     institucion: "",
@@ -120,17 +123,32 @@ export function FormularioGrupo({ tipo, modalidad }: { tipo: TipoDeGrupo; modali
             <Contador etiqueta={participantesNombre} detalle="Cantidad que ingresa" minimo={1} maximo={999} valor={participantes} onChange={setParticipantes} />
             <Contador etiqueta="Acompañantes" detalle="Docentes, padres o coordinadores" valor={acompanantes} onChange={setAcompanantes} />
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 max-w-sm">
             <Campo id="edades" etiqueta={`Edad de los ${participantesNombre.toLowerCase()}`} placeholder="Ej.: 10 años, 6.º grado" valor={datos.edades} error={errores.edades} onChange={(valor) => cambiar("edades", valor)} />
-            <label className="block" htmlFor="desde">
-              <span className="text-sm font-semibold">Fecha de ingreso</span>
-              <input id="desde" type="date" min={hoy} value={datos.desde} onChange={(evento) => cambiar("desde", evento.target.value)} required className="field-control mt-1.5 h-10 w-full rounded-lg border border-input bg-white px-3" />
-            </label>
-            <label className="block" htmlFor="hasta">
-              <span className="text-sm font-semibold">Fecha de egreso</span>
-              <input id="hasta" type="date" min={datos.desde || hoy} value={datos.hasta} onChange={(evento) => cambiar("hasta", evento.target.value)} className="field-control mt-1.5 h-10 w-full rounded-lg border border-input bg-white px-3" />
-            </label>
           </div>
+          <fieldset id="desde" tabIndex={-1} className="mt-6 outline-none">
+            <legend className="font-semibold">¿Qué día ingresan?</legend>
+            <p className="mt-1 text-sm text-ink/70">
+              La propuesta es {duracion(noches)}: tocá el día de ingreso{noches ? " y se marcan solos los días de la estadía" : ""}. El predio confirma la fecha cuando recibe el pedido.
+            </p>
+            <div className="mt-4 max-w-md">
+              <CalendarioDisponible
+                categoria="grupo"
+                modo="dia"
+                noches={noches}
+                desde={datos.desde}
+                hasta={datos.hasta}
+                onElegir={(desde, hasta) => setDatos((actual) => ({ ...actual, desde, hasta }))}
+              />
+            </div>
+            {datos.desde ? (
+              <p className="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm font-semibold" role="status">
+                Ingreso el {fechaLarga(datos.desde).toLowerCase()}
+                {noches ? ` y egreso el ${fechaLarga(datos.hasta).toLowerCase()}` : ""}.
+              </p>
+            ) : null}
+            {errores.desde || errores.hasta ? <p className="mt-2 text-sm font-semibold text-[#c0392b]">{errores.desde ?? errores.hasta}</p> : null}
+          </fieldset>
         </section>
 
         <section className="rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6">

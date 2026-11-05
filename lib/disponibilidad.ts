@@ -1,6 +1,6 @@
 import { leerAjustes } from "@/lib/ajustes"
-import { estadoDelDia, mapaDeEspeciales, tipoDeDia, type TipoDia } from "@/lib/predio/calendario"
-import { aFechaDb, deFechaDb, diaDeLaSemana, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
+import { cierreParaGrupos, estadoDelDia, mapaDeEspeciales, tipoDeDia, type TipoDia } from "@/lib/predio/calendario"
+import { aFechaDb, deFechaDb, diaDeLaSemana, fechaLarga, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { hayLugarPara } from "@/lib/predio/eleccion"
 import { unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
 import type { TipoDeDia } from "@/lib/predio/tarifas"
@@ -16,6 +16,7 @@ export const categorias = {
   restaurante: ["MESA_RESTAURANTE"],
   bar: ["MESA_BAR"],
   visita: ["PARRILLA", "GAZEBO", "PALAPA", "BUNGALOW"],
+  grupo: [],
 } as const satisfies Record<string, readonly TipoUnidad[]>
 
 export type Categoria = keyof typeof categorias
@@ -48,7 +49,9 @@ export async function diasEspeciales(desde: string, hasta: string) {
 /// Con `horas` (mesas del restaurante) cuenta solo lo libre en esas horas. Cada día abierto
 /// trae qué tarifa le corresponde (fin de semana o semana). En bungalows, solo se puede
 /// entrar jueves o sábado, con el día siguiente también abierto.
-export async function disponibilidadDelMes(mes: string, categoria: Categoria, personas = 1, horas?: number[], sinReserva?: number) {
+/// Con `noches` (grupos estudiantiles), un ingreso se puede elegir solo si ningún día de la
+/// estadía cae en un cierre.
+export async function disponibilidadDelMes(mes: string, categoria: Categoria, personas = 1, horas?: number[], sinReserva?: number, noches = 0) {
   const inicio = `${mes}-01`
   const [anio, numero] = mes.split("-").map(Number)
   const fin = new Date(Date.UTC(anio, numero, 0)).toISOString().slice(0, 10)
@@ -56,7 +59,7 @@ export async function disponibilidadDelMes(mes: string, categoria: Categoria, pe
   const delTipo = await unidadesDeLaWeb(categoria)
 
   const [especiales, ocupacion] = await Promise.all([
-    diasEspeciales(inicio, sumarDiasIso(fin, 1)),
+    diasEspeciales(inicio, sumarDiasIso(fin, Math.max(noches, 1))),
     ocupacionPorUnidad(sumarDiasIso(inicio, -8), sumarDiasIso(fin, 8), sinReserva),
   ])
 
@@ -65,7 +68,16 @@ export async function disponibilidadDelMes(mes: string, categoria: Categoria, pe
     const apertura = estadoDelDia(fecha, especiales)
     const dia = tipoDeDia(fecha, especiales)
     if (fecha < hoy) dias[fecha] = { estado: "pasado" }
-    else if (!apertura.abierto) dias[fecha] = { estado: "cerrado", motivo: apertura.motivo }
+    else if (categoria === "grupo") {
+      const cierre = fechasEntre(fecha, sumarDiasIso(fecha, noches))
+        .map((otro) => ({ otro, motivo: cierreParaGrupos(otro, especiales) }))
+        .find(({ motivo }) => motivo)
+      dias[fecha] = !cierre
+        ? { estado: "libre", dia }
+        : cierre.otro === fecha
+          ? { estado: "cerrado", motivo: cierre.motivo ?? "" }
+          : { estado: "cerrado", motivo: `La estadía pasa por el ${fechaLarga(cierre.otro).toLowerCase()}, que el predio está cerrado.` }
+    } else if (!apertura.abierto) dias[fecha] = { estado: "cerrado", motivo: apertura.motivo }
     else if (categoria === "bungalow") {
       const salida = sumarDiasIso(fecha, 1)
       const siguiente = estadoDelDia(salida, especiales)

@@ -14,13 +14,14 @@ export async function GET(request: Request) {
   const mes = url.searchParams.get("mes") ?? ""
   const categoria = url.searchParams.get("tipo") ?? ""
   const personas = Math.min(Math.max(Number(url.searchParams.get("personas")) || 1, 1), 99)
+  const noches = Math.min(Math.max(Math.trunc(Number(url.searchParams.get("noches")) || 0), 0), 7)
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes) || !(categoria in categorias)) {
     return NextResponse.json({ ok: false, error: "No entendimos qué mes querés ver. Recargá la página." }, { status: 400 })
   }
   const franja = leerFranja(url.searchParams.get("horas"))
   try {
     const sinReserva = await reservaDelToken(url.searchParams.get("sin"))
-    return NextResponse.json({ ok: true, ...(await disponibilidadDelMes(mes, categoria as Categoria, personas, franja ? horasDe(franja) : undefined, sinReserva)) })
+    return NextResponse.json({ ok: true, ...(await disponibilidadDelMes(mes, categoria as Categoria, personas, franja ? horasDe(franja) : undefined, sinReserva, noches)) })
   } catch (error) {
     console.error("Calendario no leído", error instanceof Error ? error.name : "unknown")
     return NextResponse.json({ ok: false, error: "No pudimos leer el calendario del predio. Probá de nuevo en un rato o escribinos por WhatsApp." }, { status: 503 })

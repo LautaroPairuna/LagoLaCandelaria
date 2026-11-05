@@ -51,6 +51,15 @@ export function estadoDelDia(fecha: string, especiales: ReadonlyMap<string, DiaE
     : { abierto: false, motivo: "Fuera del verano abrimos sábados, domingos y feriados." }
 }
 
+/// Los grupos estudiantiles se arreglan con el predio y pueden venir cualquier día, también
+/// entre semana: solo los frenan los cierres puntuales (cargados en el panel) y los anuales.
+export function cierreParaGrupos(fecha: string, especiales: ReadonlyMap<string, DiaEspecial>): string | null {
+  const especial = especiales.get(fecha)
+  if (especial?.tipo === "CERRADO") return especial.motivo
+  if (especial?.tipo === "ABIERTO") return null
+  return CIERRES_ANUALES[fecha.slice(5)] ?? null
+}
+
 /// Qué tarifa corresponde: sábados, domingos y feriados (o no laborables) van con la de
 /// fin de semana; el resto, con la de semana.
 export function tipoDeDia(fecha: string, especiales: ReadonlyMap<string, DiaEspecial>): TipoDeDia {

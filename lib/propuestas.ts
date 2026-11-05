@@ -154,6 +154,8 @@ export type ItemEstudiantil = {
   nombre: string
   titulo: string
   horario: string
+  /// Noches de la estadía: el calendario marca solo el egreso a partir del ingreso.
+  noches: number
   ficha: FichaEstudiantil
 }
 
@@ -193,6 +195,7 @@ function item(
     nombre,
     titulo,
     horario,
+    noches: horario === horarioTercer ? 2 : horario === horarioSegundo ? 1 : 0,
     ficha: {
       condiciones: condicionesDeReserva,
       tarifas: tarifasDosDias,
