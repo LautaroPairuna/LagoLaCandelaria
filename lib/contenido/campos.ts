@@ -16,7 +16,8 @@ export type CampoDeTexto = Comun & {
   /// Puede quedar vacío: lo que muestra se saltea.
   opcional?: boolean
 }
-export type CampoDeFoto = Comun & { tipo: "foto" }
+/// Una foto opcional puede quedar sin elegir (src vacío); lo guardado antes de sumarla sigue valiendo.
+export type CampoDeFoto = Comun & { tipo: "foto"; opcional?: boolean }
 export type CampoDeVideo = Comun & { tipo: "video" }
 /// Varios campos que van juntos en una tarjeta (el plano de una ficha, un reglamento).
 export type CampoDeGrupo = Comun & { tipo: "grupo"; campos: Campo[] }
@@ -70,6 +71,13 @@ const esquemaDeFoto = z.object({
   alt: z.string().trim().min(1, "Describí la foto en pocas palabras: la leen quienes no la ven.").max(200, "La descripción es muy larga: hasta 200 letras."),
 })
 
+const sinFoto: FotoConTexto = { src: "", alt: "" }
+const esquemaDeFotoOpcional = z
+  .object({ src: z.string(), alt: z.string().trim().max(200, "La descripción es muy larga: hasta 200 letras.") })
+  .default(sinFoto)
+  .refine((foto) => foto.src === "" || esFotoValida(foto.src), { path: ["src"], message: "Elegí una foto del sitio o subí una nueva." })
+  .refine((foto) => foto.src === "" || foto.alt.length > 0, { path: ["alt"], message: "Describí la foto en pocas palabras: la leen quienes no la ven." })
+
 const esquemaDeVideo = z.object({
   src: z.string().refine(esVideoValido, "Elegí uno de los videos del sitio o subí uno nuevo."),
   poster: z.string().refine(esFotoValida, "Falta la imagen que se ve mientras carga el video."),
@@ -77,7 +85,7 @@ const esquemaDeVideo = z.object({
 
 function esquemaDeCampo(campo: Campo): z.ZodType {
   if (campo.tipo === "texto") return esquemaDeTexto(campo)
-  if (campo.tipo === "foto") return esquemaDeFoto
+  if (campo.tipo === "foto") return campo.opcional ? esquemaDeFotoOpcional : esquemaDeFoto
   if (campo.tipo === "video") return esquemaDeVideo
   if (campo.tipo === "grupo") return esquemaDe(campo.campos)
   const item = esquemaDe(campo.campos)

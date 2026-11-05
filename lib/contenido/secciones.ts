@@ -33,7 +33,7 @@ export type Inicio = {
 }
 
 export type Camino = { titulo: string; detalle: string; foto: FotoConTexto }
-export type Profe = { nombre: string; telefono: string }
+export type Profe = { nombre: string; telefono: string; foto: FotoConTexto }
 
 export type Propuestas = {
   /// En el orden del recuadro: finde en familia, estudiantiles, deportes y bungalows.
@@ -123,8 +123,8 @@ export const contenidoPorDefecto: SeccionesFijas = {
       },
     ],
     profes: [
-      { nombre: "Profe Santi", telefono: "11 6213-7303" },
-      { nombre: "Profe Mica", telefono: "11 5103-2295" },
+      { nombre: "Profe Santi", telefono: "11 6213-7303", foto: { src: "", alt: "" } },
+      { nombre: "Profe Mica", telefono: "11 5103-2295", foto: { src: "", alt: "" } },
     ],
   },
   paginas: {
@@ -246,6 +246,7 @@ export const secciones: Record<ClaveFija, { nombre: string; descripcion: string;
         campos: [
           { tipo: "texto", clave: "nombre", etiqueta: "Nombre", max: 40 },
           { tipo: "texto", clave: "telefono", etiqueta: "WhatsApp", max: 20, formato: "telefono" },
+          { tipo: "foto", clave: "foto", etiqueta: "Foto de perfil", ayuda: "Opcional. Sin foto se ve el ícono de WhatsApp.", opcional: true },
         ],
       },
     ],

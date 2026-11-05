@@ -39,6 +39,14 @@ describe("contenido del sitio", () => {
     expect(contacto.parse({ ...contenidoPorDefecto.contacto, instagram: "@lago.candelaria" }).instagram).toBe("lago.candelaria")
   })
 
+  it("lo guardado antes de sumar la foto de los profes sigue valiendo, y una foto elegida pide descripción", () => {
+    const propuestas = esquemaDe(secciones.propuestas.campos)
+    const guardadoViejo = { ...contenidoPorDefecto.propuestas, profes: [{ nombre: "Profe Santi", telefono: "11 6213-7303" }] }
+    expect((propuestas.parse(guardadoViejo) as typeof contenidoPorDefecto.propuestas).profes[0].foto).toEqual({ src: "", alt: "" })
+    const sinDescripcion = { ...contenidoPorDefecto.propuestas, profes: [{ nombre: "Profe Santi", telefono: "11 6213-7303", foto: { src: "/lago.jpg", alt: "" } }] }
+    expect(propuestas.safeParse(sinDescripcion).error?.issues[0]?.path).toEqual(["profes", 0, "foto", "alt"])
+  })
+
   it("no deja agregar ni quitar tarjetas fijas, y exige describir cada foto", () => {
     const propuestas = esquemaDe(secciones.propuestas.campos)
     expect(propuestas.safeParse({ ...contenidoPorDefecto.propuestas, caminos: contenidoPorDefecto.propuestas.caminos.slice(1) }).success).toBe(false)

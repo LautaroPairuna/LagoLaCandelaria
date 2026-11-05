@@ -35,6 +35,10 @@ export function entradas(adultos: number, menores: number, dia: TipoDeDia = "fin
   return adultos * precio.adulto + menores * precio.menor
 }
 
+/// La misma aclaración en todas las propuestas: el precio que se muestra es el de
+/// transferencia, con el recargo adentro.
+export const RECARGO_INCLUIDO = "Ya incluye el recargo por transferencia"
+
 export function conRecargoTransferencia(efectivo: number) {
   return Math.round(efectivo * (1 + tarifas.recargoTransferencia))
 }

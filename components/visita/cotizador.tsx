@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react"
 import { Foto } from "@/components/foto"
 import { Contador } from "@/components/reserva-nueva/contador"
 import { cotizarDia, lineasSegunForma, totalSegunForma } from "@/lib/predio/cotizacion"
-import { pesos, type TipoDeDia } from "@/lib/predio/tarifas"
+import { pesos, RECARGO_INCLUIDO, type TipoDeDia } from "@/lib/predio/tarifas"
 import type { FormaDePagoWeb } from "@/lib/reserva-visita"
 import { cn } from "cn"
 
@@ -62,7 +62,7 @@ export function Cotizador() {
             {(
               [
                 { id: "EFECTIVO", nombre: "Efectivo", detalle: "Al ingresar al predio", icono: <Banknote className="size-5" aria-hidden /> },
-                { id: "TRANSFERENCIA", nombre: "Transferencia", detalle: "Al ingresar, con recargo del 10 %", icono: <Landmark className="size-5" aria-hidden /> },
+                { id: "TRANSFERENCIA", nombre: "Transferencia", detalle: `Al ingresar. ${RECARGO_INCLUIDO}.`, icono: <Landmark className="size-5" aria-hidden /> },
               ] as const
             ).map((opcion) => (
               <button

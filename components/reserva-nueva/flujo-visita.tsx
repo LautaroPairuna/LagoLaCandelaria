@@ -21,7 +21,7 @@ import { personasQueOcupan, revisarEleccion } from "@/lib/predio/eleccion"
 import { fechaLarga, sumarDiasIso } from "@/lib/predio/fechas"
 import { HORARIO_RESTAURANTE, textoDeHora, type Franja } from "@/lib/predio/horario"
 import { inventario, MAX_PERSONAS_PARRILLA } from "@/lib/predio/inventario"
-import { pesos, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
+import { conRecargoTransferencia, pesos, RECARGO_INCLUIDO, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto } from "@/lib/reserva-familia"
 import { esFranjaDeNado, grupoWeb, MAX_HORAS_DE_NADO, MAX_PERSONAS_BUNGALOWS, titularWeb, type FormaDePagoWeb } from "@/lib/reserva-visita"
 import { useContenido } from "@/components/contenido-del-sitio"
@@ -510,7 +510,13 @@ function PasoGrupo({
         </div>
         {tipo === "nado" ? (
           <p className="mt-3 rounded-2xl bg-lake-soft px-4 py-3 text-sm leading-relaxed font-semibold text-lake-ink">
-            La tarifa es {pesos(tarifas.nado.finde)} el finde o feriado y {pesos(tarifas.nado.semana)} de miércoles a viernes. Ya incluye el recargo por transferencia, y solo cubre el nado en aguas abiertas: no el resto de las actividades del predio.
+            La tarifa es {pesos(tarifas.nado.finde)} el finde o feriado y {pesos(tarifas.nado.semana)} de miércoles a viernes. {RECARGO_INCLUIDO}, y solo cubre el nado en aguas abiertas: no el resto de las actividades del predio.
+          </p>
+        ) : tipo === "finde" ? (
+          <p className="mt-3 rounded-2xl bg-lake-soft px-4 py-3 text-sm leading-relaxed font-semibold text-lake-ink">
+            La entrada es {pesos(conRecargoTransferencia(tarifas.entrada.finde.adulto))} por adulto y {pesos(conRecargoTransferencia(tarifas.entrada.finde.menor))} por menor el finde o feriado, y{" "}
+            {pesos(conRecargoTransferencia(tarifas.entrada.semana.adulto))} y {pesos(conRecargoTransferencia(tarifas.entrada.semana.menor))} de miércoles a viernes. {RECARGO_INCLUIDO}: en
+            efectivo no lleva el recargo. Incluye la entrada y las actividades del predio; el restaurante se paga aparte.
           </p>
         ) : null}
       </div>
@@ -639,7 +645,7 @@ function ElegirForma({
   }
   const opciones: { id: FormaDePagoWeb; nombre: string; icono: ReactNode; detalle: string }[] = [
     { id: "EFECTIVO", nombre: "Efectivo", icono: <Banknote className="size-5" aria-hidden />, detalle: "Pagás al ingresar al predio" },
-    { id: "TRANSFERENCIA", nombre: "Transferencia", icono: <Landmark className="size-5" aria-hidden />, detalle: tipo === "nado" ? "Al ingresar al predio" : "Al ingresar al predio, con recargo del 10 %" },
+    { id: "TRANSFERENCIA", nombre: "Transferencia", icono: <Landmark className="size-5" aria-hidden />, detalle: `Al ingresar al predio. ${RECARGO_INCLUIDO}.` },
   ]
   return (
     <fieldset>

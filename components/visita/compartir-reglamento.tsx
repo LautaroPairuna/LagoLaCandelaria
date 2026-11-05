@@ -4,7 +4,8 @@ import { ReglamentoVista } from "@/components/visita/reglamento"
 import { contenidoDelSitio } from "@/lib/contenido/leer"
 import { mensajeParaElGrupo, reglamentos as deFabrica, type TipoDeReglamento } from "@/lib/reglamentos"
 
-/// En el ticket: el reglamento (y los horarios) y un botón para reenviarlos al grupo.
+/// En el ticket, antes de «¿Cambió algo?»: el reglamento (y los horarios) a la vista y un
+/// botón para reenviarlos al grupo.
 export async function CompartirReglamento({ tipo, fecha, enlace }: { tipo: TipoDeReglamento; fecha: string; enlace: string }) {
   const { reglamentos } = await contenidoDelSitio()
   const texto = mensajeParaElGrupo(tipo, fecha, enlace, reglamentos.horarioDelPredio)
@@ -25,12 +26,9 @@ export async function CompartirReglamento({ tipo, fecha, enlace }: { tipo: TipoD
         <MessageCircle className="size-5" aria-hidden />
         Compartir con el grupo por WhatsApp
       </a>
-      <details className="mt-5">
-        <summary className="cursor-pointer font-semibold text-lake-ink">Leer el reglamento{deFabrica[tipo].conHorarios ? " y los horarios" : ""}</summary>
-        <div className="mt-4">
-          <ReglamentoVista tipo={tipo} titulo={false} />
-        </div>
-      </details>
+      <div className="mt-6 border-t border-ink/10 pt-5">
+        <ReglamentoVista tipo={tipo} titulo={false} />
+      </div>
     </section>
   )
 }

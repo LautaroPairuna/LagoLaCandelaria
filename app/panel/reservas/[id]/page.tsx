@@ -12,6 +12,7 @@ import { deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { textoDelEfectivo, textoDelTotal } from "@/lib/predio/cotizacion"
 import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
+import { mensajeDeConfirmada } from "@/lib/panel/mensajes"
 import { lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
 import { AsistenciaDelGrupo } from "@/components/panel/asistencia-grupo"
 import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
@@ -47,7 +48,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const enlaceTicket = `${urlSitio}/reserva/t/${reserva.token}`
   const mensaje =
     reserva.estado === "CONFIRMADA"
-      ? `¡Hola ${reserva.cliente.nombre}! Tu reserva ${reserva.codigo} en Lago La Candelaria para el ${fechaLargaPanel(desde).toLowerCase()} quedó confirmada. Tu ticket con el QR del ingreso: ${enlaceTicket}`
+      ? mensajeDeConfirmada({ nombre: reserva.cliente.nombre, codigo: reserva.codigo, desde, token: reserva.token, modulo: reserva.modulo })
       : `¡Hola ${reserva.cliente.nombre}! Te escribimos de Lago La Candelaria por tu solicitud de reserva ${reserva.codigo}.`
   const familias = new Set(reserva.personas.map((persona) => persona.familia))
   const hoy = hoyEnElPredio()

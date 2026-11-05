@@ -116,8 +116,8 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/r
           </section>
         ) : null}
         <TicketPublico ticket={ticket} enlace={`${urlSitio}/reserva/t/${id}`} />
-        {modificable ? <MiReservaAcciones token={ticket.token} /> : null}
         {reglamento && viva ? <CompartirReglamento tipo={reglamento} fecha={fechaLarga(ticket.desde).toLowerCase()} enlace={`${urlSitio}/reglamento/${reglamento}`} /> : null}
+        {modificable ? <MiReservaAcciones token={ticket.token} /> : null}
       </div>
     </main>
   )

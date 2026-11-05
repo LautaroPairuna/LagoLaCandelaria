@@ -214,7 +214,11 @@ function CampoFoto({ campo, valor, ruta, contexto }: { campo: CampoDeFoto; valor
 
   return (
     <div className="text-sm">
-      <p className="font-semibold text-panel-ink">{campo.etiqueta}</p>
+      <p className="font-semibold text-panel-ink">
+        {campo.etiqueta}
+        {campo.opcional ? <span className="font-normal text-panel-muted"> (opcional)</span> : null}
+      </p>
+      {campo.ayuda ? <p className="text-xs text-panel-muted">{campo.ayuda}</p> : null}
       <div className="mt-1 grid gap-3 sm:grid-cols-[12rem_minmax(0,1fr)]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-panel">
           {esFotoValida(foto.src) ? (
@@ -241,6 +245,12 @@ function CampoFoto({ campo, valor, ruta, contexto }: { campo: CampoDeFoto; valor
             ) : (
               <span className="self-center text-xs text-panel-muted">Para subir fotos falta configurar la carpeta del servidor.</span>
             )}
+            {campo.opcional && foto.src ? (
+              <button type="button" onClick={() => contexto.cambiar(ruta, { src: "", alt: "" })} className={cn(botonChico, "text-[#a0261b]")}>
+                <Trash2 className="size-4" aria-hidden />
+                Quitar foto
+              </button>
+            ) : null}
           </div>
           <ErrorDeCampo ruta={[...ruta, "src"]} contexto={contexto} />
           <CampoTexto

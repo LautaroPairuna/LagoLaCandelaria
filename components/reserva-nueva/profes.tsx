@@ -29,9 +29,18 @@ export function Profes() {
                 rel="noreferrer"
                 className="group flex items-center gap-4 rounded-[1.3rem] border border-ink/10 bg-foam px-4 py-4 transition hover:-translate-y-0.5 hover:border-[#25a95a]"
               >
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#25a95a] text-white">
-                  <MessageCircle className="size-6" aria-hidden />
-                </span>
+                {profe.foto.src ? (
+                  <span className="relative size-16 shrink-0">
+                    <Foto src={profe.foto.src} alt={profe.foto.alt} sizes="4rem" className="size-16 rounded-full object-cover ring-2 ring-white" />
+                    <span className="absolute -right-0.5 -bottom-0.5 grid size-6 place-items-center rounded-full bg-[#25a95a] text-white ring-2 ring-foam">
+                      <MessageCircle className="size-3.5" aria-hidden />
+                    </span>
+                  </span>
+                ) : (
+                  <span className="grid size-16 shrink-0 place-items-center rounded-full bg-[#25a95a] text-white">
+                    <MessageCircle className="size-8" aria-hidden />
+                  </span>
+                )}
                 <span>
                   <span className="block font-display text-3xl leading-none tracking-tight">{profe.nombre}</span>
                   <span className="mt-1 block text-lg text-ink/70 tabular-nums">{profe.telefono}</span>
