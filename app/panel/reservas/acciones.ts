@@ -28,6 +28,48 @@ export async function confirmarReserva(id: number): Promise<Resultado> {
   })
 }
 
+/// Desde la lista se puede volver una confirmada a «a confirmar» si se confirmó por error,
+/// mientras nadie del grupo haya llegado.
+export async function volverAConfirmar(id: number): Promise<Resultado> {
+  return accion("volverAConfirmar", async () => {
+    const sesion = await permisoParaAccion("reservas")
+    const reservaId = idDeReserva.parse(id)
+    const { count } = await db().reserva.updateMany({ where: { id: reservaId, estado: "CONFIRMADA", ingresoEn: null }, data: { estado: "PENDIENTE" } })
+    revalidatePath("/panel", "layout")
+    exigir(count > 0, "Esta reserva ya no se puede volver a «a confirmar»: cambió de estado o ya llegó alguien. Ya te mostramos cómo quedó.")
+    await anotar(sesion, { seccion: "reservas", accion: "volvió a a confirmar", detalle: `Volvió a «a confirmar» la reserva ${reservaId}, ${await describirReserva(reservaId)}`, reservaId })
+    return { ok: true }
+  })
+}
+
+const idsDeReservas = z.array(idDeReserva).min(1, "No hay reservas para confirmar.").max(300, "Son demasiadas juntas: filtrá la lista y confirmalas por partes.")
+
+/// Confirma de una vez las que siguen «a confirmar» de la lista que se está viendo. Las que
+/// otro ya confirmó o canceló se saltean.
+export async function confirmarVarias(ids: number[]): Promise<Resultado<{ confirmadas: number }>> {
+  return accion("confirmarVarias", async () => {
+    const sesion = await permisoParaAccion("reservas")
+    const lista = idsDeReservas.parse(ids)
+    const pendientes = await db().reserva.findMany({ where: { id: { in: lista }, estado: "PENDIENTE" }, select: { id: true, codigo: true } })
+    exigir(pendientes.length > 0, "Ninguna de esas reservas seguía a confirmar. Ya te mostramos cómo quedaron.")
+    const { count } = await db().reserva.updateMany({ where: { id: { in: pendientes.map((reserva) => reserva.id) }, estado: "PENDIENTE" }, data: { estado: "CONFIRMADA" } })
+    revalidatePath("/panel", "layout")
+    await anotar(sesion, { seccion: "reservas", accion: "confirmó varias", detalle: `Confirmó ${count} ${count === 1 ? "reserva" : "reservas"} juntas: ${pendientes.map((reserva) => reserva.codigo).join(", ")}` })
+    return { ok: true, confirmadas: count }
+  })
+}
+
+/// Anota que se abrió el WhatsApp con el ticket, para que el envío guiado siga con la próxima.
+export async function marcarTicketEnviado(id: number): Promise<Resultado> {
+  return accion("marcarTicketEnviado", async () => {
+    await permisoParaAccion("reservas", "puerta")
+    const reservaId = idDeReserva.parse(id)
+    await db().reserva.updateMany({ where: { id: reservaId, estado: "CONFIRMADA" }, data: { ticketEnviadoEn: new Date() } })
+    revalidatePath("/panel/puerta")
+    return { ok: true }
+  })
+}
+
 // Cancelar libera los lugares: se borran sus ocupaciones en la misma transacción.
 export async function cancelarReserva(id: number): Promise<Resultado> {
   return accion("cancelarReserva", async () => {

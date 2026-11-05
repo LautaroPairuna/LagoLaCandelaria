@@ -72,7 +72,7 @@ async function renglonesEntre(desde: string, hasta: string, incluidas: Seccion[]
           select: { id: true, local: true, fecha: true, mesa: true, titular: true, forma: true, cobradaEn: true, cobradaPor: true, items: { select: { precio: true, cantidad: true } } },
         })
       : [],
-    incluidas.includes("predio") ? db().movimientoCaja.findMany({ where: { fecha: entre } }) : [],
+    db().movimientoCaja.findMany({ where: { fecha: entre, seccion: { in: incluidas } } }),
   ])
 
   const cobros: Renglon[] = pagos.map((pago) => ({
@@ -130,7 +130,7 @@ async function balancesAl(hasta: string, incluidas: Seccion[]): Promise<Record<C
           WHERE c.estado = 'COBRADA' AND c.fecha <= ${hastaDb} AND c.local IN (${Prisma.join(locales)})
           GROUP BY c.forma`
       : [],
-    incluidas.includes("predio") ? db().movimientoCaja.groupBy({ by: ["tipo", "cajon"], where: { fecha: { lte: hastaDb } }, _sum: { monto: true } }) : [],
+    db().movimientoCaja.groupBy({ by: ["tipo", "cajon"], where: { fecha: { lte: hastaDb }, seccion: { in: incluidas } }, _sum: { monto: true } }),
   ])
   const balance: Record<Cajon, number> = { EFECTIVO: 0, BANCO: 0 }
   for (const fila of cobros) balance[cajonDe(fila.forma)] += fila._sum.importe ?? 0
@@ -147,8 +147,8 @@ async function balancesAl(hasta: string, incluidas: Seccion[]): Promise<Record<C
   return balance
 }
 
-/// El libro de una caja: la de una sección (reservas, restaurante, bar) o la general,
-/// que junta todas y suma los egresos y pases del predio.
+/// El libro de una caja: la de una sección (reservas, restaurante, bar), con sus cobros y
+/// sus movimientos, o la general, que junta todas.
 export async function libroDeCaja(desde: string, hasta: string, incluidas: Seccion[] = secciones) {
   const [renglones, balances] = await Promise.all([renglonesEntre(desde, hasta, incluidas), balancesAl(hasta, incluidas)])
   const totales = totalesPorCajon(renglones)

@@ -11,8 +11,9 @@ export const cajones: { id: Cajon; nombre: string; detalle: string }[] = [
 
 export const nombreDelCajon: Record<Cajon, string> = { EFECTIVO: "Efectivo", BANCO: "Banco" }
 
-/// De dónde viene cada renglón. Reservas, restaurante y bar tienen su caja; los egresos y
-/// los pases entre cajones son del predio y se ven en la caja general.
+/// De dónde viene cada renglón. Reservas (Puerta), restaurante y bar tienen su caja, con sus
+/// cobros y sus propios egresos y pases; los del predio se cargan en la caja general, que
+/// ve todo.
 export type Seccion = "reservas" | "restaurante" | "bar" | "predio"
 
 export const secciones: Seccion[] = ["reservas", "restaurante", "bar", "predio"]
@@ -57,6 +58,11 @@ export type MovimientoLeido = {
   monto: number
   registradoPor: string | null
   creadoEn: Date
+  seccion?: string
+}
+
+export function esSeccionDeCaja(valor: unknown): valor is Seccion {
+  return typeof valor === "string" && (secciones as string[]).includes(valor)
 }
 
 /// Un movimiento manual en renglones: una transferencia entre cajones son dos, la
@@ -64,7 +70,7 @@ export type MovimientoLeido = {
 export function renglonesDeMovimiento(movimiento: MovimientoLeido): Renglon[] {
   const base = {
     origen: "movimiento" as const,
-    seccion: "predio" as const,
+    seccion: esSeccionDeCaja(movimiento.seccion) ? movimiento.seccion : "predio",
     movimientoId: movimiento.id,
     tipo: movimiento.tipo,
     fecha: movimiento.fecha,

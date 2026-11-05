@@ -2,6 +2,7 @@ import { ClipboardList, MessageCircle, Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { CambiarEstado } from "@/components/panel/cambiar-estado"
 import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { NuevaReserva } from "@/components/panel/nueva-reserva"
 import { feriadosDelAnio } from "@/lib/disponibilidad"
@@ -200,7 +201,7 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
                       </td>
                       <td className="max-w-48 px-3 py-3 text-panel-muted">{fila.lugares.join(", ") || "—"}</td>
                       <td className="px-3 py-3">
-                        <InsigniaDeEstado estado={fila.visible} />
+                        <Estado fila={fila} />
                       </td>
                       <td className="px-5 py-3 text-right font-semibold whitespace-nowrap tabular-nums">
                         <Saldo fila={fila} />
@@ -213,8 +214,8 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
 
             <ul className="mt-3 space-y-3 lg:hidden">
               {filas.map((fila) => (
-                <li key={fila.id}>
-                  <Link href={`/panel/reservas/${fila.id}`} className={cn("block rounded-2xl border-2 border-l-8 p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] active:brightness-95", estilosDeEstado[fila.visible].tarjeta, estilosDeEstado[fila.visible].borde)}>
+                <li key={fila.id} className={cn("rounded-2xl border-2 border-l-8 shadow-[0_8px_28px_rgba(58,42,24,0.06)]", estilosDeEstado[fila.visible].tarjeta, estilosDeEstado[fila.visible].borde)}>
+                  <Link href={`/panel/reservas/${fila.id}`} className="block p-4 pb-2 active:brightness-95">
                     <span className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block truncate font-semibold">{fila.titular}</span>
@@ -229,13 +230,15 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
                     </span>
                     <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
                       <span className="font-semibold">{rangoConMesPanel(fila.desde, fila.hasta)}</span>
-                      <InsigniaDeEstado estado={fila.visible} />
                       <span className="ml-auto font-semibold tabular-nums">
                         <Saldo fila={fila} />
                       </span>
                     </span>
                     {fila.lugares.length ? <span className="mt-1 block truncate text-xs text-panel-muted">{fila.lugares.join(", ")}</span> : null}
                   </Link>
+                  <div className="px-4 pb-4">
+                    <Estado fila={fila} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -256,6 +259,13 @@ export default async function PanelReservas({ searchParams }: PageProps<"/panel/
       </section>
     </main>
   )
+}
+
+function Estado({ fila }: { fila: FilaDeBusqueda }) {
+  if (fila.visible === "a-confirmar" || fila.visible === "confirmada") {
+    return <CambiarEstado id={fila.id} codigo={fila.codigo} titular={fila.titular} estado={fila.visible === "a-confirmar" ? "PENDIENTE" : "CONFIRMADA"} />
+  }
+  return <InsigniaDeEstado estado={fila.visible} />
 }
 
 function Saldo({ fila }: { fila: FilaDeBusqueda }) {

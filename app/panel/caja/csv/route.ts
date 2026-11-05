@@ -14,9 +14,13 @@ export async function GET(request: Request) {
   const pedida = url.searchParams.get("seccion") ?? undefined
   const seccion: Seccion | null = esSeccion(pedida) ? pedida : null
   const sesion = await auth().api.getSession({ headers: await headers() })
-  // La caja de cada local la baja también su encargado; las demás, solo la caja.
+  // La caja de cada local la baja también su encargado, y la de reservas, Puerta; la general, solo la caja.
   const permitido =
-    sesion && (puedeVer(sesion.user.role, "caja") || (seccion === "restaurante" && puedeVer(sesion.user.role, "restaurante")) || (seccion === "bar" && puedeVer(sesion.user.role, "bar")))
+    sesion &&
+    (puedeVer(sesion.user.role, "caja") ||
+      (seccion === "restaurante" && puedeVer(sesion.user.role, "restaurante")) ||
+      (seccion === "bar" && puedeVer(sesion.user.role, "bar")) ||
+      (seccion === "reservas" && puedeVer(sesion.user.role, "puerta")))
   if (!permitido) return new Response("Tu sesión venció o no tenés permiso para ver esta caja.", { status: 403 })
 
   const { desde, hasta } = periodoDeCaja(url.searchParams.get("desde") ?? undefined, url.searchParams.get("hasta") ?? undefined, hoyEnElPredio())

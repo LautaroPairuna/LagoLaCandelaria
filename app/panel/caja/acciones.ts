@@ -5,7 +5,8 @@ import { z } from "zod"
 
 import { accion, ErrorHumano, exigir, type Resultado } from "@/lib/errores"
 import { registrarActividad } from "@/lib/panel/actividad"
-import { nombreDelCajon } from "@/lib/panel/libro-caja"
+import { nombreDeSeccion, nombreDelCajon, type Seccion } from "@/lib/panel/libro-caja"
+import type { PanelId } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
 import { aFechaDb, deFechaDb, esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
@@ -18,7 +19,11 @@ const nuevoMovimiento = z.object({
   fecha: z.string(),
   concepto: z.string().trim().min(2, "Contá de qué es: «Combustible», «Retiro», «Depósito en el banco».").max(160, "Es muy largo: dejalo en 160 letras o menos."),
   monto: z.number("Escribí el monto en pesos, sin puntos.").int("Escribí el monto en pesos, sin centavos.").positive("El monto tiene que ser mayor a cero.").max(500_000_000, "Ese monto es demasiado grande. Revisalo."),
+  seccion: z.enum(["predio", "reservas", "restaurante", "bar"]).default("predio"),
 })
+
+// Cada caja la maneja su panel (y la Caja, que ve todas); la del predio, solo la Caja.
+const panelesDeSeccion: Record<Seccion, PanelId[]> = { predio: ["caja"], reservas: ["caja", "puerta"], restaurante: ["caja", "restaurante"], bar: ["caja", "bar"] }
 
 const otroCajon = { EFECTIVO: "BANCO", BANCO: "EFECTIVO" } as const
 
@@ -30,25 +35,27 @@ function describir(movimiento: { tipo: "INGRESO" | "EGRESO" | "TRANSFERENCIA"; c
 
 export async function cargarMovimiento(pedido: z.input<typeof nuevoMovimiento>): Promise<Resultado<{ id: number }>> {
   return accion("cargarMovimiento", async () => {
-    const sesion = await permisoParaAccion("caja")
     const datos = nuevoMovimiento.parse(pedido)
+    const sesion = await permisoParaAccion(...panelesDeSeccion[datos.seccion])
     const hoy = hoyEnElPredio()
     exigir(esFechaIso(datos.fecha) && datos.fecha <= hoy && datos.fecha >= sumarDiasIso(hoy, -400), "Elegí una fecha de hoy o anterior, dentro del último año.")
     const quien = sesion.user.name.slice(0, 80)
     const id = await db().$transaction(async (tx) => {
       const creado = await tx.movimientoCaja.create({ data: { ...datos, fecha: aFechaDb(datos.fecha), registradoPor: quien }, select: { id: true } })
-      await registrarActividad(tx, { usuario: quien, userId: sesion.user.id, seccion: "caja", accion: "movimiento", detalle: `Cargó un ${describir(datos)}`, monto: datos.monto })
+      await registrarActividad(tx, { usuario: quien, userId: sesion.user.id, seccion: "caja", accion: "movimiento", detalle: `Cargó un ${describir(datos)} (caja de ${nombreDeSeccion[datos.seccion].toLowerCase()})`, monto: datos.monto })
       return creado.id
     })
-    revalidatePath("/panel/caja", "layout")
+    revalidatePath("/panel", "layout")
     return { ok: true, id }
   })
 }
 
 export async function borrarMovimiento(pedido: { id: number }): Promise<Resultado<{ id: number }>> {
   return accion("borrarMovimiento", async () => {
-    const sesion = await permisoParaAccion("caja")
     const id = z.number().int().positive().parse(pedido.id)
+    const existente = await db().movimientoCaja.findUnique({ where: { id }, select: { seccion: true } })
+    if (!existente) throw new ErrorHumano("Ese movimiento ya no estaba: alguien lo borró antes. Te mostramos cómo quedó.")
+    const sesion = await permisoParaAccion(...panelesDeSeccion[(existente.seccion in panelesDeSeccion ? existente.seccion : "predio") as Seccion])
     const quien = sesion.user.name.slice(0, 80)
     await db().$transaction(async (tx) => {
       const movimiento = await tx.movimientoCaja.findUnique({ where: { id } })
@@ -63,7 +70,7 @@ export async function borrarMovimiento(pedido: { id: number }): Promise<Resultad
         monto: movimiento.monto,
       })
     })
-    revalidatePath("/panel/caja", "layout")
+    revalidatePath("/panel", "layout")
     return { ok: true, id }
   })
 }

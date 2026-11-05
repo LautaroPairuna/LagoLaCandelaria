@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { periodoDeCaja } from "@/app/panel/caja/periodo"
+import { CargarMovimiento } from "@/components/panel/caja/cargar-movimiento"
 import { BotonesDeCaja, fechaCorta, ListaDeRenglones, PestanasDeCaja, SelectorDePeriodo, sombra, TarjetasDeCajones, textoDelPeriodo } from "@/components/panel/caja/partes"
 import { PestanasDelLocal } from "@/components/panel/local/pestanas"
 import { esFiltroDeCajon, libroDeCaja, pendienteDeLocales, type FiltroDeCajon } from "@/lib/panel/caja"
@@ -17,8 +18,9 @@ function primero(valor: string | string[] | undefined) {
   return Array.isArray(valor) ? valor[0] : valor
 }
 
-/// La caja propia del restaurante o del bar: lo cobrado por cajón, las cuentas cobradas
-/// y lo que quedó abierto. Se ve dentro del local y también desde la caja General.
+/// La caja propia del restaurante o del bar: lo cobrado por cajón, sus egresos y pases, las
+/// cuentas cobradas y lo que quedó abierto. Se ve dentro del local y también desde la caja
+/// General.
 export async function CajaDelLocal({ local, contexto, params }: { local: DatosDelLocal; contexto: "local" | "general"; params: Params }) {
   await exigirPanel(contexto === "general" ? "caja" : local.panel)
   const hoy = hoyEnElPredio()
@@ -61,8 +63,8 @@ export async function CajaDelLocal({ local, contexto, params }: { local: DatosDe
       <TarjetasDeCajones
         resumen={resumen}
         hasta={hasta}
-        conEgreso={false}
-        nota={`Ingreso es lo cobrado en el período; acumulado, todo lo cobrado hasta el ${fechaCorta(hasta)}. Es la caja propia del ${local.nombre.toLowerCase()}; en la caja General se suma a las demás.`}
+        conEgreso
+        nota={`Ingreso y egreso son los del período; balance, lo que hay en cada cajón al ${fechaCorta(hasta)}. Es la caja propia del ${local.nombre.toLowerCase()}; en la caja General se suma a las demás.`}
       />
 
       {abiertas.length ? (
@@ -86,11 +88,12 @@ export async function CajaDelLocal({ local, contexto, params }: { local: DatosDe
       ) : null}
 
       <ListaDeRenglones
-        titulo="Cuentas cobradas"
+        titulo="Movimientos"
         renglones={renglones}
         filtro={filtro}
         enlace={(cajon) => `${ruta}?${new URLSearchParams({ desde, hasta, ...(cajon !== "todos" ? { cajon } : {}) })}`}
-        vacio="No hay cuentas cobradas en este período"
+        vacio="No hay cuentas cobradas ni movimientos en este período"
+        arriba={<CargarMovimiento hoy={hoy} seccion={seccion as "restaurante" | "bar"} />}
       />
     </main>
   )

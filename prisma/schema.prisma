@@ -103,6 +103,8 @@ model Reserva {
   /// Respuesta al mensaje del día anterior: CONFIRMO o CANCELO. Vacío, sin respuesta.
   confirmacion   String?         @db.VarChar(12)
   confirmacionEn DateTime?
+  /// Cuándo se abrió el WhatsApp con el ticket desde el envío guiado de Puerta.
+  ticketEnviadoEn DateTime?
   /// La solicitud tal como se emitió (personas, lugares, cotización): es el documento
   /// del ticket y no se recalcula si después cambian las tarifas.
   detalle       Json
@@ -314,6 +316,8 @@ model MovimientoCaja {
   monto         Int
   registradoPor String?        @db.VarChar(80)
   creadoEn      DateTime       @default(now())
+  /// De qué caja es: predio (la general), reservas (Puerta), restaurante o bar.
+  seccion       String         @default("predio") @db.VarChar(20)
 
   @@index([fecha])
   @@map("movimientos_caja")

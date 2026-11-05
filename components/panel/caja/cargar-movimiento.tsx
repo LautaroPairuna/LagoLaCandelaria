@@ -29,7 +29,7 @@ function Error({ texto }: { texto?: string }) {
 
 /// Carga una salida de plata o un pase entre cajones. Los ingresos entran siempre por
 /// el cobro de una reserva (en Puerta, o con una reserva nueva para quien llega sin avisar).
-export function CargarMovimiento({ hoy }: { hoy: string }) {
+export function CargarMovimiento({ hoy, seccion = "predio" }: { hoy: string; seccion?: "predio" | "reservas" | "restaurante" | "bar" }) {
   const [abierto, setAbierto] = useState(false)
   const [tipo, setTipo] = useState<Tipo>("EGRESO")
   const [cajon, setCajon] = useState<Cajon>("EFECTIVO")
@@ -65,7 +65,7 @@ export function CargarMovimiento({ hoy }: { hoy: string }) {
         }
         iniciar(async () => {
           const resultado = await conAviso(
-            () => cargarMovimiento({ tipo, cajon, fecha: String(datos.get("fecha")), concepto, monto }),
+            () => cargarMovimiento({ tipo, cajon, fecha: String(datos.get("fecha")), concepto, monto, seccion }),
             tipo === "TRANSFERENCIA"
               ? `Listo, pasaste ${pesos(monto)} de ${cajon === "EFECTIVO" ? "efectivo al banco" : "banco a efectivo"}.`
               : `Listo, quedó cargado el egreso de ${pesos(monto)}.`,
