@@ -16,11 +16,11 @@ export function BotonesDeConfirmacion({ reserva }: { reserva: Pick<ParaConfirmar
     iniciar(async () => void (await conAviso(() => responderConfirmacion(reserva.id, respuesta), exito)))
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       {reserva.whatsapp ? (
-        <a href={reserva.whatsapp} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full bg-[#25d366] px-4 text-sm font-bold text-white">
+        <a href={reserva.whatsapp} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#25d366] px-3 text-sm font-bold whitespace-nowrap text-white">
           <MessageCircle className="size-4" aria-hidden />
-          Escribir por WhatsApp
+          WhatsApp
         </a>
       ) : (
         <span className="text-sm text-panel-muted">Sin celular cargado</span>
@@ -31,7 +31,7 @@ export function BotonesDeConfirmacion({ reserva }: { reserva: Pick<ParaConfirmar
             type="button"
             disabled={pendiente}
             onClick={() => responder("CONFIRMO", `Listo: ${reserva.titular} confirmó que viene.`)}
-            className={cn("inline-flex h-10 items-center gap-1.5 rounded-full border-2 border-[#2e7d32] px-4 text-sm font-bold text-[#2e7d32] hover:bg-[#2e7d32] hover:text-white disabled:opacity-60")}
+            className={cn("inline-flex h-9 items-center gap-1 rounded-full border-2 border-[#2e7d32] px-3 whitespace-nowrap text-sm font-bold text-[#2e7d32] hover:bg-[#2e7d32] hover:text-white disabled:opacity-60")}
           >
             <Check className="size-4" aria-hidden />
             Confirmó
@@ -42,7 +42,7 @@ export function BotonesDeConfirmacion({ reserva }: { reserva: Pick<ParaConfirmar
             onClick={() => {
               if (window.confirm(`¿${reserva.titular} avisó que no viene? La reserva se cancela y se liberan los lugares.`)) responder("CANCELO", "Listo: la reserva quedó cancelada.")
             }}
-            className="inline-flex h-10 items-center gap-1.5 rounded-full border-2 border-[#c62828] px-4 text-sm font-bold text-[#c62828] hover:bg-[#c62828] hover:text-white disabled:opacity-60"
+            className="inline-flex h-9 items-center gap-1 rounded-full border-2 border-[#c62828] px-3 whitespace-nowrap text-sm font-bold text-[#c62828] hover:bg-[#c62828] hover:text-white disabled:opacity-60"
           >
             <X className="size-4" aria-hidden />
             No viene
@@ -53,7 +53,7 @@ export function BotonesDeConfirmacion({ reserva }: { reserva: Pick<ParaConfirmar
           type="button"
           disabled={pendiente}
           onClick={() => responder("SIN_RESPUESTA", "Listo: volvió a sin respuesta.")}
-          className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm text-panel-muted underline-offset-4 hover:underline"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full px-2 text-sm text-panel-muted underline-offset-4 hover:underline"
         >
           <RotateCcw className="size-4" aria-hidden />
           Deshacer

@@ -4,33 +4,24 @@ import Link from "next/link"
 
 import { AccionesMasivas, type EnvioDeTicket } from "@/components/panel/acciones-masivas"
 import { EncabezadoDelDia } from "@/components/panel/encabezado-del-dia"
-import { EstadoEditable } from "@/components/panel/estado-editable"
-import { FichaDeLlegada, type DatosDeLlegada } from "@/components/panel/ficha-de-llegada"
 import { FiltrosDePuerta } from "@/components/panel/filtros-puerta"
 import { LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { NuevaReserva } from "@/components/panel/nueva-reserva"
 import { PestanasDePuerta } from "@/components/panel/pestanas-puerta"
+import { TablaDeReservas } from "@/components/panel/tabla-de-reservas"
 import { feriadosDelAnio } from "@/lib/disponibilidad"
-import { buscarReservas, type FilaDeBusqueda } from "@/lib/panel/busqueda"
-import { estilosDeEstado } from "@/lib/panel/estados"
+import { buscarReservas } from "@/lib/panel/busqueda"
 import { filtrarYOrdenar, leerFiltros } from "@/lib/panel/filtros-puerta"
-import { rangoConMesPanel } from "@/lib/panel/formato"
 import { mensajeDeConfirmada } from "@/lib/panel/mensajes"
-import { llegadasDelDia, type Llegada } from "@/lib/panel/puerta"
-import { nombreDelModulo } from "@/lib/panel/reservas"
+import { llegadasDelDia, llegadasPorIds, type Llegada } from "@/lib/panel/puerta"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { normalizarTelefono } from "@/lib/predio/contacto"
 import { esFechaIso, hoyEnElPredio } from "@/lib/predio/fechas"
-import { pesos } from "@/lib/predio/tarifas"
-import { reglamentoDe } from "@/lib/reglamentos"
-import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Puerta" }
 
-const hora = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" })
 
-const sombra = "shadow-[0_8px_28px_rgba(58,42,24,0.06)]"
 const botonSecundario = "inline-flex h-11 items-center gap-2 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted"
 
 export default async function PanelPuerta({ searchParams }: PageProps<"/panel/puerta">) {
@@ -47,6 +38,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
     busqueda ? Promise.resolve([]) : llegadasDelDia(fecha),
     busqueda ? buscarReservas({ texto: busqueda, estado: "activas", pasadas: true, hoy }, 100) : null,
   ])
+  const encontradas = resultados ? await llegadasPorIds(resultados.filas.map((fila) => fila.id)) : []
   const llegadas = filtrarYOrdenar(delDia, filtros)
   const puedeConfirmar = puedeVer(sesion.user.role, "reservas")
   const feriados = await feriadosDelAnio(hoy)
@@ -104,7 +96,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
         <LeyendaDeEstados />
       </div>
 
-      {resultados ? <ResultadosDeBusqueda resultados={resultados} busqueda={busqueda} puedeCambiar={puedeConfirmar} hoy={hoy} /> : null}
+      {resultados ? <ResultadosDeBusqueda total={resultados.total} llegadas={encontradas} busqueda={busqueda} puedeConfirmar={puedeConfirmar} hoy={hoy} /> : null}
 
       {resultados ? null : (
         <section aria-labelledby="reservas-del-dia" className="mt-6">
@@ -115,84 +107,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
           {llegadas.length === 0 ? (
             <p className="mt-2 text-sm text-panel-muted">{llegadas.length !== delDia.length ? "Ninguna reserva coincide con los filtros." : "No hay reservas para ese día."}</p>
           ) : (
-            <>
-              <div className={cn("mt-3 hidden overflow-hidden rounded-3xl bg-white lg:block", sombra)}>
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-panel-line text-xs font-bold tracking-wide text-panel-muted uppercase">
-                    <tr>
-                      <th className="px-5 py-3 font-bold">Reserva</th>
-                      <th className="px-3 py-3 font-bold">Quién</th>
-                      <th className="px-3 py-3 font-bold">Lugar</th>
-                      <th className="px-3 py-3 font-bold">Horario</th>
-                      <th className="px-3 py-3 font-bold">Estado</th>
-                      <th className="px-3 py-3 text-right font-bold">Saldo</th>
-                      <th className="px-4 py-3">
-                        <span className="sr-only">Ficha</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-panel-line">
-                    {llegadas.map((llegada) => (
-                      <tr key={llegada.id} className={cn("border-l-8", estilosDeEstado[llegada.visible].tarjeta, estilosDeEstado[llegada.visible].borde)}>
-                        <td className="px-5 py-3">
-                          <span className="font-semibold tabular-nums">{llegada.codigo}</span>
-                          <span className="block text-xs text-panel-muted">{nombreDelModulo[llegada.modulo]}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <Link href={`/panel/reservas/${llegada.id}`} className="font-semibold hover:underline">
-                            {llegada.titular}
-                          </Link>
-                          <span className="block text-xs text-panel-muted">
-                            {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"}
-                            {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
-                          </span>
-                        </td>
-                        <td className="max-w-48 px-3 py-3">{llegada.lugares.join(", ") || <span className="text-panel-muted">—</span>}</td>
-                        <td className="px-3 py-3 whitespace-nowrap tabular-nums">{llegada.horario}</td>
-                        <td className="px-3 py-3">
-                          <Estado llegada={llegada} hoy={hoy} puedeConfirmar={puedeConfirmar} />
-                        </td>
-                        <td className="px-3 py-3 text-right font-semibold whitespace-nowrap tabular-nums">
-                          <Saldo llegada={llegada} />
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <FichaDeLlegada llegada={datosDeLlegada(llegada, hoy)} hoy={hoy} puedeConfirmar={puedeConfirmar} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <ul className="mt-3 space-y-3 lg:hidden">
-                {llegadas.map((llegada) => (
-                  <li key={llegada.id} className={cn("grid gap-4 rounded-3xl border-2 border-l-8 p-4", sombra, estilosDeEstado[llegada.visible].tarjeta, estilosDeEstado[llegada.visible].borde)}>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold tracking-wide text-panel-muted uppercase">
-                        {nombreDelModulo[llegada.modulo]} · {llegada.codigo}
-                      </p>
-                      <Link href={`/panel/reservas/${llegada.id}`} className="font-display mt-1 block text-2xl tracking-tight hover:underline">
-                        {llegada.titular}
-                      </Link>
-                      <p className="mt-1 text-base text-panel-ink/80">
-                        {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"} · {llegada.horario}
-                        {llegada.lugares.length ? ` · ${llegada.lugares.join(", ")}` : ""}
-                        {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <Estado llegada={llegada} hoy={hoy} puedeConfirmar={puedeConfirmar} />
-                        <span className="text-base font-semibold">
-                          <Saldo llegada={llegada} />
-                        </span>
-                        <span className="ml-auto">
-                          <FichaDeLlegada llegada={datosDeLlegada(llegada, hoy)} hoy={hoy} puedeConfirmar={puedeConfirmar} />
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </>
+            <TablaDeReservas llegadas={llegadas} hoy={hoy} puedeConfirmar={puedeConfirmar} />
           )}
         </section>
       )}
@@ -200,101 +115,20 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   )
 }
 
-/// La etiqueta del estado se toca para cambiarlo; el ingreso y la salida los marca Puerta
-/// (y quien tiene reservas, que también ve Puerta).
-function Estado({ llegada, hoy, puedeConfirmar }: { llegada: Llegada; hoy: string; puedeConfirmar: boolean }) {
-  return (
-    <EstadoEditable
-      id={llegada.id}
-      codigo={llegada.codigo}
-      titular={llegada.titular}
-      visible={llegada.visible}
-      desde={llegada.desde}
-      hasta={llegada.hasta}
-      hoy={hoy}
-      puedeConfirmar={puedeConfirmar}
-      puedeMarcar
-    />
-  )
-}
-
-function datosDeLlegada(llegada: Llegada, hoy: string): DatosDeLlegada {
-  return {
-    id: llegada.id,
-    codigo: llegada.codigo,
-    token: llegada.token,
-    titular: llegada.titular,
-    propuesta: nombreDelModulo[llegada.modulo],
-    modificable: Boolean(reglamentoDe(llegada.modulo)) && !llegada.ingresoEn && llegada.desde >= hoy,
-    horario: llegada.horario,
-    lugares: llegada.lugares,
-    personas: llegada.personas,
-    dni: llegada.dni,
-    telefono: llegada.telefono,
-    desde: llegada.desde,
-    hasta: llegada.hasta,
-    visible: llegada.visible,
-    asistencia: { porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total },
-    integrantes: llegada.integrantes,
-    ingreso: llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null,
-    saldo: llegada.saldo,
-    efectivo: llegada.efectivo,
-    aConfirmar: llegada.aConfirmar,
-    consumo: llegada.consumo,
-  }
-}
-
-function Saldo({ llegada }: { llegada: Llegada }) {
-  if (llegada.consumo) return <span className="text-panel-muted">Consumo aparte</span>
-  if (llegada.aConfirmar) return <span className="text-panel-muted">A presupuestar</span>
-  if (!llegada.saldo) return <span className="text-[#3f6b12]">Pagado</span>
-  return <>Saldo {pesos(llegada.saldo)}</>
-}
-
-function ResultadosDeBusqueda({ resultados, busqueda, puedeCambiar, hoy }: { resultados: { total: number; filas: FilaDeBusqueda[] }; busqueda: string; puedeCambiar: boolean; hoy: string }) {
+function ResultadosDeBusqueda({ total, llegadas, busqueda, puedeConfirmar, hoy }: { total: number; llegadas: Llegada[]; busqueda: string; puedeConfirmar: boolean; hoy: string }) {
   return (
     <section aria-labelledby="resultados" className="mt-6">
       <h2 id="resultados" className="font-display flex flex-wrap items-center gap-3 text-2xl tracking-tight">
         Resultados en todas las fechas
-        <span className="rounded-full bg-white px-2.5 py-0.5 font-sans text-sm font-bold text-panel-muted">{resultados.total}</span>
+        <span className="rounded-full bg-white px-2.5 py-0.5 font-sans text-sm font-bold text-panel-muted">{total > llegadas.length ? `${llegadas.length} de ${total}` : total}</span>
         <Link href="/panel/puerta" className="font-sans text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline">
           Volver al día
         </Link>
       </h2>
-      {resultados.filas.length === 0 ? (
+      {llegadas.length === 0 ? (
         <p className="mt-2 text-sm text-panel-muted">No encontramos reservas con «{busqueda}». Probá con menos palabras o solo el apellido.</p>
       ) : (
-        <ul className="mt-3 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-          {resultados.filas.map((fila) => (
-            <li key={fila.id} className={cn("rounded-2xl border-2 border-l-8 p-4", sombra, estilosDeEstado[fila.visible].tarjeta, estilosDeEstado[fila.visible].borde)}>
-              <p className="text-xs font-bold tracking-wide text-panel-muted uppercase">
-                {nombreDelModulo[fila.modulo]} · {fila.codigo}
-              </p>
-              <Link href={`/panel/reservas/${fila.id}`} className="font-display mt-1 block text-xl tracking-tight hover:underline">
-                {fila.titular}
-              </Link>
-              <p className="text-sm text-panel-muted">
-                {rangoConMesPanel(fila.desde, fila.hasta)} · {fila.personas} pers.{fila.lugares.length ? ` · ${fila.lugares.join(", ")}` : ""}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <EstadoEditable
-                  id={fila.id}
-                  codigo={fila.codigo}
-                  titular={fila.titular}
-                  visible={fila.visible}
-                  desde={fila.desde}
-                  hasta={fila.hasta}
-                  hoy={hoy}
-                  puedeConfirmar={puedeCambiar}
-                  puedeMarcar
-                />
-                <Link href={`/panel/puerta?fecha=${fila.desde}`} className="text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline">
-                  Ver ese día
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <TablaDeReservas llegadas={llegadas} hoy={hoy} puedeConfirmar={puedeConfirmar} conFecha />
       )}
     </section>
   )

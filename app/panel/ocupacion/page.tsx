@@ -3,12 +3,13 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
-import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
-import { estilosDeEstado } from "@/lib/panel/estados"
+import { TablaDeReservas } from "@/components/panel/tabla-de-reservas"
 import { estadosDe, filtrosDeEstado, filtrosDeTipo, modulosDe, type FiltrosDePuerta } from "@/lib/panel/filtros-puerta"
-import { fechaLargaPanel, nombreDelMes, rangoPanel } from "@/lib/panel/formato"
+import { fechaLargaPanel, nombreDelMes } from "@/lib/panel/formato"
 import { ocupacionPorDia, porcentaje, textoDelPorcentaje, type DiaOcupado } from "@/lib/panel/ocupacion"
-import { esMes, lineas, nombreDelModulo, reservasDelMes, sumarMes, type ReservaDelMes } from "@/lib/panel/reservas"
+import { llegadasDelDia, type Llegada } from "@/lib/panel/puerta"
+import { esMes, lineas, reservasDelMes, sumarMes } from "@/lib/panel/reservas"
+import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { estadoDelDia, mapaDeEspeciales, type TipoDia } from "@/lib/predio/calendario"
 import { aFechaDb, deFechaDb, diaDeLaSemana, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
@@ -35,15 +36,15 @@ function elegir<T extends string>(lista: readonly { id: T }[], valor: string | u
   return lista.find((opcion) => opcion.id === valor)?.id ?? porDefecto
 }
 
-const coincideEstado = (reserva: ReservaDelMes, estado: Filtro["estado"]) => estado === "todas" || estadosDe[estado].includes(reserva.visible)
-const coincideTipo = (reserva: ReservaDelMes, tipo: Filtro["tipo"]) => tipo === "todas" || modulosDe[tipo].includes(reserva.modulo)
+const coincideEstado = (reserva: Llegada, estado: Filtro["estado"]) => estado === "todas" || estadosDe[estado].includes(reserva.visible)
+const coincideTipo = (reserva: Llegada, tipo: Filtro["tipo"]) => tipo === "todas" || modulosDe[tipo].includes(reserva.modulo)
 
 function primero(valor: string | string[] | undefined) {
   return Array.isArray(valor) ? valor[0] : valor
 }
 
 export default async function PanelOcupacion({ searchParams }: PageProps<"/panel/ocupacion">) {
-  await exigirPanel("ocupacion")
+  const sesion = await exigirPanel("ocupacion")
   const params = await searchParams
   const hoy = hoyEnElPredio()
   const mesPedido = primero(params.mes)
@@ -53,14 +54,14 @@ export default async function PanelOcupacion({ searchParams }: PageProps<"/panel
 
   const inicio = `${mes}-01`
   const fin = sumarDiasIso(`${sumarMes(mes, 1)}-01`, -1)
-  const [reservas, especiales] = await Promise.all([
+  const [reservas, especiales, delDia] = await Promise.all([
     reservasDelMes(mes),
     db().diaEspecial.findMany({ where: { fecha: { gte: aFechaDb(inicio), lte: aFechaDb(fin) } } }),
+    dia ? llegadasDelDia(dia) : Promise.resolve([]),
   ])
   const mapa = mapaDeEspeciales(especiales.map((item) => ({ fecha: deFechaDb(item.fecha), tipo: item.tipo as TipoDia, motivo: item.motivo })))
   const ocupacion = ocupacionPorDia(reservas, inicio, fin)
   const desplazamiento = (diaDeLaSemana(inicio) + 6) % 7
-  const delDia = dia ? reservas.filter((reserva) => reserva.desde <= dia && reserva.hasta >= dia) : []
   const filtro: Filtro = { estado: elegir(filtrosDeEstado, primero(params.estado), "todas"), tipo: elegir(filtrosDeTipo, primero(params.tipo), "todas") }
   const filtradas = delDia.filter((reserva) => coincideEstado(reserva, filtro.estado) && coincideTipo(reserva, filtro.tipo))
 
@@ -124,6 +125,8 @@ export default async function PanelOcupacion({ searchParams }: PageProps<"/panel
         {dia ? (
           <ResumenDelDia dia={dia} ocupado={ocupacion.get(dia)} cerrado={!estadoDelDia(dia, mapa).abierto}>
             <ReservasDelDia
+              hoy={hoy}
+              puedeConfirmar={puedeVer(sesion.user.role, "reservas")}
               total={delDia.length}
               reservas={filtradas}
               estados={filtrosDeEstado.map((opcion) => ({
@@ -252,7 +255,7 @@ function Dato({ termino, valor, pie }: { termino: string; valor: string; pie: st
 
 type Boton = { id: string; nombre: string; cantidad: number; href: string; activo: boolean }
 
-function ReservasDelDia({ total, reservas, estados, tipos }: { total: number; reservas: ReservaDelMes[]; estados: Boton[]; tipos: Boton[] }) {
+function ReservasDelDia({ hoy, puedeConfirmar, total, reservas, estados, tipos }: { hoy: string; puedeConfirmar: boolean; total: number; reservas: Llegada[]; estados: Boton[]; tipos: Boton[] }) {
   return (
     <section aria-labelledby="reservas-del-dia" className="rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5">
       <h2 id="reservas-del-dia" className="font-display flex items-center gap-3 text-xl tracking-tight md:text-2xl">
@@ -270,25 +273,7 @@ function ReservasDelDia({ total, reservas, estados, tipos }: { total: number; re
       {reservas.length === 0 ? (
         <p className="mt-4 text-sm text-panel-muted">{total ? "Ninguna reserva coincide con los filtros." : "No hay reservas para este día."}</p>
       ) : (
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {reservas.map((reserva) => (
-            <li key={reserva.id}>
-              <Link
-                href={`/panel/reservas/${reserva.id}`}
-                className={cn("flex h-full flex-col gap-2 rounded-3xl border-2 border-l-8 p-4 hover:brightness-95", estilosDeEstado[reserva.visible].tarjeta, estilosDeEstado[reserva.visible].borde)}
-              >
-                <span className="text-xs font-bold tracking-wide text-panel-muted uppercase">
-                  {nombreDelModulo[reserva.modulo]} · {reserva.codigo}
-                </span>
-                <span className="font-display text-xl leading-tight tracking-tight">{reserva.titular}</span>
-                <span className="text-sm text-panel-ink/80">
-                  {reserva.personas} {reserva.personas === 1 ? "persona" : "personas"} · {rangoPanel(reserva.desde, reserva.hasta)}
-                </span>
-                <InsigniaDeEstado estado={reserva.visible} className="mt-auto w-fit" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <TablaDeReservas llegadas={reservas} hoy={hoy} puedeConfirmar={puedeConfirmar} />
       )}
     </section>
   )

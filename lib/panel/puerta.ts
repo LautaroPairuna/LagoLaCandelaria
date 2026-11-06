@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client"
 import type { Modulo } from "@/generated/prisma/enums"
 import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
@@ -9,8 +10,21 @@ import { db } from "@/lib/prisma"
 import { detalleDe } from "@/lib/reservas"
 
 export async function llegadasDelDia(dia: string, busqueda = "", modulo?: Modulo) {
+  return llegadasDonde({ estado: { not: "CANCELADA" }, desde: { lte: aFechaDb(dia) }, hasta: { gte: aFechaDb(dia) }, ...(modulo ? { modulo } : {}) }, busqueda)
+}
+
+/// Las mismas filas de Puerta para una lista de reservas (los resultados de una búsqueda),
+/// en el orden de la lista.
+export async function llegadasPorIds(ids: number[]) {
+  if (!ids.length) return []
+  const filas = await llegadasDonde({ id: { in: ids } })
+  const porId = new Map(filas.map((fila) => [fila.id, fila]))
+  return ids.flatMap((id) => porId.get(id) ?? [])
+}
+
+async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
   const filas = await db().reserva.findMany({
-    where: { estado: { not: "CANCELADA" }, desde: { lte: aFechaDb(dia) }, hasta: { gte: aFechaDb(dia) }, ...(modulo ? { modulo } : {}) },
+    where,
     orderBy: [{ ingreso: "asc" }, { id: "asc" }],
     select: {
       id: true,
@@ -85,7 +99,7 @@ export async function llegadasDelDia(dia: string, busqueda = "", modulo?: Modulo
     .filter((fila) => !texto || fila.id === numero || fila.buscable.includes(texto))
 }
 
-export type Llegada = Awaited<ReturnType<typeof llegadasDelDia>>[number]
+export type Llegada = Awaited<ReturnType<typeof llegadasDonde>>[number]
 
 export async function pagosDelDia(dia: string) {
   return db().pago.findMany({

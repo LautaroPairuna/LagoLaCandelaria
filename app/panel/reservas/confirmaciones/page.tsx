@@ -3,14 +3,14 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { BotonesDeConfirmacion } from "@/components/panel/confirmacion"
-import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
+import { ElegirFecha } from "@/components/panel/elegir-fecha"
+import { TablaDeReservas } from "@/components/panel/tabla-de-reservas"
 import { MENSAJE_DE_CONFIRMACION, paraConfirmar, type ParaConfirmar } from "@/lib/panel/confirmaciones"
 import { fechaLargaPanel } from "@/lib/panel/formato"
+import { llegadasPorIds } from "@/lib/panel/puerta"
 import { exigirPanel } from "@/lib/panel/sesion"
-import { nombreDeFormaWeb } from "@/lib/predio/cotizacion"
 import { esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { nombreDelModulo } from "@/lib/predio/nombres"
-import { pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Confirmaciones" }
@@ -34,6 +34,10 @@ export default async function Confirmaciones({ searchParams }: PageProps<"/panel
   const pedida = primero(params.fecha)
   const fecha = pedida && esFechaIso(pedida) ? pedida : sumarDiasIso(hoy, 1)
   const reservas = await paraConfirmar(fecha)
+  const vigentes = reservas.filter((reserva) => reserva.estado !== "CANCELADA")
+  const canceladas = reservas.filter((reserva) => reserva.estado === "CANCELADA")
+  const llegadas = await llegadasPorIds(vigentes.map((reserva) => reserva.id))
+  const porId = new Map(vigentes.map((reserva) => [reserva.id, reserva]))
   const cuenta = (respuesta: ParaConfirmar["confirmacion"]) => reservas.filter((reserva) => reserva.confirmacion === respuesta).length
   const enlace = (dia: string) => `/panel/reservas/confirmaciones?fecha=${dia}`
 
@@ -55,12 +59,7 @@ export default async function Confirmaciones({ searchParams }: PageProps<"/panel
           <Link href={enlace(sumarDiasIso(fecha, -1))} aria-label="Día anterior" className="grid size-11 place-items-center rounded-full border border-panel-line bg-white">
             <ChevronLeft className="size-5" aria-hidden />
           </Link>
-          <form action="/panel/reservas/confirmaciones" className="flex items-center gap-2">
-            <input type="date" name="fecha" defaultValue={fecha} aria-label="Fecha" className="h-11 rounded-xl border border-panel-line bg-white px-3 text-sm" />
-            <button type="submit" className="h-11 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold">
-              Ver
-            </button>
-          </form>
+          <ElegirFecha fecha={fecha} />
           <Link href={enlace(sumarDiasIso(fecha, 1))} aria-label="Día siguiente" className="grid size-11 place-items-center rounded-full border border-panel-line bg-white">
             <ChevronRight className="size-5" aria-hidden />
           </Link>
@@ -89,42 +88,44 @@ export default async function Confirmaciones({ searchParams }: PageProps<"/panel
       {reservas.length === 0 ? (
         <p className={cn("mt-5 rounded-3xl bg-white p-6 text-panel-muted", sombra)}>No hay reservas para confirmar ese día.</p>
       ) : (
-        <ul className="mt-5 grid gap-3 xl:grid-cols-2">
-          {reservas.map((reserva) => {
-            const respuesta = estadoDeRespuesta[reserva.confirmacion ?? "sin"]
-            return (
-              <li key={reserva.id} className={cn("min-w-0 rounded-3xl bg-white p-4 md:p-5", sombra, reserva.confirmacion === "CANCELO" && "opacity-70")}>
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold tracking-wide text-panel-muted uppercase">
-                      <Link href={`/panel/reservas/${reserva.id}`} className="hover:underline">
-                        N.º {reserva.id} · {reserva.codigo}
-                      </Link>{" "}
-                      · {nombreDelModulo[reserva.modulo]}
-                    </p>
-                    <p className="font-display text-2xl tracking-tight">{reserva.titular}</p>
-                    <p className="text-sm text-panel-muted tabular-nums">{reserva.telefono}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={cn("rounded-full px-3 py-1 text-xs font-bold", respuesta.clase)}>{respuesta.nombre}</span>
-                    {reserva.confirmacion !== "CANCELO" ? <InsigniaDeEstado estado={reserva.estado === "CONFIRMADA" ? "confirmada" : "a-confirmar"} /> : null}
-                  </div>
+        <TablaDeReservas
+          llegadas={llegadas}
+          hoy={hoy}
+          puedeConfirmar
+          extra={{
+            titulo: "Confirmación",
+            celda: (llegada) => {
+              const reserva = porId.get(llegada.id)
+              if (!reserva) return null
+              const respuesta = estadoDeRespuesta[reserva.confirmacion ?? "sin"]
+              return (
+                <div className="w-60 space-y-1.5">
+                  <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-bold", respuesta.clase)}>{respuesta.nombre}</span>
+                  <BotonesDeConfirmacion reserva={reserva} />
                 </div>
-                <p className="mt-2 text-sm">
-                  {reserva.personas} {reserva.personas === 1 ? "persona" : "personas"}
-                  {reserva.sinCargo ? ` (${reserva.sinCargo} ${reserva.sinCargo === 1 ? "menor" : "menores"} de 5)` : ""} · {reserva.lugares.join(", ") || (reserva.modulo === "NADO" ? `Nado de ${reserva.horario}` : "Sin lugar asignado")}
-                  {reserva.formaPago && nombreDeFormaWeb[reserva.formaPago] ? ` · ${nombreDeFormaWeb[reserva.formaPago]}, ${pesos(reserva.total)}` : ""}
-                </p>
-                {reserva.confirmacion !== "CANCELO" ? (
-                  <div className="mt-3">
-                    <BotonesDeConfirmacion reserva={reserva} />
-                  </div>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
+              )
+            },
+          }}
+        />
       )}
+
+      {canceladas.length ? (
+        <section aria-label="Avisaron que no vienen" className={cn("mt-5 rounded-3xl bg-white p-4 md:p-5", sombra)}>
+          <h2 className="font-display text-xl tracking-tight">Avisaron que no vienen</h2>
+          <ul className="mt-2 divide-y divide-panel-line">
+            {canceladas.map((reserva) => (
+              <li key={reserva.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2 text-sm">
+                <Link href={`/panel/reservas/${reserva.id}`} className="font-semibold hover:underline">
+                  {reserva.titular} · {reserva.codigo}
+                </Link>
+                <span className="text-panel-muted">
+                  {nombreDelModulo[reserva.modulo]} · {reserva.personas} {reserva.personas === 1 ? "persona" : "personas"} · cancelada
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   )
 }
