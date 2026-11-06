@@ -62,6 +62,7 @@ model Cliente {
   telefono String?   @db.VarChar(40)
   creadoEn DateTime  @default(now())
   reservas Reserva[]
+  contactos ContactoWhatsapp[]
 
   @@index([telefono])
   @@index([email])
@@ -117,6 +118,7 @@ model Reserva {
   personas      ReservaPersona[]
   ocupaciones   Ocupacion[]
   pagos         Pago[]
+  contactos     ContactoWhatsapp[]
   actividades   ActividadRealizada[]
 
   @@index([desde])
@@ -464,4 +466,36 @@ model Contenido {
   actualizadoPor String?  @db.VarChar(120)
 
   @@map("contenidos")
+}
+
+/// Los mensajes de WhatsApp guardados: el de confirmación del día anterior, el del ticket
+/// y otros libres. Se eligen al enviar y se pueden retocar para cada cliente. Llevan
+/// marcas que se reemplazan: {nombre}, {codigo}, {fecha}, {ticket} y {reglamento}.
+model PlantillaWhatsapp {
+  id            Int      @id @default(autoincrement())
+  tipo          String   @db.VarChar(20)
+  nombre        String   @db.VarChar(60)
+  texto         String   @db.Text
+  orden         Int      @default(0) @db.SmallInt
+  actualizadoEn DateTime @updatedAt
+
+  @@map("plantillas_whatsapp")
+}
+
+/// Cada vez que se abrió un WhatsApp para un cliente desde el panel (confirmación, ticket
+/// o mensaje suelto). Es lo que muestra el tilde en Puerta.
+model ContactoWhatsapp {
+  id        Int      @id @default(autoincrement())
+  clienteId Int
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  reservaId Int?
+  reserva   Reserva? @relation(fields: [reservaId], references: [id], onDelete: SetNull)
+  tipo      String   @db.VarChar(20)
+  plantilla String?  @db.VarChar(60)
+  por       String?  @db.VarChar(80)
+  creadoEn  DateTime @default(now())
+
+  @@index([clienteId, creadoEn])
+  @@index([reservaId, creadoEn])
+  @@map("contactos_whatsapp")
 }

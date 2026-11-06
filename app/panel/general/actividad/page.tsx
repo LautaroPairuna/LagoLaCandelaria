@@ -26,6 +26,7 @@ const colorDeSeccion: Record<SeccionDeActividad, string> = {
   acceso: "bg-panel text-panel-muted",
   reservas: "bg-[#eaf3fb] text-[#1f5a8a]",
   puerta: "bg-[#e6f5e4] text-[#24622a]",
+  clientes: "bg-[#dcf8e6] text-[#0f6b3a]",
   caja: "bg-[#fff7d6] text-[#6b5200]",
   restaurante: "bg-[#ffeedb] text-[#7a4200]",
   bar: "bg-[#efe6fb] text-[#5b2d91]",

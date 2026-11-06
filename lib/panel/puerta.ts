@@ -48,6 +48,7 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
       token: true,
       desde: true,
       ticketEnviadoEn: true,
+      contactos: { orderBy: { creadoEn: "desc" }, take: 1, select: { tipo: true, creadoEn: true, por: true } },
       personas: {
         orderBy: [{ familia: "asc" }, { id: "asc" }],
         select: { id: true, familia: true, responsable: true, nombre: true, apellido: true, dni: true, edad: true, notas: true, ingresoEn: true, salidaEn: true },
@@ -86,6 +87,8 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
         desde: deFechaDb(fila.desde),
         hasta: deFechaDb(fila.hasta),
         ticketEnviadoEn: fila.ticketEnviadoEn,
+        // El último WhatsApp que se le abrió desde el panel (el tilde en la planilla).
+        contacto: fila.contactos[0] ? { tipo: fila.contactos[0].tipo, en: fila.contactos[0].creadoEn, por: fila.contactos[0].por } : fila.ticketEnviadoEn ? { tipo: "ticket", en: fila.ticketEnviadoEn, por: null } : null,
         ingresoEn: fila.ingresoEn,
         ingresoPor: fila.ingresoPor,
         integrantes: fila.personas.map(({ ingresoEn, salidaEn, ...persona }) => ({ ...persona, estado: estadoDe({ ingresoEn, salidaEn }, deFechaDb(fila.hasta) < hoy) })),

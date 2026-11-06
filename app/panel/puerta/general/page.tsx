@@ -82,7 +82,7 @@ export default async function GeneralDePuerta({ searchParams }: PageProps<"/pane
     momento !== "pasado" && sinTicket ? { texto: `${sinTicket} ${sinTicket === 1 ? "confirmada" : "confirmadas"} sin el ticket enviado por WhatsApp`, href: enPuerta({ estado: "confirmada" }) } : null,
     aPresupuestar ? { texto: `${aPresupuestar} ${aPresupuestar === 1 ? "grupo" : "grupos"} a presupuestar` } : null,
     noVinieron ? { texto: `${noVinieron} ${noVinieron === 1 ? "reserva no vino" : "reservas no vinieron"}`, href: enPuerta({ estado: "no-vino" }) } : null,
-    pendientesDeConfirmar ? { texto: `${pendientesDeConfirmar} ${pendientesDeConfirmar === 1 ? "reserva pendiente" : "reservas pendientes"} de confirmación, contando todos los días que vienen`, href: "/panel/reservas/confirmaciones" } : null,
+    pendientesDeConfirmar ? { texto: `${pendientesDeConfirmar} ${pendientesDeConfirmar === 1 ? "reserva pendiente" : "reservas pendientes"} de confirmación, contando todos los días que vienen`, href: "/panel/clientes" } : null,
   ]
   const alertas = posibles.filter((alerta) => alerta !== null)
 

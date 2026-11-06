@@ -1,30 +1,23 @@
 "use client"
 
-import { Check, MessageCircle, RotateCcw, X } from "lucide-react"
-import { useTransition } from "react"
+import { Check, RotateCcw, X } from "lucide-react"
+import { useTransition, type ReactNode } from "react"
 
 import { responderConfirmacion } from "@/app/panel/reservas/acciones"
 import { conAviso } from "@/lib/avisos"
 import type { ParaConfirmar } from "@/lib/panel/confirmaciones"
 import { cn } from "cn"
 
-/// Los botones de cada reserva en "Confirmaciones": escribir por WhatsApp con el mensaje
-/// listo y anotar qué respondió.
-export function BotonesDeConfirmacion({ reserva }: { reserva: Pick<ParaConfirmar, "id" | "whatsapp" | "confirmacion" | "titular"> }) {
+/// Los botones de cada reserva en "Confirmaciones": el WhatsApp (que arma la página) y
+/// anotar qué respondió.
+export function BotonesDeConfirmacion({ reserva, whatsapp }: { reserva: Pick<ParaConfirmar, "id" | "confirmacion" | "titular">; whatsapp: ReactNode }) {
   const [pendiente, iniciar] = useTransition()
   const responder = (respuesta: "CONFIRMO" | "CANCELO" | "SIN_RESPUESTA", exito: string) =>
     iniciar(async () => void (await conAviso(() => responderConfirmacion(reserva.id, respuesta), exito)))
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {reserva.whatsapp ? (
-        <a href={reserva.whatsapp} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#25d366] px-3 text-sm font-bold whitespace-nowrap text-white">
-          <MessageCircle className="size-4" aria-hidden />
-          WhatsApp
-        </a>
-      ) : (
-        <span className="text-sm text-panel-muted">Sin celular cargado</span>
-      )}
+      {whatsapp}
       {reserva.confirmacion === null ? (
         <>
           <button

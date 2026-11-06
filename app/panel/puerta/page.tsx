@@ -12,11 +12,10 @@ import { TablaDeReservas } from "@/components/panel/tabla-de-reservas"
 import { feriadosDelAnio } from "@/lib/disponibilidad"
 import { buscarReservas } from "@/lib/panel/busqueda"
 import { filtrarYOrdenar, leerFiltros } from "@/lib/panel/filtros-puerta"
-import { mensajeDeConfirmada } from "@/lib/panel/mensajes"
 import { llegadasDelDia, llegadasPorIds, type Llegada } from "@/lib/panel/puerta"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
-import { normalizarTelefono } from "@/lib/predio/contacto"
+import { enviosDeTickets, plantillasWhatsapp } from "@/lib/panel/whatsapp"
 import { esFechaIso, hoyEnElPredio } from "@/lib/predio/fechas"
 
 export const metadata: Metadata = { title: "Puerta" }
@@ -44,19 +43,10 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   const feriados = await feriadosDelAnio(hoy)
 
   const aConfirmar = llegadas.filter((item) => item.visible === "a-confirmar").map((item) => item.id)
-  const envios: EnvioDeTicket[] = llegadas
-    .filter((item) => item.visible === "confirmada")
-    .map((item) => {
-      const telefono = normalizarTelefono(item.telefono ?? "")
-      const mensaje = mensajeDeConfirmada({ nombre: item.nombre, codigo: item.codigo, desde: item.desde, token: item.token, modulo: item.modulo })
-      return {
-        id: item.id,
-        titular: item.titular,
-        telefono: item.telefono ?? "",
-        whatsapp: telefono ? `https://wa.me/${telefono.whatsapp}?text=${encodeURIComponent(mensaje)}` : null,
-        enviado: Boolean(item.ticketEnviadoEn),
-      }
-    })
+  const envios: EnvioDeTicket[] = enviosDeTickets(
+    llegadas.filter((item) => item.visible === "confirmada"),
+    await plantillasWhatsapp(),
+  )
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
@@ -81,7 +71,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
           {momento === "hoy" ? <NuevaReserva hoy={hoy} enPuerta puedeCobrar feriados={feriados} /> : null}
           {puedeConfirmar ? <NuevaReserva hoy={hoy} enPuerta={false} puedeCobrar feriados={feriados} /> : null}
           {puedeConfirmar ? (
-            <Link href="/panel/reservas/confirmaciones" className={botonSecundario}>
+            <Link href="/panel/clientes" className={botonSecundario}>
               <MessageCircle className="size-4 text-[#25a95a]" aria-hidden />
               Confirmar las de mañana
             </Link>

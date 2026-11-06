@@ -9,6 +9,7 @@ export const paneles = [
   { id: "reservas", nombre: "Reservas", href: "/panel/puerta", listo: true, rol: "reservas", enMenu: false },
   { id: "lugares", nombre: "Lugares", href: "/panel/puerta/lugares", listo: true, rol: "reservas", enMenu: false },
   { id: "puerta", nombre: "Puerta", href: "/panel/puerta", listo: true, rol: ["puerta", "reservas"] },
+  { id: "clientes", nombre: "Clientes y WhatsApp", href: "/panel/clientes", listo: true, rol: "reservas" },
   { id: "caja", nombre: "Caja", href: "/panel/caja", listo: true, rol: "caja" },
   { id: "bar", nombre: "Bar", href: "/panel/bar", listo: true, rol: "bar" },
   { id: "restaurante", nombre: "Restaurante", href: "/panel/restaurante", listo: true, rol: "restaurante" },

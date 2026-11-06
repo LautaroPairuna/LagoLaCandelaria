@@ -62,10 +62,12 @@ export async function confirmarVarias(ids: number[]): Promise<Resultado<{ confir
 /// Anota que se abrió el WhatsApp con el ticket, para que el envío guiado siga con la próxima.
 export async function marcarTicketEnviado(id: number): Promise<Resultado> {
   return accion("marcarTicketEnviado", async () => {
-    await permisoParaAccion("reservas", "puerta")
+    const sesion = await permisoParaAccion("reservas", "puerta")
     const reservaId = idDeReserva.parse(id)
-    await db().reserva.updateMany({ where: { id: reservaId, estado: "CONFIRMADA" }, data: { ticketEnviadoEn: new Date() } })
-    revalidatePath("/panel/puerta")
+    const { count } = await db().reserva.updateMany({ where: { id: reservaId, estado: "CONFIRMADA" }, data: { ticketEnviadoEn: new Date() } })
+    const reserva = count ? await db().reserva.findUnique({ where: { id: reservaId }, select: { clienteId: true } }) : null
+    if (reserva) await db().contactoWhatsapp.create({ data: { clienteId: reserva.clienteId, reservaId, tipo: "ticket", plantilla: "Envío guiado", por: sesion.user.name.slice(0, 80) } })
+    revalidatePath("/panel", "layout")
     return { ok: true }
   })
 }

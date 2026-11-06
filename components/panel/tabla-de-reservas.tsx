@@ -1,3 +1,4 @@
+import { MessageCircleCheck } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
@@ -65,6 +66,7 @@ export function TablaDeReservas({
                   <Link href={`/panel/reservas/${llegada.id}`} className="font-semibold hover:underline">
                     {llegada.titular}
                   </Link>
+                  <TildeDeWhatsapp contacto={llegada.contacto} />
                   <span className="block text-xs text-panel-muted">
                     {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"}
                     {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
@@ -109,9 +111,10 @@ export function TablaDeReservas({
               <p className="text-xs font-bold tracking-wide text-panel-muted uppercase">
                 {nombreDelModulo[llegada.modulo]} · {llegada.codigo}
               </p>
-              <Link href={`/panel/reservas/${llegada.id}`} className="font-display mt-1 block text-2xl tracking-tight hover:underline">
+              <Link href={`/panel/reservas/${llegada.id}`} className="font-display mt-1 inline-block text-2xl tracking-tight hover:underline">
                 {llegada.titular}
               </Link>
+              <TildeDeWhatsapp contacto={llegada.contacto} />
               <p className="mt-1 text-base text-panel-ink/80">
                 {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"} · {conFecha ? `${rangoConMesPanel(llegada.desde, llegada.hasta)}, ` : ""}
                 {llegada.horario}
@@ -191,5 +194,21 @@ function Saldo({ llegada }: { llegada: Llegada }) {
       Saldo {pesos(llegada.saldo)}
       {llegada.cobrado ? <span className="block text-xs font-normal text-panel-muted">Cobrado {pesos(llegada.cobrado)}</span> : null}
     </>
+  )
+}
+
+const nombreDeContacto: Record<string, string> = { confirmacion: "pedido de confirmación", ticket: "ticket", libre: "mensaje" }
+const cuando = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" })
+
+/// El tilde verde de WhatsApp: ya se le escribió desde el panel. Al pasar el mouse dice
+/// qué se mandó, cuándo y quién.
+function TildeDeWhatsapp({ contacto }: { contacto: Llegada["contacto"] }) {
+  if (!contacto) return null
+  const texto = `WhatsApp enviado: ${nombreDeContacto[contacto.tipo] ?? contacto.tipo}, ${cuando.format(contacto.en)}${contacto.por ? `, por ${contacto.por}` : ""}`
+  return (
+    <span title={texto} className="ml-1.5 inline-grid size-5 place-items-center rounded-full bg-[#25d366] align-[-0.2em] text-white">
+      <MessageCircleCheck className="size-3.5" aria-hidden />
+      <span className="sr-only">{texto}</span>
+    </span>
   )
 }

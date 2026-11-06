@@ -6,6 +6,7 @@ export const seccionesDeActividad = {
   acceso: "Acceso",
   reservas: "Reservas",
   puerta: "Puerta",
+  clientes: "Clientes y WhatsApp",
   caja: "Caja",
   restaurante: "Restaurante",
   bar: "Bar",

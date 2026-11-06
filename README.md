@@ -58,6 +58,12 @@ Paneles:
   - **Lugares**: la ocupación por lugar del día (`components/panel/vista-lugares.tsx`): cada parrilla, quincho, gazebo, palapa, bungalow y mesa del restaurante libre u ocupado, y de quién es.
   - **Caja**: la de la sección reservas, con sus movimientos.
   - **General**: los resultados del día. Arriba, **Para revisar** junta lo pendiente (reservas sin confirmar, grupos adentro con saldo, finde sin lugar, tickets sin enviar, no vinieron y las pendientes de confirmación de los próximos días), cada una con su enlace a la planilla filtrada. Debajo, tres bloques con color propio: **Personas** (esperadas, ingresadas, retiradas y por llegar, con una barra), **Plata** (cobrado por forma de pago y pendiente) y **Lugares y estados** (reservas por estado, lugares ocupados y propuestas).
+- **Clientes y WhatsApp** (rol reservas, `/panel/clientes`): cuatro pestañas.
+  - **Confirmaciones**: las de mañana (o el día elegido) para pedirles que confirmen.
+  - **Tickets QR**: las confirmadas que llegan ese día, con el envío guiado de todos los tickets y el botón de cada una (`reservas.ticketEnviadoEn`).
+  - **Clientes**: la base de responsables con cuántas reservas tienen ("vuelve" si son varias), la última, lo que pagaron y su WhatsApp; se busca por nombre, DNI, teléfono o correo, se ordena por última visita, más reservas o A-Z y se exporta a Excel. Cada cliente tiene su ficha con todas las reservas y los WhatsApp enviados.
+  - **Mensajes guardados** (`plantillas_whatsapp`): los textos de confirmación, ticket y otros, con marcas que se reemplazan ({nombre}, {codigo}, {fecha}, {ticket}, {reglamento}; `lib/panel/plantillas.ts`). La primera vez se crean los que ya se usaban.
+  - Todo WhatsApp sale del mismo botón (`components/panel/enviar-whatsapp.tsx`): se elige el mensaje, se retoca para ese cliente y se abre el chat. Cada envío queda en `contactos_whatsapp` y la reserva muestra un **tilde verde de WhatsApp** en la planilla, con qué se mandó, cuándo y quién.
 - **Caja** (rol caja): la plata del predio en dos cajones, **Caja · Efectivo** (el mostrador) y **Banco · Transferencia** (transferencia, tarjeta y otros medios). Ver "Caja" más abajo.
 - **General** (solo administración): resumen de hoy, reportes por período y usuarios.
 - **Restaurante** (rol restaurante): el salón del día por horario (cada mesa es una fila y cada reserva un bloque con el color de su estado, con la hora actual marcada) y las reservas de mesa ordenadas por horario, con alergias y condiciones a la vista. Se marca la llegada y la salida por persona, por familia o la mesa entera; ese rol solo puede marcar reservas de mesa.
@@ -146,7 +152,7 @@ Según el documento de modificaciones del predio (`components/reserva-nueva/fluj
 - **Nado en aguas abiertas** (módulo `NADO`): nadadores, club opcional, fecha y hasta 3 horas entre las 10 y las 19. 25.000 el finde y 20.000 en semana por nadador; solo el nado.
 - **Cotizar** (`/cotizar`) y **Ver mi reserva** (`/mi-reserva`, con código y celular): desde el ticket se modifica (mismo flujo, conserva código y QR) o se cancela (libera los lugares y queda cancelada). Queda en el registro como "Cliente (web)".
 - **Reglamentos** (`lib/reglamentos.ts`, `/reglamento/finde|bungalow|nado`): el ticket los muestra con el horario de actividades y un botón para compartirlos con el grupo por WhatsApp.
-- **Confirmaciones** (`/panel/reservas/confirmaciones`): las reservas del día siguiente con un botón que abre WhatsApp con el mensaje del predio (y el enlace para cancelar), y "Confirmó" o "No viene" (cancela y libera los lugares).
+- **Confirmaciones** (`/panel/clientes`, en Clientes y WhatsApp): las reservas del día siguiente en la planilla, con el botón de WhatsApp (mensaje guardado de confirmación, con el enlace para cancelar) y "Confirmó" o "No viene" (cancela y libera los lugares).
 - **Ajustes de la web** (`/panel/general/ajustes`): cupo de palapas por la web y alias para la transferencia de los bungalows (tabla `ajustes`).
 
 ### Producción (guía de Next)
