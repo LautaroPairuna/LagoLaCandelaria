@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageCircle, Phone, TriangleAlert } from "lucide-react"
+import { ArrowLeft, Phone, TriangleAlert, UtensilsCrossed } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -6,6 +6,7 @@ import type { ReactNode } from "react"
 
 import { AccionesReserva } from "@/components/panel/acciones-reserva"
 import { AnularCobro } from "@/components/panel/anular-cobro"
+import { EnviarWhatsapp } from "@/components/panel/enviar-whatsapp"
 import { ReasignarLugar } from "@/components/panel/reasignar-lugar"
 import { saldoDe } from "@/lib/panel/cobros"
 import { normalizarTelefono } from "@/lib/predio/contacto"
@@ -13,8 +14,8 @@ import { deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
 import { textoDelEfectivo, textoDelTotal } from "@/lib/predio/cotizacion"
 import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
-import { mensajeDeConfirmada } from "@/lib/panel/mensajes"
-import { lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
+import { totalDeCuenta } from "@/lib/panel/local"
+import { actividadDeReserva, lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
 import { AsistenciaDelGrupo } from "@/components/panel/asistencia-grupo"
 import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
 import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
@@ -22,31 +23,35 @@ import { estadoVisible } from "@/lib/panel/estados"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { detalleDe } from "@/lib/reservas"
+import { datosDeReserva, plantillasWhatsapp } from "@/lib/panel/whatsapp"
 import { urlSitio } from "@/lib/url-sitio"
+import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Reserva" }
+
+const cuando = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" })
+const nombreDeContacto: Record<string, string> = { confirmacion: "Pedido de confirmación", ticket: "Ticket", libre: "Mensaje" }
 
 export default async function DetalleReserva({ params }: PageProps<"/panel/reservas/[id]">) {
   const sesion = await exigirPanel("reservas", "puerta", "caja")
   const veReservas = puedeVer(sesion.user.role, "reservas")
+  const veClientes = puedeVer(sesion.user.role, "clientes")
   const marcaIngresos = puedeVer(sesion.user.role, "puerta")
   const anulaCobros = marcaIngresos || puedeVer(sesion.user.role, "caja")
   const volver = veReservas || marcaIngresos ? { href: "/panel/puerta", texto: "Volver a Puerta" } : { href: "/panel/caja", texto: "Volver a la Caja" }
   const { id } = await params
   const numero = Number(id)
   if (!Number.isInteger(numero) || numero < 1) notFound()
-  const reserva = await reservaParaPanel(numero)
+  const [reserva, { cuentas, movimientos }, plantillas] = await Promise.all([reservaParaPanel(numero), actividadDeReserva(numero), plantillasWhatsapp()])
   if (!reserva) notFound()
+  const cuentasAbiertas = cuentas.filter((cuenta) => cuenta.estado === "ABIERTA")
+  const cobrado = reserva.pagos.reduce((suma, pago) => suma + pago.importe, 0)
 
   const detalle = detalleDe(reserva.detalle)
   const desde = deFechaDb(reserva.desde)
   const hasta = deFechaDb(reserva.hasta)
   const telefono = normalizarTelefono(reserva.cliente.telefono ?? "")
   const enlaceTicket = `${urlSitio}/reserva/t/${reserva.token}`
-  const mensaje =
-    reserva.estado === "CONFIRMADA"
-      ? mensajeDeConfirmada({ nombre: reserva.cliente.nombre, codigo: reserva.codigo, desde, token: reserva.token, modulo: reserva.modulo })
-      : `¡Hola ${reserva.cliente.nombre}! Te escribimos de Lago La Candelaria por tu solicitud de reserva ${reserva.codigo}.`
   const familias = new Set(reserva.personas.map((persona) => persona.familia))
   const hoy = hoyEnElPredio()
   const asistencia = resumenDeAsistencia({ ...reserva, hasta }, hoy)
@@ -54,6 +59,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const importantes = reserva.personas.filter((persona) => persona.notas)
   const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
   const visible = estadoVisible(reserva.estado, asistencia.asistencia)
+  const saldo = saldoDe(reserva.total, reserva.pagos)
   const reasignable = (veReservas || marcaIngresos) && reserva.estado !== "CANCELADA" && !reserva.ingresoEn && asistencia.adentro + asistencia.salieron === 0 && hasta >= hoy
   const motivoSinMarcar =
     reserva.estado === "CANCELADA"
@@ -119,20 +125,51 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
         </section>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Bloque titulo="Cuándo">
+      {cuentasAbiertas.length ? (
+        <p role="status" className="mt-6 flex flex-wrap items-center gap-2 rounded-3xl border-2 border-[#f0b266] bg-[#fff6ea] px-5 py-3 font-semibold text-[#7a4200]">
+          <UtensilsCrossed className="size-5" aria-hidden />
+          Tiene {cuentasAbiertas.length === 1 ? "una cuenta abierta" : `${cuentasAbiertas.length} cuentas abiertas`}:{" "}
+          {cuentasAbiertas.map((cuenta) => `${cuenta.local === "BAR" ? "bar" : "restaurante"}, ${cuenta.mesa}, ${pesos(totalDeCuenta(cuenta.items))}`).join(" · ")}
+        </p>
+      ) : null}
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 2xl:grid-cols-3">
+        <Bloque titulo="La reserva" color="border-t-[#1f6aa5]">
           <Dato termino="Llegada">{`${fechaLargaPanel(desde)} · ${reserva.ingreso}`}</Dato>
           <Dato termino="Salida">{`${fechaLargaPanel(hasta)} · ${reserva.salida}`}</Dato>
-          <Dato termino="Ingreso">
-            {reserva.ingresoEn
-              ? `${reserva.ingresoEn.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short" })}${reserva.ingresoPor ? ` · ${reserva.ingresoPor}` : ""}`
-              : "Todavía no ingresó"}
+          <Dato termino="Personas">
+            {`${reserva.adultos + reserva.menores + reserva.sinCargo}: ${reserva.adultos} ${reserva.adultos === 1 ? "adulto" : "adultos"}, ${reserva.menores} de 5 a 12, ${reserva.sinCargo} sin cargo`}
           </Dato>
+          <Dato termino="Lugares">
+            {reserva.ocupaciones.length
+              ? reserva.ocupaciones.map((item) => `${nombreDeUnidad[item.unidad.tipo]} ${item.unidad.etiqueta}`).join(", ")
+              : "Sin lugar asignado"}
+          </Dato>
+          {sinOcupar.length > 0 && reserva.estado !== "CANCELADA" ? (
+            <p className="rounded-xl bg-panel-claro px-3 py-2 text-sm font-semibold text-panel-tostado">
+              Pidió {sinOcupar.map((lugar) => lugar.nombre).join(", ")}, pero ya estaba tomado por otra reserva. Hay que reasignarlo.
+            </p>
+          ) : null}
+          {reasignable ? <ReasignarLugar reservaId={reserva.id} /> : null}
+          {reserva.notas ? <Dato termino="Notas">{reserva.notas}</Dato> : null}
           <Dato termino="Pedida">{reserva.creadaEn.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}</Dato>
+          <p className="pt-2 text-sm">
+            <a href={enlaceTicket} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">
+              Ver el ticket que recibió
+            </a>
+          </p>
         </Bloque>
 
-        <Bloque titulo="Responsable de la reserva">
-          <Dato termino="Nombre">{`${reserva.cliente.nombre} ${reserva.cliente.apellido}`}</Dato>
+        <Bloque titulo="Responsable" color="border-t-[#7a5b3a]">
+          <Dato termino="Nombre">
+            {veClientes ? (
+              <Link href={`/panel/clientes/todos/${reserva.cliente.id}`} className="font-semibold underline-offset-4 hover:underline">
+                {`${reserva.cliente.nombre} ${reserva.cliente.apellido}`}
+              </Link>
+            ) : (
+              `${reserva.cliente.nombre} ${reserva.cliente.apellido}`
+            )}
+          </Dato>
           {reserva.cliente.dni ? <Dato termino="DNI">{reserva.cliente.dni}</Dato> : null}
           {reserva.cargo ? <Dato termino="Cargo">{reserva.cargo}</Dato> : null}
           {reserva.cliente.email ? (
@@ -145,15 +182,20 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           <Dato termino="Teléfono">{reserva.cliente.telefono ?? "—"}</Dato>
           {telefono ? (
             <div className="flex flex-wrap gap-2 pt-3">
-              <a
-                href={`https://wa.me/${telefono.whatsapp}?text=${encodeURIComponent(mensaje)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-[#25d366] px-4 py-2 text-sm font-bold text-white"
-              >
-                <MessageCircle className="size-4" aria-hidden />
-                {reserva.estado === "CONFIRMADA" ? "Avisar la confirmación por WhatsApp" : "Escribir por WhatsApp"}
-              </a>
+              {veClientes || marcaIngresos ? (
+                <EnviarWhatsapp
+                  tipo={reserva.estado === "CONFIRMADA" ? "ticket" : "libre"}
+                  etiqueta={reserva.estado === "CONFIRMADA" ? "Mandar el ticket por WhatsApp" : "Escribir por WhatsApp"}
+                  className="h-10 px-4"
+                  plantillas={plantillas}
+                  destinatario={{
+                    reservaId: reserva.id,
+                    titular: `${reserva.cliente.nombre} ${reserva.cliente.apellido}`,
+                    whatsapp: telefono.whatsapp,
+                    datos: datosDeReserva({ nombre: reserva.cliente.nombre, codigo: reserva.codigo, desde, token: reserva.token, modulo: reserva.modulo }),
+                  }}
+                />
+              ) : null}
               <a href={`tel:${telefono.e164}`} className="inline-flex items-center gap-2 rounded-full border border-panel-line bg-white px-4 py-2 text-sm font-bold">
                 <Phone className="size-4" aria-hidden />
                 Llamar
@@ -162,20 +204,26 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           ) : null}
         </Bloque>
 
-        <Bloque titulo="Lugar y total">
-          <Dato termino="Lugares">
-            {reserva.ocupaciones.length
-              ? reserva.ocupaciones.map((item) => `${nombreDeUnidad[item.unidad.tipo]} ${item.unidad.etiqueta}`).join(", ")
-              : "Sin lugar asignado"}
-          </Dato>
-          {sinOcupar.length > 0 && reserva.estado !== "CANCELADA" ? (
-            <p className="rounded-xl bg-panel-claro px-3 py-2 text-sm font-semibold text-panel-tostado">
-              Pidió {sinOcupar.map((lugar) => lugar.nombre).join(", ")}, pero ya estaba tomado por otra reserva. Hay que reasignarlo.
-            </p>
-          ) : null}
-          {reasignable ? <ReasignarLugar reservaId={reserva.id} /> : null}
+        <Bloque titulo="Plata" color="border-t-[#2e7d32]">
           <Dato termino="Total">{textoDelTotal(detalle.cotizacion)}</Dato>
           {textoDelEfectivo(detalle.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(detalle.cotizacion)}</Dato> : null}
+          {!detalle.cotizacion.aConfirmar && !detalle.cotizacion.consumo && reserva.total ? (
+            <div className="pt-1">
+              <div className="h-2 overflow-hidden rounded-full bg-panel" aria-hidden>
+                <div className="h-full rounded-full bg-[#2e7d32]" style={{ width: `${Math.min(((reserva.total - saldo) / reserva.total) * 100, 100)}%` }} />
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                <p>
+                  <span className="block text-xs font-bold text-[#2e7d32] uppercase">Cobrado</span>
+                  <span className="font-semibold tabular-nums">{pesos(cobrado)}</span>
+                </p>
+                <p>
+                  <span className="block text-xs font-bold text-[#a85d00] uppercase">Pendiente</span>
+                  <span className="font-semibold tabular-nums">{pesos(saldo)}</span>
+                </p>
+              </div>
+            </div>
+          ) : null}
           {reserva.pagos.length ? (
             <Dato termino="Cobros">
               <ul className="space-y-1.5">
@@ -198,29 +246,68 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
                 })}
               </ul>
             </Dato>
+          ) : (
+            <Dato termino="Cobros">Todavía no se cobró nada.</Dato>
+          )}
+          {cuentas.length ? (
+            <Dato termino="Restaurante y bar">
+              <ul className="space-y-1">
+                {cuentas.map((cuenta) => (
+                  <li key={cuenta.id}>
+                    {cuenta.local === "BAR" ? "Bar" : "Restaurante"}, {cuenta.mesa}: {pesos(totalDeCuenta(cuenta.items))}{" "}
+                    <span className={cuenta.estado === "ABIERTA" ? "font-semibold text-[#a85d00]" : "text-panel-muted"}>{cuenta.estado === "ABIERTA" ? "· abierta" : "· cobrada"}</span>
+                  </li>
+                ))}
+              </ul>
+            </Dato>
           ) : null}
-          {!detalle.cotizacion.aConfirmar && !detalle.cotizacion.consumo ? <Dato termino="Saldo">{pesos(saldoDe(reserva.total, reserva.pagos))}</Dato> : null}
-          {reserva.notas ? <Dato termino="Notas">{reserva.notas}</Dato> : null}
-          <p className="pt-3 text-sm">
-            <a href={enlaceTicket} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">
-              Ver el ticket que recibió
-            </a>
-          </p>
         </Bloque>
 
-        <section id="grupo" aria-label="El grupo" className="rounded-3xl bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)] lg:col-span-2">
+        <Bloque titulo="Actividad" color="border-t-[#e07b1a]" className="2xl:col-span-3">
+          <Dato termino="Ingreso">
+            {reserva.ingresoEn
+              ? `${reserva.ingresoEn.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short" })}${reserva.ingresoPor ? ` · ${reserva.ingresoPor}` : ""}`
+              : "Todavía no ingresó"}
+          </Dato>
+          <Dato termino="WhatsApp">
+            {reserva.contactos.length ? (
+              <ul className="space-y-1">
+                {reserva.contactos.map((contacto) => (
+                  <li key={contacto.id}>
+                    {nombreDeContacto[contacto.tipo] ?? contacto.tipo}
+                    {contacto.plantilla ? ` («${contacto.plantilla}»)` : ""}
+                    <span className="text-panel-muted"> · {cuando.format(contacto.creadoEn)}{contacto.por ? ` · ${contacto.por}` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              "Todavía no se le escribió desde el panel."
+            )}
+          </Dato>
+          <Dato termino="Movimientos">
+            {movimientos.length ? (
+              <ul className="space-y-1">
+                {movimientos.map((movimiento) => (
+                  <li key={movimiento.id}>
+                    {movimiento.detalle}
+                    <span className="text-panel-muted"> · {cuando.format(movimiento.creadoEn)} · {movimiento.usuario}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              "Sin movimientos registrados."
+            )}
+          </Dato>
+        </Bloque>
+
+        <section id="grupo" aria-label="El grupo" className="rounded-3xl bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)] lg:col-span-2 2xl:col-span-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="font-display text-2xl tracking-tight">El grupo</h2>
             <p className="text-sm text-panel-muted">
               {reserva.adultos} {reserva.adultos === 1 ? "adulto" : "adultos"} · {reserva.menores} {reserva.menores === 1 ? "menor" : "menores"}
               {reserva.sinCargo ? ` · ${reserva.sinCargo} sin cargo` : ""}
               {familias.size > 1 ? ` · ${familias.size} familias` : ""}
-              {reserva.estado !== "CANCELADA" ? (
-                <>
-                  {" · "}
-                  {asistencia.adentro + asistencia.salieron ? ` (${asistencia.adentro} adentro de ${asistencia.total})` : ""}
-                </>
-              ) : null}
+              {reserva.estado !== "CANCELADA" && asistencia.adentro + asistencia.salieron ? ` · ${asistencia.adentro} adentro de ${asistencia.total}` : ""}
             </p>
           </div>
           {reserva.edadesGrupo ? <p className="mt-1 text-sm text-panel-muted">Edades: {reserva.edadesGrupo}</p> : null}
@@ -262,9 +349,9 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   )
 }
 
-function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Bloque({ titulo, color, className, children }: { titulo: string; color: string; className?: string; children: ReactNode }) {
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)]">
+    <section aria-label={titulo} className={cn("rounded-3xl border-t-8 bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)]", color, className)}>
       <h2 className="font-display text-2xl tracking-tight">{titulo}</h2>
       <dl className="mt-3 space-y-2">{children}</dl>
     </section>

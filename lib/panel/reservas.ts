@@ -110,8 +110,32 @@ export async function reservaParaPanel(id: number) {
         },
       },
       pagos: { orderBy: { fecha: "asc" } },
+      contactos: {
+        orderBy: { creadoEn: "desc" },
+        take: 10,
+        select: { id: true, tipo: true, plantilla: true, por: true, creadoEn: true },
+      },
     },
   });
+}
+
+/// Lo que pasó con una reserva fuera de sus datos: las cuentas del restaurante y el bar
+/// asociadas y lo anotado en el registro de actividad.
+export async function actividadDeReserva(id: number) {
+  const [cuentas, movimientos] = await Promise.all([
+    db().cuentaDeMesa.findMany({
+      where: { reservaId: id },
+      orderBy: { creadoEn: "asc" },
+      select: { id: true, local: true, mesa: true, estado: true, items: { select: { precio: true, cantidad: true } } },
+    }),
+    db().actividad.findMany({
+      where: { reservaId: id },
+      orderBy: { creadoEn: "desc" },
+      take: 15,
+      select: { id: true, detalle: true, usuario: true, creadoEn: true },
+    }),
+  ]);
+  return { cuentas, movimientos };
 }
 
 export function sumarMes(mes: string, meses: number) {

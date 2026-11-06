@@ -346,6 +346,7 @@ model Actividad {
   @@index([creadoEn])
   @@index([userId, creadoEn])
   @@index([seccion, creadoEn])
+  @@index([reservaId])
   @@map("actividad")
 }
 
@@ -396,6 +397,7 @@ model CuentaDeMesa {
   items      ItemDeCuenta[]
 
   @@index([local, fecha])
+  @@index([reservaId])
   @@map("cuentas_de_mesa")
 }
 

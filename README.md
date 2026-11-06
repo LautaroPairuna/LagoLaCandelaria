@@ -58,6 +58,7 @@ Paneles:
   - **Lugares**: la ocupación por lugar del día (`components/panel/vista-lugares.tsx`): cada parrilla, quincho, gazebo, palapa, bungalow y mesa del restaurante libre u ocupado, y de quién es.
   - **Caja**: la de la sección reservas, con sus movimientos.
   - **General**: los resultados del día. Arriba, **Para revisar** junta lo pendiente (reservas sin confirmar, grupos adentro con saldo, finde sin lugar, tickets sin enviar, no vinieron y las pendientes de confirmación de los próximos días), cada una con su enlace a la planilla filtrada. Debajo, tres bloques con color propio: **Personas** (esperadas, ingresadas, retiradas y por llegar, con una barra), **Plata** (cobrado por forma de pago y pendiente) y **Lugares y estados** (reservas por estado, lugares ocupados y propuestas).
+- **Detalle de una reserva** (`/panel/reservas/[id]`): en bloques con color, **La reserva** (días, personas, lugares y reasignación, notas), **Responsable** (con su ficha de cliente y el WhatsApp), **Plata** (total, cobrado y pendiente, cobros y las cuentas del restaurante y el bar asociadas) y **Actividad** (ingreso, WhatsApp enviados y lo anotado en el registro). Arriba avisa si tiene una cuenta abierta en el restaurante o el bar.
 - **Clientes y WhatsApp** (rol reservas, `/panel/clientes`): cuatro pestañas.
   - **Confirmaciones**: las de mañana (o el día elegido) para pedirles que confirmen.
   - **Tickets QR**: las confirmadas que llegan ese día, con el envío guiado de todos los tickets y el botón de cada una (`reservas.ticketEnviadoEn`).
