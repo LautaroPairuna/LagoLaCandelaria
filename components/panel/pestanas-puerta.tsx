@@ -2,15 +2,16 @@ import Link from "next/link"
 
 import { cn } from "cn"
 
-export type PestanaDePuerta = "reservas" | "lugares" | "caja"
+export type PestanaDePuerta = "reservas" | "lugares" | "caja" | "general"
 
 /// Las pestañas de Puerta. El día elegido viaja de una a otra.
 export function PestanasDePuerta({ activa, fecha }: { activa: PestanaDePuerta; fecha?: string }) {
   const conFecha = (ruta: string, clave: "fecha" | "desde") => (fecha ? `${ruta}?${clave === "desde" ? `desde=${fecha}&hasta=${fecha}` : `fecha=${fecha}`}` : ruta)
   const pestanas: { id: PestanaDePuerta; nombre: string; href: string }[] = [
-    { id: "reservas", nombre: "Reservas del día", href: conFecha("/panel/puerta", "fecha") },
+    { id: "reservas", nombre: "Reservas", href: conFecha("/panel/puerta", "fecha") },
     { id: "lugares", nombre: "Lugares", href: conFecha("/panel/puerta/lugares", "fecha") },
     { id: "caja", nombre: "Caja", href: conFecha("/panel/puerta/caja", "desde") },
+    { id: "general", nombre: "General", href: conFecha("/panel/puerta/general", "fecha") },
   ]
   return (
     <nav aria-label="Secciones de Puerta" className="mt-4 flex gap-1 overflow-x-auto rounded-full bg-white p-1 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:inline-flex">

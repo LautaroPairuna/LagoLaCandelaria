@@ -30,11 +30,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const veReservas = puedeVer(sesion.user.role, "reservas")
   const marcaIngresos = puedeVer(sesion.user.role, "puerta")
   const anulaCobros = marcaIngresos || puedeVer(sesion.user.role, "caja")
-  const volver = veReservas
-    ? { href: "/panel/reservas", texto: "Volver a Reservas" }
-    : marcaIngresos
-      ? { href: "/panel/puerta", texto: "Volver a Puerta" }
-      : { href: "/panel/caja", texto: "Volver a la Caja" }
+  const volver = veReservas || marcaIngresos ? { href: "/panel/puerta", texto: "Volver a Puerta" } : { href: "/panel/caja", texto: "Volver a la Caja" }
   const { id } = await params
   const numero = Number(id)
   if (!Number.isInteger(numero) || numero < 1) notFound()

@@ -34,9 +34,9 @@ export default async function Planilla({ searchParams }: PageProps<"/panel/reser
     <main className="px-4 py-6 md:px-8 md:py-8 print:p-0">
       <style>{hojaA4}</style>
       <div className="print:hidden">
-        <Link href="/panel/reservas" className="inline-flex items-center gap-2 text-sm font-semibold text-panel-muted hover:text-panel-ink">
+        <Link href="/panel/puerta" className="inline-flex items-center gap-2 text-sm font-semibold text-panel-muted hover:text-panel-ink">
           <ArrowLeft className="size-4" aria-hidden />
-          Volver a reservas
+          Volver a Puerta
         </Link>
         <header className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
