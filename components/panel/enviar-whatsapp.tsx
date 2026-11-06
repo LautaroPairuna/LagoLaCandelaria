@@ -45,12 +45,12 @@ export function EnviarWhatsapp({
         <MessageCircle className="size-4" aria-hidden />
         {etiqueta}
       </button>
-      {abierto ? <Dialogo destinatario={destinatario} plantillas={plantillas} tipo={tipo} onCerrar={() => setAbierto(false)} /> : null}
+      {abierto ? <DialogoDeWhatsapp destinatario={destinatario} plantillas={plantillas} tipo={tipo} onCerrar={() => setAbierto(false)} /> : null}
     </>
   )
 }
 
-function Dialogo({ destinatario, plantillas, tipo, onCerrar }: { destinatario: Destinatario; plantillas: Plantilla[]; tipo: TipoDePlantilla; onCerrar: () => void }) {
+export function DialogoDeWhatsapp({ destinatario, plantillas, tipo, onCerrar }: { destinatario: Destinatario; plantillas: Plantilla[]; tipo: TipoDePlantilla; onCerrar: () => void }) {
   const router = useRouter()
   const dialogo = useRef<HTMLDialogElement>(null)
   const inicial = plantillas.find((plantilla) => plantilla.tipo === tipo) ?? plantillas[0]

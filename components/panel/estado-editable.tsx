@@ -147,7 +147,7 @@ export function EstadoEditable({
 const ALTO_DEL_MENU = 200
 
 /// Debajo de la etiqueta, o arriba si no entra en lo que queda de pantalla.
-function posicionDelMenu(boton: HTMLElement): CSSProperties {
+export function posicionDelMenu(boton: HTMLElement): CSSProperties {
   const caja = boton.getBoundingClientRect()
   const left = Math.max(8, Math.min(caja.left, window.innerWidth - 232))
   return caja.bottom + ALTO_DEL_MENU > window.innerHeight ? { bottom: window.innerHeight - caja.top + 4, left } : { top: caja.bottom + 4, left }

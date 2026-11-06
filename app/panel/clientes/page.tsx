@@ -2,9 +2,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { BotonesDeConfirmacion } from "@/components/panel/confirmacion"
+import { AccionesDeConfirmacion } from "@/components/panel/confirmacion"
 import { ElegirFecha } from "@/components/panel/elegir-fecha"
-import { EnviarWhatsapp } from "@/components/panel/enviar-whatsapp"
 import { EncabezadoDeClientes } from "@/components/panel/pestanas-clientes"
 import { TablaDeReservas } from "@/components/panel/tabla-de-reservas"
 import { paraConfirmar, type ParaConfirmar } from "@/lib/panel/confirmaciones"
@@ -23,12 +22,6 @@ function primero(valor: string | string[] | undefined) {
 }
 
 const sombra = "shadow-[0_8px_28px_rgba(58,42,24,0.06)]"
-
-const estadoDeRespuesta = {
-  CONFIRMO: { nombre: "Confirmó", clase: "bg-[#e3f1e4] text-[#1b5e20]" },
-  CANCELO: { nombre: "No viene · cancelada", clase: "bg-[#fde8e4] text-[#a0261b]" },
-  sin: { nombre: "Sin respuesta", clase: "bg-panel text-panel-ink" },
-}
 
 /// Las reservas de un día (por defecto, mañana) para pedirles que confirmen por WhatsApp
 /// y anotar qué respondieron.
@@ -97,21 +90,12 @@ export default async function Confirmaciones({ searchParams }: PageProps<"/panel
             celda: (llegada) => {
               const reserva = porId.get(llegada.id)
               if (!reserva) return null
-              const respuesta = estadoDeRespuesta[reserva.confirmacion ?? "sin"]
               return (
-                <div className="w-60 space-y-1.5">
-                  <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-bold", respuesta.clase)}>{respuesta.nombre}</span>
-                  <BotonesDeConfirmacion
-                    reserva={reserva}
-                    whatsapp={
-                      <EnviarWhatsapp
-                        tipo="confirmacion"
-                        plantillas={plantillas}
-                        destinatario={{ reservaId: llegada.id, titular: llegada.titular, whatsapp: whatsappDe(llegada.telefono), datos: datosDeReserva(llegada) }}
-                      />
-                    }
-                  />
-                </div>
+                <AccionesDeConfirmacion
+                  reserva={reserva}
+                  plantillas={plantillas}
+                  destinatario={{ reservaId: llegada.id, titular: llegada.titular, whatsapp: whatsappDe(llegada.telefono), datos: datosDeReserva(llegada) }}
+                />
               )
             },
           }}
