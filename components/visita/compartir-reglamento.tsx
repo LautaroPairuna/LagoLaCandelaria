@@ -4,19 +4,18 @@ import { ReglamentoVista } from "@/components/visita/reglamento"
 import { contenidoDelSitio } from "@/lib/contenido/leer"
 import { mensajeParaElGrupo, reglamentos as deFabrica, type TipoDeReglamento } from "@/lib/reglamentos"
 
-/// En el ticket, antes de «¿Cambió algo?»: el reglamento (y los horarios) a la vista y un
-/// botón para reenviarlos al grupo.
+/// En el ticket, a la par del ticket: el reglamento (y los horarios) a la vista y un botón
+/// para reenviarlos al grupo.
 export async function CompartirReglamento({ tipo, fecha, enlace }: { tipo: TipoDeReglamento; fecha: string; enlace: string }) {
   const { reglamentos } = await contenidoDelSitio()
   const texto = mensajeParaElGrupo(tipo, fecha, enlace, reglamentos.horarioDelPredio)
   return (
-    <section className="no-print rounded-[1.6rem] border border-ink/10 bg-white p-5 md:p-6" aria-labelledby="reglamento-titulo">
-      <p className="kicker">Antes de venir</p>
-      <h2 id="reglamento-titulo" className="font-display mt-1 text-3xl tracking-tight">
+    <div className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-[0_18px_50px_rgba(58,53,48,0.08)] md:p-6">
+      <p className="font-display text-xl tracking-tight">
         {reglamentos[tipo].titulo}
         {deFabrica[tipo].conHorarios ? " y horarios" : ""}
-      </h2>
-      <p className="mt-2 text-ink/75">Mandáselo a todos los que vienen con vos.</p>
+      </p>
+      <p className="mt-1 text-ink/75">Leelo antes de venir y mandáselo a todos los que vienen con vos.</p>
       <a
         href={`https://wa.me/?text=${encodeURIComponent(texto)}`}
         target="_blank"
@@ -29,6 +28,6 @@ export async function CompartirReglamento({ tipo, fecha, enlace }: { tipo: TipoD
       <div className="mt-6 border-t border-ink/10 pt-5">
         <ReglamentoVista tipo={tipo} titulo={false} />
       </div>
-    </section>
+    </div>
   )
 }

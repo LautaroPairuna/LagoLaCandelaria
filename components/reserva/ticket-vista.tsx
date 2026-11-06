@@ -6,7 +6,7 @@ import { esGrupo, filasDelTicket, titularDelTicket } from "@/lib/ticket"
 
 function Fila({ termino, detalle }: { termino: string; detalle: string }) {
   return (
-    <div className="grid gap-1 border-t border-ink/10 py-3 sm:grid-cols-[11rem_1fr] sm:gap-4">
+    <div className="grid gap-1 border-t border-ink/10 py-3 @md:grid-cols-[11rem_minmax(0,1fr)] @md:gap-4">
       <dt className="text-xs font-semibold tracking-[0.14em] text-text-muted uppercase">{termino}</dt>
       <dd className="text-ink">{detalle}</dd>
     </div>
@@ -19,8 +19,8 @@ export function TicketVista({ ticket, qrDataUrl, enlace, telefonos }: { ticket: 
   const notas = ticket.personas.filter((persona) => persona.notas || persona.cud)
 
   return (
-    <article className="ticket-sheet overflow-hidden rounded-[1.8rem] border border-ink/10 bg-white text-ink shadow-[0_18px_50px_rgba(58,53,48,0.08)]">
-      <div className="flex items-center justify-between gap-4 bg-cream px-5 py-5 md:px-8">
+    <article className="ticket-sheet @container overflow-hidden rounded-[1.8rem] border border-ink/10 bg-white text-ink shadow-[0_18px_50px_rgba(58,53,48,0.08)]">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-cream px-5 py-5 @lg:px-8">
         <div className="flex items-center gap-3">
           <LogoMark className="size-14" />
           <div>
@@ -28,10 +28,10 @@ export function TicketVista({ ticket, qrDataUrl, enlace, telefonos }: { ticket: 
             <p className="font-display text-lg tracking-tight">Lago La Candelaria</p>
           </div>
         </div>
-        <p className="font-display text-2xl tracking-tight text-lake-ink md:text-3xl">{ticket.codigo}</p>
+        <p className="font-display text-2xl tracking-tight text-lake-ink @lg:text-3xl">{ticket.codigo}</p>
       </div>
 
-      <div className="grid gap-6 px-5 py-6 md:grid-cols-[180px_1fr] md:px-8">
+      <div className="grid gap-6 px-5 py-6 @lg:grid-cols-[180px_minmax(0,1fr)] @lg:px-8">
         <div className="grid place-items-center rounded-2xl bg-cream p-3">
           {qrDataUrl ? (
             // El QR se genera en el momento, no es una imagen del sitio.
@@ -41,17 +41,17 @@ export function TicketVista({ ticket, qrDataUrl, enlace, telefonos }: { ticket: 
             <p className="px-3 text-center text-sm text-text-muted">Generando el código QR…</p>
           )}
         </div>
-        <div>
-          <h2 className="font-display text-4xl tracking-tight">Mostrá este ticket en el ingreso.</h2>
+        <div className="min-w-0">
+          <h2 className="font-display text-3xl tracking-tight @2xl:text-4xl">Mostrá este ticket en el ingreso.</h2>
           <p className="mt-2 leading-relaxed text-ink/75">
             En la puerta escanean el QR y ven esta misma reserva.
             {ticket.estado === "PENDIENTE" ? " El equipo del predio la revisa y te confirma por WhatsApp." : ""}
-            {enlace ? ` ${enlace}` : ""}
+            {enlace ? <span className="block text-sm break-all text-text-muted">{enlace}</span> : null}
           </p>
         </div>
       </div>
 
-      <div className="px-5 pb-8 md:px-8">
+      <div className="px-5 pb-8 @lg:px-8">
         <h3 className="font-display text-2xl tracking-tight">La visita</h3>
         <dl>
           {filasDelTicket(ticket).map(([termino, detalle]) => (
