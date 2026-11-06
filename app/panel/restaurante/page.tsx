@@ -3,8 +3,10 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { AccionesMesa } from "@/components/panel/acciones-mesa"
+import { ElegirFecha } from "@/components/panel/elegir-fecha"
 import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { PestanasDelLocal } from "@/components/panel/local/pestanas"
+import { cuentasDelDia } from "@/lib/panel/cuentas"
 import { locales } from "@/lib/panel/local"
 import { estilosDeEstado } from "@/lib/panel/estados"
 import { fechaLargaPanel } from "@/lib/panel/formato"
@@ -13,12 +15,17 @@ import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { esFechaIso, horaEnElPredio, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { HORARIO_RESTAURANTE, textoDeHora } from "@/lib/predio/horario"
+import { pesos } from "@/lib/predio/tarifas"
 import type { UnidadPredio } from "@/lib/predio/inventario"
 import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Restaurante" }
 
 const horas = Array.from({ length: HORARIO_RESTAURANTE.cierra - HORARIO_RESTAURANTE.abre }, (_, indice) => HORARIO_RESTAURANTE.abre + indice)
+
+/// Una cuenta del local en la grilla del salón: de la hora en que se abrió hasta la de
+/// cobro (o hasta ahora, si sigue abierta).
+type CuentaEnSalon = { id: number; titular: string | null; abierta: boolean; total: number; desde: number; hasta: number }
 
 function apellidoDe(titular: string) {
   return titular.split(" ").at(-1) ?? titular
@@ -35,7 +42,18 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
   const enlace = (dia: string) => (dia === hoy ? "/panel/restaurante" : `/panel/restaurante?fecha=${dia}`)
   const horaActual = momento === "hoy" ? horaEnElPredio() : null
 
-  const { reservas, mesas, bloques, almuerzan } = await restauranteDelDia(fecha)
+  const [{ reservas, mesas, bloques, almuerzan }, cuentas] = await Promise.all([restauranteDelDia(fecha), cuentasDelDia("RESTAURANTE", fecha)])
+  const cuentasPorMesa = new Map<string, CuentaEnSalon[]>()
+  for (const cuenta of cuentas) {
+    const mesa = mesas.find((item) => `Mesa ${item.etiqueta}` === cuenta.mesa)
+    if (!mesa) continue
+    const abierta = cuenta.estado === "ABIERTA"
+    const desde = Math.min(Math.max(horaEnElPredio(new Date(cuenta.abiertaEn)), HORARIO_RESTAURANTE.abre), HORARIO_RESTAURANTE.cierra - 1)
+    const fin = cuenta.cobradaEn ? horaEnElPredio(new Date(cuenta.cobradaEn)) : horaActual ?? HORARIO_RESTAURANTE.cierra - 1
+    const hasta = Math.min(Math.max(fin, desde) + 1, HORARIO_RESTAURANTE.cierra)
+    cuentasPorMesa.set(mesa.id, [...(cuentasPorMesa.get(mesa.id) ?? []), { id: cuenta.id, titular: cuenta.titular, abierta, total: cuenta.total, desde, hasta }])
+  }
+  const cuentasAbiertas = cuentas.filter((cuenta) => cuenta.estado === "ABIERTA").length
   const porId = new Map(reservas.map((reserva) => [reserva.id, reserva]))
   const esperadas = reservas.reduce((suma, reserva) => suma + reserva.personas, 0)
   const llegaron = reservas.reduce((suma, reserva) => suma + reserva.adentro + reserva.salieron, 0)
@@ -61,22 +79,20 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
           <Link href={enlace(sumarDiasIso(fecha, 1))} className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-panel-line md:size-11" aria-label="Día siguiente">
             <ChevronRight className="size-5" aria-hidden />
           </Link>
-          <form action="/panel/restaurante" className="flex items-center gap-2 md:ml-3">
-            <input type="date" name="fecha" defaultValue={fecha} aria-label="Elegir otro día" className="h-10 rounded-xl border border-panel-line bg-white px-3 text-sm" />
-            <button type="submit" className="h-10 rounded-full border border-panel-line bg-white px-4 text-sm font-semibold hover:border-panel-muted">
-              Ir
-            </button>
-          </form>
+          <div className="md:ml-3">
+            <ElegirFecha fecha={fecha} />
+          </div>
         </div>
         <PestanasDelLocal local={locales.RESTAURANTE} activa="salon" />
       </header>
 
-      <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
           { termino: "Reservas", valor: String(reservas.length) },
           { termino: "Personas esperadas", valor: String(esperadas) },
           momento === "hoy" ? { termino: "En la mesa ahora", valor: `${enLaMesa} de ${esperadas}` } : { termino: "Llegaron", valor: `${llegaron} de ${esperadas}` },
           { termino: "Mesas con reserva", valor: `${conReserva} de ${mesas.length}` },
+          { termino: "Cuentas abiertas", valor: String(cuentasAbiertas) },
         ].map((dato) => (
           <div key={dato.termino} className="rounded-2xl bg-white px-4 py-3 shadow-[0_8px_28px_rgba(58,42,24,0.06)]">
             <dt className="text-xs font-bold tracking-wide text-panel-muted uppercase">{dato.termino}</dt>
@@ -88,9 +104,9 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
       <section aria-label="El salón por horario" className="mt-6 rounded-3xl bg-white p-4 shadow-[0_8px_28px_rgba(58,42,24,0.06)] md:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h2 className="font-display text-2xl tracking-tight">El salón</h2>
-          <p className="text-sm text-panel-muted">Cada fila es una mesa; tocá una reserva para ver el detalle.</p>
+          <p className="text-sm text-panel-muted">Cada fila es una mesa; tocá una reserva para ver el detalle. La franja naranja es una cuenta abierta en esa mesa.</p>
         </div>
-        <Salon mesas={mesas} bloques={bloques} porId={porId} horaActual={horaActual} />
+        <Salon mesas={mesas} bloques={bloques} cuentas={cuentasPorMesa} porId={porId} horaActual={horaActual} />
       </section>
 
       {almuerzan.length ? (
@@ -141,11 +157,13 @@ export default async function PanelRestaurante({ searchParams }: PageProps<"/pan
 function Salon({
   mesas,
   bloques,
+  cuentas,
   porId,
   horaActual,
 }: {
   mesas: UnidadPredio[]
   bloques: Map<string, { reservaId: number; desde: number; hasta: number }[]>
+  cuentas: Map<string, CuentaEnSalon[]>
   porId: Map<number, ReservaDeMesa>
   horaActual: number | null
 }) {
@@ -169,6 +187,8 @@ function Salon({
 
         {mesas.map((mesa, fila) => {
           const deLaMesa = bloques.get(mesa.id) ?? []
+          const cuentasDeLaMesa = cuentas.get(mesa.id) ?? []
+          const conCuentaAbierta = cuentasDeLaMesa.some((cuenta) => cuenta.abierta)
           return [
             <span
               key={`${mesa.id}-nombre`}
@@ -177,6 +197,7 @@ function Salon({
             >
               <span className="font-bold">Mesa {mesa.etiqueta}</span>
               <span className="text-xs text-panel-muted">{mesa.capacidad} personas</span>
+              {conCuentaAbierta ? <span className="mt-0.5 w-fit rounded-full bg-[#ffeedb] px-1.5 text-[0.65rem] font-bold text-[#7a4200]">Cuenta abierta</span> : null}
             </span>,
             ...horas.map((hora) => (
               <span
@@ -185,6 +206,22 @@ function Salon({
                 className={cn("h-14 border-l border-panel-line", hora === horaActual ? "bg-panel-claro/60" : fila % 2 ? "bg-panel/40" : "")}
                 style={{ gridRow: fila + 2, gridColumn: columna(hora) }}
               />
+            )),
+            ...cuentasDeLaMesa.map((cuenta) => (
+              <Link
+                key={`${mesa.id}-cuenta-${cuenta.id}`}
+                href="/panel/restaurante/cuentas"
+                title={`Cuenta ${cuenta.abierta ? "abierta" : "cobrada"}${cuenta.titular ? ` de ${cuenta.titular}` : ""} · ${pesos(cuenta.total)}`}
+                aria-label={`Mesa ${mesa.etiqueta}: cuenta ${cuenta.abierta ? "abierta" : "cobrada"}${cuenta.titular ? ` de ${cuenta.titular}` : ""}, ${pesos(cuenta.total)}`}
+                className={cn(
+                  "z-20 mx-0.5 mb-0.5 flex h-4 min-w-0 items-center self-end truncate rounded px-1.5 text-[0.65rem] leading-none font-bold",
+                  cuenta.abierta ? "border border-[#f0b266] bg-[#ffeedb] text-[#7a4200]" : "border border-panel-line bg-panel text-panel-muted",
+                )}
+                style={{ gridRow: fila + 2, gridColumn: `${columna(cuenta.desde)} / ${columna(cuenta.hasta)}` }}
+              >
+                {cuenta.abierta ? "Cuenta" : "Cobrada"} · {pesos(cuenta.total)}
+                {cuenta.titular ? ` · ${apellidoDe(cuenta.titular)}` : ""}
+              </Link>
             )),
             ...deLaMesa.map((bloque) => {
               const reserva = porId.get(bloque.reservaId)

@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDown } from "lucide-react"
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react"
 
 import { registrarAsistencia } from "@/app/panel/puerta/acciones"
 import { cancelarReserva, confirmarReserva, volverAConfirmar } from "@/app/panel/reservas/acciones"
@@ -36,37 +36,44 @@ export function EstadoEditable({
   puedeConfirmar: boolean
   puedeMarcar: boolean
 }) {
-  const [abierto, setAbierto] = useState(false)
+  const [posicion, setPosicion] = useState<CSSProperties | null>(null)
+  const abierto = posicion !== null
   const [pendiente, iniciar] = useTransition()
   const contenedor = useRef<HTMLDivElement>(null)
 
-  // Cierra el menú al tocar afuera o con Escape; el efecto existe solo mientras está abierto.
+  // Cierra el menú al tocar afuera, con Escape o al desplazar la página (el menú es fijo
+  // en la pantalla para que no lo recorten la tabla ni la fila siguiente).
   useEffect(() => {
     if (!abierto) return
-    const fuera = (evento: PointerEvent) => !contenedor.current?.contains(evento.target as Node) && setAbierto(false)
-    const escape = (evento: KeyboardEvent) => evento.key === "Escape" && setAbierto(false)
+    const cerrar = () => setPosicion(null)
+    const fuera = (evento: PointerEvent) => !contenedor.current?.contains(evento.target as Node) && cerrar()
+    const escape = (evento: KeyboardEvent) => evento.key === "Escape" && cerrar()
     document.addEventListener("pointerdown", fuera)
     document.addEventListener("keydown", escape)
+    window.addEventListener("scroll", cerrar, true)
+    window.addEventListener("resize", cerrar)
     return () => {
       document.removeEventListener("pointerdown", fuera)
       document.removeEventListener("keydown", escape)
+      window.removeEventListener("scroll", cerrar, true)
+      window.removeEventListener("resize", cerrar)
     }
   }, [abierto])
 
   function correr(tarea: () => Promise<unknown>) {
-    setAbierto(false)
+    setPosicion(null)
     iniciar(async () => void (await tarea()))
   }
 
   function ingreso() {
     if (desde > hoy) {
       avisarRevisar(`La reserva ${codigo} es para el ${fechaLarga(desde).toLowerCase()}: el ingreso se marca ese día. Si llegaron hoy, primero modificá la fecha de la reserva.`)
-      setAbierto(false)
+      setPosicion(null)
       return
     }
     if (hasta < hoy) {
       avisarRevisar(`La reserva ${codigo} era del ${fechaLarga(desde).toLowerCase()}. Si vinieron otro día, modificá la fecha de la reserva.`)
-      setAbierto(false)
+      setPosicion(null)
       return
     }
     correr(() => conAviso(() => registrarAsistencia({ reservaId: id, movimiento: "ingreso" }), `Listo, ${titular} ya figura adentro.`))
@@ -79,7 +86,7 @@ export function EstadoEditable({
     nombre: "Cancelar la reserva",
     peligro: true,
     hacer: () => {
-      if (!window.confirm(`¿Cancelar la reserva ${codigo} de ${titular}? Se liberan sus lugares.`)) return setAbierto(false)
+      if (!window.confirm(`¿Cancelar la reserva ${codigo} de ${titular}? Se liberan sus lugares.`)) return setPosicion(null)
       correr(() => conAviso(() => cancelarReserva(id), `Listo, la reserva ${codigo} quedó cancelada.`))
     },
   }
@@ -104,21 +111,21 @@ export function EstadoEditable({
     return <span className={cn("inline-flex h-9 items-center rounded-full px-3 text-sm font-bold", estilo.insignia)}>{estilo.nombre}</span>
   }
   return (
-    <div ref={contenedor} className="relative z-10 inline-block">
+    <div ref={contenedor} className="inline-block">
       <button
         type="button"
         aria-haspopup="menu"
         aria-expanded={abierto}
         aria-label={`Estado de la reserva ${codigo}: ${estilo.nombre}. Cambiar`}
         disabled={pendiente}
-        onClick={() => setAbierto(!abierto)}
+        onClick={(evento) => setPosicion(abierto ? null : posicionDelMenu(evento.currentTarget))}
         className={cn("inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-bold whitespace-nowrap ring-offset-2 hover:ring-2 hover:ring-panel-ink/20 disabled:opacity-60", estilo.insignia)}
       >
         {pendiente ? "Guardando…" : estilo.nombre}
         <ChevronDown className="size-4" aria-hidden />
       </button>
       {abierto ? (
-        <ul role="menu" aria-label={`Cambiar el estado de ${codigo}`} className="absolute top-full left-0 z-30 mt-1 min-w-56 overflow-hidden rounded-2xl border border-panel-line bg-white py-1 shadow-[0_16px_40px_rgba(58,42,24,0.18)]">
+        <ul role="menu" aria-label={`Cambiar el estado de ${codigo}`} style={posicion ?? undefined} className="fixed z-50 min-w-56 overflow-hidden rounded-2xl border border-panel-line bg-white py-1 shadow-[0_16px_40px_rgba(58,42,24,0.18)]">
           {opciones.map((opcion) => (
             <li key={opcion.id} role="none">
               <button
@@ -135,4 +142,13 @@ export function EstadoEditable({
       ) : null}
     </div>
   )
+}
+
+const ALTO_DEL_MENU = 200
+
+/// Debajo de la etiqueta, o arriba si no entra en lo que queda de pantalla.
+function posicionDelMenu(boton: HTMLElement): CSSProperties {
+  const caja = boton.getBoundingClientRect()
+  const left = Math.max(8, Math.min(caja.left, window.innerWidth - 232))
+  return caja.bottom + ALTO_DEL_MENU > window.innerHeight ? { bottom: window.innerHeight - caja.top + 4, left } : { top: caja.bottom + 4, left }
 }

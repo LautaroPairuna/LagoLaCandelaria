@@ -29,6 +29,7 @@ export async function cuentasDelDia(local: Local, fecha: string) {
     reservaId: cuenta.reservaId,
     estado: cuenta.estado,
     forma: cuenta.forma,
+    abiertaEn: cuenta.creadoEn.toISOString(),
     cobradaEn: cuenta.cobradaEn?.toISOString() ?? null,
     cobradaPor: cuenta.cobradaPor,
     abiertaPor: cuenta.abiertaPor,
