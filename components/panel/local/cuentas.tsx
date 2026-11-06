@@ -6,7 +6,7 @@ import { useState, useTransition } from "react"
 import { abrirCuenta, agregarAlPedido, borrarCuenta, cambiarCantidad, cobrarCuenta, reabrirCuenta } from "@/app/panel/locales/acciones"
 import { Button } from "@/components/ui/button"
 import { avisarError, avisarExito, avisarRevisar, conAviso, llamar } from "@/lib/avisos"
-import type { CuentaDelDia, ItemDelMenu } from "@/lib/panel/cuentas"
+import type { CuentaDelDia, ItemDelMenu, ReservaIngresada } from "@/lib/panel/cuentas"
 import { porCategoria, type Local } from "@/lib/panel/local"
 import { pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
@@ -23,10 +23,27 @@ export type MesaReservada = { reservaId: number; mesa: string; titular: string; 
 
 const campo = "h-11 rounded-xl border border-panel-line bg-white px-3 text-base text-panel-ink"
 
-/// Abrir una cuenta: con un toque desde una reserva del día, o eligiendo la mesa.
-export function AbrirCuenta({ local, fecha, mesas, reservadas }: { local: Local; fecha: string; mesas: string[]; reservadas: MesaReservada[] }) {
+/// Abrir una cuenta: con un toque desde una reserva del día, o eligiendo la mesa y a qué
+/// reserva ingresada se asocia (o ninguna, con un nombre libre).
+export function AbrirCuenta({
+  local,
+  fecha,
+  mesas,
+  reservadas,
+  ingresadas,
+}: {
+  local: Local
+  fecha: string
+  mesas: string[]
+  reservadas: MesaReservada[]
+  ingresadas: ReservaIngresada[]
+}) {
   const [pendiente, iniciar] = useTransition()
   const [mesa, setMesa] = useState(mesas[0] ?? "")
+  const [eleccion, setEleccion] = useState<string | null>(null)
+  const valida = eleccion === "" || ingresadas.some((item) => String(item.id) === eleccion)
+  const reservaId = eleccion !== null && valida ? eleccion : String(ingresadas[0]?.id ?? "")
+  const reserva = ingresadas.find((item) => String(item.id) === reservaId)
 
   function abrir(datos: { mesa: string; titular?: string; reservaId?: number }) {
     iniciar(async () => void (await conAviso(() => abrirCuenta({ local, fecha, ...datos }), `Listo, se abrió la cuenta de ${datos.mesa}.`)))
@@ -65,7 +82,8 @@ export function AbrirCuenta({ local, fecha, mesas, reservadas }: { local: Local;
             avisarRevisar("Escribí la mesa o el lugar.")
             return
           }
-          abrir({ mesa: elegida, titular: String(datos.get("titular") ?? "").trim() || undefined })
+          setEleccion(null)
+          abrir(reserva ? { mesa: elegida, titular: reserva.titular, reservaId: reserva.id } : { mesa: elegida, titular: String(datos.get("titular") ?? "").trim() || undefined })
           evento.currentTarget.reset()
         }}
       >
@@ -82,9 +100,22 @@ export function AbrirCuenta({ local, fecha, mesas, reservadas }: { local: Local;
           )}
         </label>
         <label className="text-sm font-semibold text-panel-muted">
-          A nombre de (opcional)
-          <input name="titular" maxLength={80} placeholder="Gómez" className={cn(campo, "mt-1 block w-44")} />
+          Reserva
+          <select value={reservaId} onChange={(evento) => setEleccion(evento.target.value)} className={cn(campo, "mt-1 block max-w-72")}>
+            {ingresadas.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.titular} · {item.codigo}
+              </option>
+            ))}
+            <option value="">Sin reserva</option>
+          </select>
         </label>
+        {reserva ? null : (
+          <label className="text-sm font-semibold text-panel-muted">
+            Nombre (opcional)
+            <input name="titular" maxLength={80} placeholder="Gómez" className={cn(campo, "mt-1 block w-44")} />
+          </label>
+        )}
         <Button type="submit" disabled={pendiente} className="h-11 bg-panel-ink px-5 text-white hover:bg-panel-tostado">
           <Plus className="size-4" aria-hidden />
           Abrir cuenta

@@ -38,3 +38,22 @@ export async function cuentasDelDia(local: Local, fecha: string) {
 }
 
 export type CuentaDelDia = Awaited<ReturnType<typeof cuentasDelDia>>[number]
+
+/// Las reservas que ya ingresaron al predio ese día, para asociarles una cuenta con el
+/// nombre del titular. Cuenta el ingreso del grupo o de cualquiera de sus integrantes.
+export async function ingresadasDelDia(fecha: string) {
+  const dia = aFechaDb(fecha)
+  const filas = await db().reserva.findMany({
+    where: {
+      estado: { not: "CANCELADA" },
+      desde: { lte: dia },
+      hasta: { gte: dia },
+      OR: [{ ingresoEn: { not: null } }, { personas: { some: { ingresoEn: { not: null } } } }],
+    },
+    orderBy: [{ ingresoEn: "desc" }, { id: "desc" }],
+    select: { id: true, codigo: true, institucion: true, cliente: { select: { nombre: true, apellido: true } } },
+  })
+  return filas.map((fila) => ({ id: fila.id, codigo: fila.codigo, titular: fila.institucion ?? `${fila.cliente.nombre} ${fila.cliente.apellido}` }))
+}
+
+export type ReservaIngresada = Awaited<ReturnType<typeof ingresadasDelDia>>[number]

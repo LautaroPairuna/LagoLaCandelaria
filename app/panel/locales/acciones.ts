@@ -9,7 +9,7 @@ import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { locales, totalDeCuenta } from "@/lib/panel/local"
 import { pesos } from "@/lib/predio/tarifas"
 import { permisoParaAccion } from "@/lib/panel/sesion"
-import { aFechaDb, esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
+import { aFechaDb, deFechaDb, esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 
 const local = z.enum(["RESTAURANTE", "BAR"])
@@ -112,6 +112,7 @@ export async function abrirCuenta(pedido: z.input<typeof nuevaCuenta>): Promise<
     const sesion = await permiso(datos.local)
     const hoy = hoyEnElPredio()
     exigir(esFechaIso(datos.fecha) && datos.fecha <= sumarDiasIso(hoy, 1) && datos.fecha >= sumarDiasIso(hoy, -7), "Las cuentas se abren para hoy o para algún día de esta semana.")
+    if (datos.reservaId) datos.titular = await titularDeLaReserva(datos.reservaId, datos.fecha)
     const cuenta = await db().cuentaDeMesa.create({
       data: { local: datos.local, fecha: aFechaDb(datos.fecha), mesa: datos.mesa, titular: datos.titular || null, reservaId: datos.reservaId ?? null, abiertaPor: quien(sesion) },
       select: { id: true },
@@ -125,6 +126,17 @@ export async function abrirCuenta(pedido: z.input<typeof nuevaCuenta>): Promise<
     })
     return { ok: true, id: cuenta.id }
   })
+}
+
+/// El nombre de la cuenta sale de la reserva, que tiene que estar vigente ese día.
+async function titularDeLaReserva(reservaId: number, fecha: string) {
+  const reserva = await db().reserva.findUnique({
+    where: { id: reservaId },
+    select: { estado: true, desde: true, hasta: true, institucion: true, cliente: { select: { nombre: true, apellido: true } } },
+  })
+  exigir(reserva && reserva.estado !== "CANCELADA", "Esa reserva no está vigente: elegí otra o abrí la cuenta sin reserva.")
+  exigir(deFechaDb(reserva.desde) <= fecha && deFechaDb(reserva.hasta) >= fecha, "Esa reserva no es para este día: elegí otra o abrí la cuenta sin reserva.")
+  return reserva.institucion ?? `${reserva.cliente.nombre} ${reserva.cliente.apellido}`
 }
 
 /// Trae la cuenta y verifica el permiso. Una cuenta cobrada no se toca: hay que reabrirla.

@@ -5,7 +5,7 @@ import QRCode from "qrcode"
 import { AbrirCuenta, TarjetaDeCuenta, type MesaReservada } from "@/components/panel/local/cuentas"
 import { EditorDeMenu } from "@/components/panel/local/editor-de-menu"
 import { PestanasDelLocal } from "@/components/panel/local/pestanas"
-import { cuentasDelDia, menuDelLocal } from "@/lib/panel/cuentas"
+import { cuentasDelDia, ingresadasDelDia, menuDelLocal } from "@/lib/panel/cuentas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { resumenDeCuentas, type DatosDelLocal } from "@/lib/panel/local"
 import { restauranteDelDia } from "@/lib/panel/restaurante"
@@ -27,10 +27,11 @@ export async function PaginaDeCuentas({ local, fechaPedida }: { local: DatosDelL
   const enlace = (dia: string) => (dia === hoy ? ruta : `${ruta}?fecha=${dia}`)
   const sePuedeAbrir = fecha <= sumarDiasIso(hoy, 1) && fecha >= sumarDiasIso(hoy, -7)
 
-  const [cuentas, menu, delDia] = await Promise.all([
+  const [cuentas, menu, delDia, ingresadasDelLugar] = await Promise.all([
     cuentasDelDia(local.id, fecha),
     menuDelLocal(local.id),
     local.id === "RESTAURANTE" ? restauranteDelDia(fecha) : Promise.resolve(null),
+    ingresadasDelDia(fecha),
   ])
   const resumen = resumenDeCuentas(cuentas)
   const conCuenta = new Set(cuentas.map((cuenta) => cuenta.reservaId))
@@ -38,6 +39,9 @@ export async function PaginaDeCuentas({ local, fechaPedida }: { local: DatosDelL
     .filter((reserva) => !conCuenta.has(reserva.id))
     .map((reserva) => ({ reservaId: reserva.id, mesa: reserva.lugares.join(" y ") || "Sin mesa", titular: reserva.titular, horario: reserva.horario }))
   const abiertas = cuentas.filter((cuenta) => cuenta.estado === "ABIERTA")
+  const conCuentaAbierta = new Set(abiertas.map((cuenta) => cuenta.reservaId))
+  const enBotones = new Set(reservadas.map((reserva) => reserva.reservaId))
+  const ingresadas = ingresadasDelLugar.filter((reserva) => !conCuentaAbierta.has(reserva.id) && !enBotones.has(reserva.id))
   const cobradas = cuentas.filter((cuenta) => cuenta.estado === "COBRADA")
 
   return (
@@ -89,7 +93,7 @@ export async function PaginaDeCuentas({ local, fechaPedida }: { local: DatosDelL
         <section aria-label="Abrir cuenta" className={cn("mt-6 rounded-3xl bg-white p-4 md:p-5", sombra)}>
           <h2 className="font-display text-2xl tracking-tight">Abrir una cuenta</h2>
           <div className="mt-3">
-            <AbrirCuenta local={local.id} fecha={fecha} mesas={local.mesas} reservadas={reservadas} />
+            <AbrirCuenta local={local.id} fecha={fecha} mesas={local.mesas} reservadas={reservadas} ingresadas={ingresadas} />
           </div>
           {menu.length === 0 ? (
             <p className="mt-3 text-sm text-panel-muted">
