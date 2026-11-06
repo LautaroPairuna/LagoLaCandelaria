@@ -9,7 +9,7 @@ import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
 import { aplicar, porPersona } from "@/lib/panel/asistencia"
-import { aFechaDb, deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
+import { aFechaDb, deFechaDb, fechaLarga, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 import { pesos } from "@/lib/predio/tarifas"
 import { detalleDe } from "@/lib/reservas"
@@ -63,7 +63,11 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
       if (reserva && soloMesas && reserva.modulo !== "RESTAURANTE") throw new ErrorHumano(mensajes.sinPermiso)
       if (!reserva || reserva.estado === "CANCELADA") throw new ErrorHumano("Esta reserva se canceló, así que no se puede registrar el ingreso. Revisala en Reservas.")
       titular = `${reserva.institucion ?? `${reserva.cliente.nombre} ${reserva.cliente.apellido}`} (${reserva.codigo})`
-      if (deFechaDb(reserva.desde) > hoyEnElPredio()) throw new ErrorHumano("Esta reserva es para más adelante: el ingreso se marca el día que llegan.")
+      if (deFechaDb(reserva.desde) > hoyEnElPredio()) {
+        throw new ErrorHumano(
+          `Esta reserva es para el ${fechaLarga(deFechaDb(reserva.desde)).toLowerCase()}: el ingreso se marca ese día. Si llegaron hoy, primero modificá la fecha de la reserva.`,
+        )
+      }
 
       if (!porPersona(reserva)) {
         const cambio = aplicar(movimiento, reserva, ahora)

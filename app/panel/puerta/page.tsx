@@ -2,13 +2,12 @@ import { ClipboardList, MessageCircle, Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { AccionesLlegada } from "@/components/panel/acciones-llegada"
 import { AccionesMasivas, type EnvioDeTicket } from "@/components/panel/acciones-masivas"
-import { CambiarEstado } from "@/components/panel/cambiar-estado"
 import { EncabezadoDelDia } from "@/components/panel/encabezado-del-dia"
-import { FilaDesplegable } from "@/components/panel/fila-desplegable"
+import { EstadoEditable } from "@/components/panel/estado-editable"
+import { FichaDeLlegada, type DatosDeLlegada } from "@/components/panel/ficha-de-llegada"
 import { FiltrosDePuerta } from "@/components/panel/filtros-puerta"
-import { InsigniaDeEstado, LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
+import { LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
 import { NuevaReserva } from "@/components/panel/nueva-reserva"
 import { PestanasDePuerta } from "@/components/panel/pestanas-puerta"
 import { feriadosDelAnio } from "@/lib/disponibilidad"
@@ -24,6 +23,7 @@ import { exigirPanel } from "@/lib/panel/sesion"
 import { normalizarTelefono } from "@/lib/predio/contacto"
 import { esFechaIso, hoyEnElPredio } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
+import { reglamentoDe } from "@/lib/reglamentos"
 import { cn } from "cn"
 
 export const metadata: Metadata = { title: "Puerta" }
@@ -104,7 +104,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
         <LeyendaDeEstados />
       </div>
 
-      {resultados ? <ResultadosDeBusqueda resultados={resultados} busqueda={busqueda} puedeCambiar={puedeConfirmar} /> : null}
+      {resultados ? <ResultadosDeBusqueda resultados={resultados} busqueda={busqueda} puedeCambiar={puedeConfirmar} hoy={hoy} /> : null}
 
       {resultados ? null : (
         <section aria-labelledby="reservas-del-dia" className="mt-6">
@@ -127,44 +127,38 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
                       <th className="px-3 py-3 font-bold">Estado</th>
                       <th className="px-3 py-3 text-right font-bold">Saldo</th>
                       <th className="px-4 py-3">
-                        <span className="sr-only">Ingreso y cobro</span>
+                        <span className="sr-only">Ficha</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-panel-line">
                     {llegadas.map((llegada) => (
-                      <FilaDesplegable
-                        key={llegada.id}
-                        columnas={7}
-                        etiqueta={llegada.titular}
-                        clase={cn("border-l-8", estilosDeEstado[llegada.visible].tarjeta, estilosDeEstado[llegada.visible].borde)}
-                        celdas={
-                          <>
-                            <td className="px-5 py-3">
-                              <span className="font-semibold tabular-nums">{llegada.codigo}</span>
-                              <span className="block text-xs text-panel-muted">{nombreDelModulo[llegada.modulo]}</span>
-                            </td>
-                            <td className="px-3 py-3">
-                              <Link href={`/panel/reservas/${llegada.id}`} className="font-semibold hover:underline">
-                                {llegada.titular}
-                              </Link>
-                              <span className="block text-xs text-panel-muted">
-                                {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"}
-                                {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
-                              </span>
-                            </td>
-                            <td className="max-w-48 px-3 py-3">{llegada.lugares.join(", ") || <span className="text-panel-muted">—</span>}</td>
-                            <td className="px-3 py-3 whitespace-nowrap tabular-nums">{llegada.horario}</td>
-                            <td className="px-3 py-3">
-                              <Estado llegada={llegada} puedeCambiar={puedeConfirmar} />
-                            </td>
-                            <td className="px-3 py-3 text-right font-semibold whitespace-nowrap tabular-nums">
-                              <Saldo llegada={llegada} />
-                            </td>
-                          </>
-                        }
-                        detalle={<Acciones llegada={llegada} bloqueado={momento === "futuro"} />}
-                      />
+                      <tr key={llegada.id} className={cn("border-l-8", estilosDeEstado[llegada.visible].tarjeta, estilosDeEstado[llegada.visible].borde)}>
+                        <td className="px-5 py-3">
+                          <span className="font-semibold tabular-nums">{llegada.codigo}</span>
+                          <span className="block text-xs text-panel-muted">{nombreDelModulo[llegada.modulo]}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <Link href={`/panel/reservas/${llegada.id}`} className="font-semibold hover:underline">
+                            {llegada.titular}
+                          </Link>
+                          <span className="block text-xs text-panel-muted">
+                            {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"}
+                            {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
+                          </span>
+                        </td>
+                        <td className="max-w-48 px-3 py-3">{llegada.lugares.join(", ") || <span className="text-panel-muted">—</span>}</td>
+                        <td className="px-3 py-3 whitespace-nowrap tabular-nums">{llegada.horario}</td>
+                        <td className="px-3 py-3">
+                          <Estado llegada={llegada} hoy={hoy} puedeConfirmar={puedeConfirmar} />
+                        </td>
+                        <td className="px-3 py-3 text-right font-semibold whitespace-nowrap tabular-nums">
+                          <Saldo llegada={llegada} />
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <FichaDeLlegada llegada={datosDeLlegada(llegada, hoy)} hoy={hoy} puedeConfirmar={puedeConfirmar} />
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -185,14 +179,16 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
                         {llegada.lugares.length ? ` · ${llegada.lugares.join(", ")}` : ""}
                         {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-3">
-                        <Estado llegada={llegada} puedeCambiar={puedeConfirmar} />
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <Estado llegada={llegada} hoy={hoy} puedeConfirmar={puedeConfirmar} />
                         <span className="text-base font-semibold">
                           <Saldo llegada={llegada} />
                         </span>
+                        <span className="ml-auto">
+                          <FichaDeLlegada llegada={datosDeLlegada(llegada, hoy)} hoy={hoy} puedeConfirmar={puedeConfirmar} />
+                        </span>
                       </div>
                     </div>
-                    <Acciones llegada={llegada} bloqueado={momento === "futuro"} />
                   </li>
                 ))}
               </ul>
@@ -204,12 +200,48 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   )
 }
 
-/// Antes de que llegue alguien, el estado se cambia desde la lista; después, se muestra.
-function Estado({ llegada, puedeCambiar }: { llegada: Llegada; puedeCambiar: boolean }) {
-  if (puedeCambiar && (llegada.visible === "a-confirmar" || llegada.visible === "confirmada")) {
-    return <CambiarEstado id={llegada.id} codigo={llegada.codigo} titular={llegada.titular} estado={llegada.visible === "a-confirmar" ? "PENDIENTE" : "CONFIRMADA"} />
+/// La etiqueta del estado se toca para cambiarlo; el ingreso y la salida los marca Puerta
+/// (y quien tiene reservas, que también ve Puerta).
+function Estado({ llegada, hoy, puedeConfirmar }: { llegada: Llegada; hoy: string; puedeConfirmar: boolean }) {
+  return (
+    <EstadoEditable
+      id={llegada.id}
+      codigo={llegada.codigo}
+      titular={llegada.titular}
+      visible={llegada.visible}
+      desde={llegada.desde}
+      hasta={llegada.hasta}
+      hoy={hoy}
+      puedeConfirmar={puedeConfirmar}
+      puedeMarcar
+    />
+  )
+}
+
+function datosDeLlegada(llegada: Llegada, hoy: string): DatosDeLlegada {
+  return {
+    id: llegada.id,
+    codigo: llegada.codigo,
+    token: llegada.token,
+    titular: llegada.titular,
+    propuesta: nombreDelModulo[llegada.modulo],
+    modificable: Boolean(reglamentoDe(llegada.modulo)) && !llegada.ingresoEn && llegada.desde >= hoy,
+    horario: llegada.horario,
+    lugares: llegada.lugares,
+    personas: llegada.personas,
+    dni: llegada.dni,
+    telefono: llegada.telefono,
+    desde: llegada.desde,
+    hasta: llegada.hasta,
+    visible: llegada.visible,
+    asistencia: { porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total },
+    integrantes: llegada.integrantes,
+    ingreso: llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null,
+    saldo: llegada.saldo,
+    efectivo: llegada.efectivo,
+    aConfirmar: llegada.aConfirmar,
+    consumo: llegada.consumo,
   }
-  return <InsigniaDeEstado estado={llegada.visible} />
 }
 
 function Saldo({ llegada }: { llegada: Llegada }) {
@@ -219,23 +251,7 @@ function Saldo({ llegada }: { llegada: Llegada }) {
   return <>Saldo {pesos(llegada.saldo)}</>
 }
 
-function Acciones({ llegada, bloqueado }: { llegada: Llegada; bloqueado: boolean }) {
-  return (
-    <AccionesLlegada
-      id={llegada.id}
-      titular={llegada.titular}
-      visible={llegada.visible}
-      ingreso={llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null}
-      asistencia={{ porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total }}
-      integrantes={llegada.integrantes}
-      saldo={llegada.saldo}
-      efectivo={llegada.efectivo}
-      soloCobro={bloqueado}
-    />
-  )
-}
-
-function ResultadosDeBusqueda({ resultados, busqueda, puedeCambiar }: { resultados: { total: number; filas: FilaDeBusqueda[] }; busqueda: string; puedeCambiar: boolean }) {
+function ResultadosDeBusqueda({ resultados, busqueda, puedeCambiar, hoy }: { resultados: { total: number; filas: FilaDeBusqueda[] }; busqueda: string; puedeCambiar: boolean; hoy: string }) {
   return (
     <section aria-labelledby="resultados" className="mt-6">
       <h2 id="resultados" className="font-display flex flex-wrap items-center gap-3 text-2xl tracking-tight">
@@ -261,11 +277,17 @@ function ResultadosDeBusqueda({ resultados, busqueda, puedeCambiar }: { resultad
                 {rangoConMesPanel(fila.desde, fila.hasta)} · {fila.personas} pers.{fila.lugares.length ? ` · ${fila.lugares.join(", ")}` : ""}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                {puedeCambiar && (fila.visible === "a-confirmar" || fila.visible === "confirmada") ? (
-                  <CambiarEstado id={fila.id} codigo={fila.codigo} titular={fila.titular} estado={fila.visible === "a-confirmar" ? "PENDIENTE" : "CONFIRMADA"} />
-                ) : (
-                  <InsigniaDeEstado estado={fila.visible} />
-                )}
+                <EstadoEditable
+                  id={fila.id}
+                  codigo={fila.codigo}
+                  titular={fila.titular}
+                  visible={fila.visible}
+                  desde={fila.desde}
+                  hasta={fila.hasta}
+                  hoy={hoy}
+                  puedeConfirmar={puedeCambiar}
+                  puedeMarcar
+                />
                 <Link href={`/panel/puerta?fecha=${fila.desde}`} className="text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline">
                   Ver ese día
                 </Link>

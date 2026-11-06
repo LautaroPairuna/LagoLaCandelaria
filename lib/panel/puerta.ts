@@ -68,6 +68,7 @@ export async function llegadasDelDia(dia: string, busqueda = "", modulo?: Modulo
         telefono: fila.cliente.telefono,
         token: fila.token,
         desde: deFechaDb(fila.desde),
+        hasta: deFechaDb(fila.hasta),
         ticketEnviadoEn: fila.ticketEnviadoEn,
         ingresoEn: fila.ingresoEn,
         ingresoPor: fila.ingresoPor,
