@@ -1,8 +1,8 @@
-import { ClipboardList, MessageCircle, Search } from "lucide-react"
+import { ClipboardList, Search } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { AccionesMasivas, type EnvioDeTicket } from "@/components/panel/acciones-masivas"
+import { AccionesMasivas } from "@/components/panel/acciones-masivas"
 import { EncabezadoDelDia } from "@/components/panel/encabezado-del-dia"
 import { FiltrosDePuerta } from "@/components/panel/filtros-puerta"
 import { LeyendaDeEstados } from "@/components/panel/insignia-de-estado"
@@ -15,7 +15,6 @@ import { filtrarYOrdenar, leerFiltros } from "@/lib/panel/filtros-puerta"
 import { llegadasDelDia, llegadasPorIds, type Llegada } from "@/lib/panel/puerta"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
-import { enviosDeTickets, plantillasWhatsapp } from "@/lib/panel/whatsapp"
 import { esFechaIso, hoyEnElPredio } from "@/lib/predio/fechas"
 
 export const metadata: Metadata = { title: "Puerta" }
@@ -43,10 +42,6 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   const feriados = await feriadosDelAnio(hoy)
 
   const aConfirmar = llegadas.filter((item) => item.visible === "a-confirmar").map((item) => item.id)
-  const envios: EnvioDeTicket[] = enviosDeTickets(
-    llegadas.filter((item) => item.visible === "confirmada"),
-    await plantillasWhatsapp(),
-  )
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
@@ -70,17 +65,11 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
         <div className="flex flex-wrap items-center gap-2">
           {momento === "hoy" ? <NuevaReserva hoy={hoy} enPuerta puedeCobrar feriados={feriados} /> : null}
           {puedeConfirmar ? <NuevaReserva hoy={hoy} enPuerta={false} puedeCobrar feriados={feriados} /> : null}
-          {puedeConfirmar ? (
-            <Link href="/panel/clientes" className={botonSecundario}>
-              <MessageCircle className="size-4 text-[#25a95a]" aria-hidden />
-              Confirmar las de mañana
-            </Link>
-          ) : null}
           <Link href={`/panel/reservas/planilla?fecha=${fecha}`} className={botonSecundario}>
             <ClipboardList className="size-4 text-panel-tostado" aria-hidden />
             Planilla del día
           </Link>
-          {momento !== "pasado" && !busqueda ? <AccionesMasivas aConfirmar={aConfirmar} envios={envios} puedeConfirmar={puedeConfirmar} /> : null}
+          {momento !== "pasado" && !busqueda ? <AccionesMasivas aConfirmar={aConfirmar} envios={[]} puedeConfirmar={puedeConfirmar} /> : null}
         </div>
         {busqueda ? null : <FiltrosDePuerta filtros={filtros} />}
         <LeyendaDeEstados />
