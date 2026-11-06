@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client"
 import type { Modulo } from "@/generated/prisma/enums"
-import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
+import { estadoDe, ingresaronPorCantidad, resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { saldoDe } from "@/lib/panel/cobros"
 import { estadoVisible } from "@/lib/panel/estados"
 import { deudaDe } from "@/lib/panel/libro-caja"
@@ -42,6 +42,8 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
       ingresoEn: true,
       ingresoPor: true,
       salidaEn: true,
+      adultosAdentro: true,
+      menoresAdentro: true,
       detalle: true,
       token: true,
       desde: true,
@@ -90,6 +92,9 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
         aConfirmar,
         consumo: Boolean(cotizacion?.consumo),
         saldo: aConfirmar ? null : saldoDe(fila.total, fila.pagos),
+        cobrado: fila.pagos.reduce((suma, pago) => suma + pago.importe, 0),
+        importeTotal: aConfirmar ? null : fila.total,
+        cantidades: ingresaronPorCantidad(fila),
         efectivo: aConfirmar ? null : deudaDe(fila.total, fila.pagos).efectivo,
         buscable: [titular, fila.codigo, fila.cliente.dni ?? "", fila.cliente.apellido, ...fila.personas.map((persona) => `${persona.nombre} ${persona.apellido} ${persona.dni ?? ""}`)]
           .join(" ")

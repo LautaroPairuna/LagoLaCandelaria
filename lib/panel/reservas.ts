@@ -72,6 +72,8 @@ export async function reservasDelMes(
       institucion: true,
       ingresoEn: true,
       salidaEn: true,
+      adultosAdentro: true,
+      menoresAdentro: true,
       personas: { select: { ingresoEn: true, salidaEn: true } },
       cliente: { select: { nombre: true, apellido: true } },
     },

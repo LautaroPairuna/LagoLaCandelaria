@@ -31,10 +31,20 @@ export type DatosDeLlegada = {
   desde: string
   hasta: string
   visible: EstadoVisible
-  asistencia: { porPersona: boolean; estado: Asistencia; adentro: number; salieron: number; total: number }
+  asistencia: {
+    porPersona: boolean
+    estado: Asistencia
+    adentro: number
+    salieron: number
+    total: number
+    /// Por cantidad: cuántos adultos y menores entraron, sobre cuántos son.
+    cantidades: { adultos: number; menores: number; adultosTotal: number; menoresTotal: number }
+  }
   integrantes: Integrante[]
   ingreso: { hora: string; por: string | null } | null
   saldo: number | null
+  cobrado: number
+  importeTotal: number | null
   efectivo: number | null
   aConfirmar: boolean
   consumo: boolean
@@ -199,7 +209,7 @@ function SeccionIngreso({ llegada, otroDia }: { llegada: DatosDeLlegada; otroDia
               {todos ? <Check className="size-5" aria-hidden /> : <LogIn className="size-5" aria-hidden />}
               {todos ? "Ingresó todo el grupo" : nadie ? "Ingreso total" : "Ingresó el resto"}
             </button>
-            {asistencia.porPersona ? (
+            {!todos && !(asistencia.salieron && !asistencia.porPersona) ? (
               <button type="button" aria-expanded={parcial} onClick={() => setParcial(!parcial)} className={botonGrande(parcial)}>
                 <Users className="size-5" aria-hidden />
                 Ingreso parcial
@@ -224,7 +234,8 @@ function SeccionIngreso({ llegada, otroDia }: { llegada: DatosDeLlegada; otroDia
               <AsistenciaDelGrupo reservaId={llegada.id} integrantes={llegada.integrantes} puedeMarcar />
             </div>
           ) : null}
-          {!asistencia.porPersona ? <p className="mt-2 text-xs text-panel-muted">Esta reserva se cargó por cantidad: el ingreso es del grupo entero.</p> : null}
+          {parcial && !asistencia.porPersona ? <IngresoPorCantidad llegada={llegada} onListo={() => setParcial(false)} /> : null}
+          {!asistencia.porPersona && !nadie ? <Faltan cantidades={asistencia.cantidades} /> : null}
         </>
       )}
     </section>
@@ -262,6 +273,7 @@ function SeccionCobro({ llegada, otroDia }: { llegada: DatosDeLlegada; otroDia: 
           {llegada.consumo ? "Consumo aparte" : llegada.aConfirmar ? "A presupuestar" : saldo ? `Saldo ${pesos(saldo)}` : <span className="text-[#3f6b12]">Pagado</span>}
         </p>
       </div>
+      {llegada.importeTotal ? <CobradoYPendiente cobrado={llegada.cobrado} total={llegada.importeTotal} saldo={saldo ?? 0} /> : llegada.cobrado ? <p className="mt-1 text-sm text-panel-muted">Cobrado hasta ahora: {pesos(llegada.cobrado)}</p> : null}
       {llegada.consumo || llegada.aConfirmar ? (
         <p className="mt-2 text-sm text-panel-muted">{llegada.consumo ? "Paga lo que consume en el restaurante." : "El precio lo arma el predio: cobrá una seña o el total como cobro parcial."}</p>
       ) : null}
@@ -326,5 +338,118 @@ function SeccionCobro({ llegada, otroDia }: { llegada: DatosDeLlegada; otroDia: 
         </form>
       )}
     </section>
+  )
+}
+
+/// Cuánto se cobró y cuánto falta, con una barra para verlo de un vistazo.
+function CobradoYPendiente({ cobrado, total, saldo }: { cobrado: number; total: number; saldo: number }) {
+  const cubierto = Math.min(Math.max(total - saldo, 0), total)
+  return (
+    <div className="mt-2">
+      <div className="h-2 overflow-hidden rounded-full bg-panel" aria-hidden>
+        <div className="h-full rounded-full bg-[#2e7d32]" style={{ width: `${total ? (cubierto / total) * 100 : 0}%` }} />
+      </div>
+      <dl className="mt-2 grid grid-cols-3 gap-2 text-sm">
+        <div>
+          <dt className="text-xs font-bold text-panel-muted uppercase">Total</dt>
+          <dd className="font-semibold tabular-nums">{pesos(total)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-bold text-[#2e7d32] uppercase">Cobrado</dt>
+          <dd className="font-semibold tabular-nums">{pesos(cobrado)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-bold text-[#a85d00] uppercase">Pendiente</dt>
+          <dd className="font-semibold tabular-nums">{pesos(saldo)}</dd>
+        </div>
+      </dl>
+    </div>
+  )
+}
+
+/// En las reservas por cantidad: cuántos adultos y menores entraron y cuántos faltan.
+function Faltan({ cantidades }: { cantidades: DatosDeLlegada["asistencia"]["cantidades"] }) {
+  const faltanAdultos = cantidades.adultosTotal - cantidades.adultos
+  const faltanMenores = cantidades.menoresTotal - cantidades.menores
+  return (
+    <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+      <div className="rounded-2xl bg-[#e6f5e4] px-3 py-2">
+        <dt className="text-xs font-bold text-[#1b5e20] uppercase">Entraron</dt>
+        <dd className="font-semibold">
+          {cantidades.adultos} {cantidades.adultos === 1 ? "adulto" : "adultos"} · {cantidades.menores} {cantidades.menores === 1 ? "menor" : "menores"}
+        </dd>
+      </div>
+      <div className={cn("rounded-2xl px-3 py-2", faltanAdultos + faltanMenores ? "bg-[#fff1dc]" : "bg-panel")}>
+        <dt className="text-xs font-bold text-[#7a4200] uppercase">Faltan</dt>
+        <dd className="font-semibold">{faltanAdultos + faltanMenores ? `${faltanAdultos} ${faltanAdultos === 1 ? "adulto" : "adultos"} · ${faltanMenores} ${faltanMenores === 1 ? "menor" : "menores"}` : "Nadie"}</dd>
+      </div>
+    </dl>
+  )
+}
+
+/// Ingreso parcial de una reserva por cantidad: se cargan cuántos adultos y menores entran
+/// ahora y se suman a los que ya estaban.
+function IngresoPorCantidad({ llegada, onListo }: { llegada: DatosDeLlegada; onListo: () => void }) {
+  const [pendiente, iniciar] = useTransition()
+  const { cantidades } = llegada.asistencia
+  const faltanAdultos = cantidades.adultosTotal - cantidades.adultos
+  const faltanMenores = cantidades.menoresTotal - cantidades.menores
+  const [adultos, setAdultos] = useState(0)
+  const [menores, setMenores] = useState(0)
+  const entran = adultos + menores
+
+  return (
+    <form
+      className="mt-3 space-y-3 rounded-2xl border border-panel-line p-3"
+      onSubmit={(evento) => {
+        evento.preventDefault()
+        if (!entran) return avisarRevisar("Indicá cuántos entran ahora.")
+        iniciar(async () => {
+          const resultado = await conAviso(
+            () => registrarAsistencia({ reservaId: llegada.id, movimiento: "ingreso", cantidad: { adultos, menores } }),
+            `Listo, entraron ${entran} ${entran === 1 ? "persona" : "personas"} de ${llegada.titular}.`,
+          )
+          if (resultado.ok) onListo()
+        })
+      }}
+    >
+      <p className="text-sm text-panel-muted">¿Cuántos entran ahora?</p>
+      <div className="grid grid-cols-2 gap-3">
+        <Contador etiqueta="Adultos" ayuda={`faltan ${faltanAdultos}`} valor={adultos} maximo={faltanAdultos} onCambiar={setAdultos} />
+        <Contador etiqueta="Menores" ayuda={`faltan ${faltanMenores}`} valor={menores} maximo={faltanMenores} onCambiar={setMenores} />
+      </div>
+      <button type="submit" disabled={pendiente || !entran} className="h-12 w-full rounded-full bg-panel-ink font-bold text-white hover:bg-panel-tostado disabled:opacity-50">
+        {entran ? `Registrar el ingreso de ${entran}` : "Registrar el ingreso"}
+      </button>
+    </form>
+  )
+}
+
+function Contador({ etiqueta, ayuda, valor, maximo, onCambiar }: { etiqueta: string; ayuda: string; valor: number; maximo: number; onCambiar: (valor: number) => void }) {
+  const boton = "grid size-11 shrink-0 place-items-center rounded-full border-2 border-panel-line bg-white text-xl font-bold hover:border-panel-ink disabled:opacity-40"
+  return (
+    <div>
+      <p className="text-sm font-semibold">
+        {etiqueta} <span className="font-normal text-panel-muted">({ayuda})</span>
+      </p>
+      <div className="mt-1 flex items-center gap-2">
+        <button type="button" aria-label={`Uno menos (${etiqueta.toLowerCase()})`} disabled={valor <= 0} onClick={() => onCambiar(valor - 1)} className={boton}>
+          −
+        </button>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={maximo}
+          value={valor}
+          aria-label={etiqueta}
+          onChange={(evento) => onCambiar(Math.min(Math.max(Number(evento.target.value) || 0, 0), maximo))}
+          className="h-11 w-full min-w-0 rounded-xl border border-panel-line bg-white text-center text-lg font-bold tabular-nums"
+        />
+        <button type="button" aria-label={`Uno más (${etiqueta.toLowerCase()})`} disabled={valor >= maximo} onClick={() => onCambiar(valor + 1)} className={boton}>
+          +
+        </button>
+      </div>
+    </div>
   )
 }

@@ -69,6 +69,11 @@ export function TablaDeReservas({
                     {llegada.personas} {llegada.personas === 1 ? "persona" : "personas"}
                     {llegada.dni ? ` · DNI ${llegada.dni}` : ""}
                   </span>
+                  {llegada.visible === "parcial" ? (
+                    <span className="block text-xs font-semibold text-panel-tostado">
+                      {llegada.adentro} adentro · faltan {llegada.pendientes}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="max-w-48 px-3 py-3">{llegada.lugares.join(", ") || <span className="text-panel-muted">—</span>}</td>
                 <td className="px-3 py-3 whitespace-nowrap tabular-nums">
@@ -165,10 +170,12 @@ function datosDeLlegada(llegada: Llegada, hoy: string): DatosDeLlegada {
     desde: llegada.desde,
     hasta: llegada.hasta,
     visible: llegada.visible,
-    asistencia: { porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total },
+    asistencia: { porPersona: llegada.porPersona, estado: llegada.asistencia, adentro: llegada.adentro, salieron: llegada.salieron, total: llegada.total, cantidades: llegada.cantidades },
     integrantes: llegada.integrantes,
     ingreso: llegada.ingresoEn ? { hora: hora.format(llegada.ingresoEn), por: llegada.ingresoPor } : null,
     saldo: llegada.saldo,
+    cobrado: llegada.cobrado,
+    importeTotal: llegada.importeTotal,
     efectivo: llegada.efectivo,
     aConfirmar: llegada.aConfirmar,
     consumo: llegada.consumo,
@@ -179,5 +186,10 @@ function Saldo({ llegada }: { llegada: Llegada }) {
   if (llegada.consumo) return <span className="text-panel-muted">Consumo aparte</span>
   if (llegada.aConfirmar) return <span className="text-panel-muted">A presupuestar</span>
   if (!llegada.saldo) return <span className="text-[#3f6b12]">Pagado</span>
-  return <>Saldo {pesos(llegada.saldo)}</>
+  return (
+    <>
+      Saldo {pesos(llegada.saldo)}
+      {llegada.cobrado ? <span className="block text-xs font-normal text-panel-muted">Cobrado {pesos(llegada.cobrado)}</span> : null}
+    </>
+  )
 }

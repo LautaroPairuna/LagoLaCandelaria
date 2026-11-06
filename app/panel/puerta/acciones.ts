@@ -8,7 +8,7 @@ import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
-import { aplicar, porPersona } from "@/lib/panel/asistencia"
+import { aplicar, ingresaronPorCantidad, porPersona } from "@/lib/panel/asistencia"
 import { aFechaDb, deFechaDb, fechaLarga, hoyEnElPredio } from "@/lib/predio/fechas"
 import { db } from "@/lib/prisma"
 import { pesos } from "@/lib/predio/tarifas"
@@ -28,6 +28,8 @@ const pedidoDeAsistencia = z.object({
   movimiento: z.enum(["ingreso", "salida", "deshacer"]),
   // Sin personas, el movimiento es para todas las que corresponda (o la reserva entera).
   personas: z.array(z.number().int().positive()).max(200).optional(),
+  // Reservas por cantidad: cuántos entran ahora. Sin cantidad, entra todo lo que falta.
+  cantidad: z.object({ adultos: z.number().int().min(0).max(2000), menores: z.number().int().min(0).max(2000) }).optional(),
 })
 
 /// Registra ingresos, salidas o deshace el último paso, de algunas personas o de toda
@@ -36,7 +38,7 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
   return accion("registrarAsistencia", async () => {
     // Puerta marca cualquier reserva; el restaurante, solo las de mesa.
     const sesion = await permisoParaAccion("puerta", "restaurante")
-    const { reservaId, movimiento, personas: elegidas } = pedidoDeAsistencia.parse(pedido)
+    const { reservaId, movimiento, personas: elegidas, cantidad } = pedidoDeAsistencia.parse(pedido)
     const soloMesas = !puedeVer(sesion.user.role, "puerta")
     const ahora = new Date()
     const quien = sesion.user.name.slice(0, 80)
@@ -57,6 +59,8 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
           sinCargo: true,
           ingresoEn: true,
           salidaEn: true,
+          adultosAdentro: true,
+          menoresAdentro: true,
           personas: { select: { id: true, ingresoEn: true, salidaEn: true } },
         },
       })
@@ -70,13 +74,29 @@ export async function registrarAsistencia(pedido: z.input<typeof pedidoDeAsisten
       }
 
       if (!porPersona(reserva)) {
+        const ya = ingresaronPorCantidad(reserva)
+        if (movimiento === "ingreso") {
+          // Por cantidad: entran los que se indican (o todos los que faltan) y se suman a los
+          // que ya estaban. Con todos adentro la reserva queda ingresada.
+          if (reserva.salidaEn) return 0
+          const adultos = cantidad ? cantidad.adultos : ya.adultosTotal - ya.adultos
+          const menores = cantidad ? cantidad.menores : ya.menoresTotal - ya.menores
+          if (adultos + menores === 0) return 0
+          exigir(ya.adultos + adultos <= ya.adultosTotal, `Faltaban entrar ${ya.adultosTotal - ya.adultos} adultos: revisá la cantidad.`)
+          exigir(ya.menores + menores <= ya.menoresTotal, `Faltaban entrar ${ya.menoresTotal - ya.menores} menores: revisá la cantidad.`)
+          await tx.reserva.update({
+            where: { id: reservaId },
+            data: { ingresoEn: reserva.ingresoEn ?? ahora, ingresoPor: reserva.ingresoEn ? undefined : quien, adultosAdentro: ya.adultos + adultos, menoresAdentro: ya.menores + menores },
+          })
+          return adultos + menores
+        }
         const cambio = aplicar(movimiento, reserva, ahora)
         if (!cambio) return 0
         await tx.reserva.update({
           where: { id: reservaId },
-          data: { ...cambio, ingresoPor: cambio.ingresoEn ? (reserva.ingresoEn ? undefined : quien) : null },
+          data: { ...cambio, ingresoPor: cambio.ingresoEn ? undefined : null, ...(cambio.ingresoEn ? {} : { adultosAdentro: 0, menoresAdentro: 0 }) },
         })
-        return reserva.adultos + reserva.menores + reserva.sinCargo
+        return ya.adultos + ya.menores
       }
 
       const objetivo = elegidas ? reserva.personas.filter((persona) => elegidas.includes(persona.id)) : reserva.personas

@@ -140,6 +140,8 @@ export async function resumenDelDia(hoy: string) {
         hasta: true,
         ingresoEn: true,
         salidaEn: true,
+        adultosAdentro: true,
+        menoresAdentro: true,
         personas: { select: { ingresoEn: true, salidaEn: true } },
       },
     }),

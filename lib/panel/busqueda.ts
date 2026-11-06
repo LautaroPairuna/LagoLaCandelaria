@@ -89,6 +89,8 @@ export async function buscarReservas(busqueda: Busqueda, cantidad = POR_PAGINA) 
         institucion: true,
         ingresoEn: true,
         salidaEn: true,
+        adultosAdentro: true,
+        menoresAdentro: true,
         detalle: true,
         personas: { select: { ingresoEn: true, salidaEn: true } },
         cliente: { select: { nombre: true, apellido: true, telefono: true } },

@@ -53,6 +53,15 @@ describe("resumenDeAsistencia", () => {
     expect(resumen).toMatchObject({ porPersona: false, asistencia: "adentro", adentro: 42, pendientes: 0 })
     expect(resumenDeAsistencia({ ...adentro, adultos: 2, menores: 40, sinCargo: 0, hasta: "2026-10-10", personas: [] }, "2026-10-11").asistencia).toBe("finalizada")
   })
+
+  it("por cantidad, el grupo puede entrar de a partes", () => {
+    const grupo = { adultos: 10, menores: 8, sinCargo: 3, hasta: "2026-10-10", personas: [] }
+    const parcial = resumenDeAsistencia({ ...adentro, ...grupo, adultosAdentro: 5, menoresAdentro: 3 }, "2026-10-10")
+    expect(parcial).toMatchObject({ asistencia: "parcial", adentro: 8, pendientes: 13, total: 21 })
+    expect(resumenDeAsistencia({ ...adentro, ...grupo, adultosAdentro: 10, menoresAdentro: 11 }, "2026-10-10").asistencia).toBe("adentro")
+    expect(resumenDeAsistencia({ ...salio, ...grupo, adultosAdentro: 5, menoresAdentro: 3 }, "2026-10-10")).toMatchObject({ asistencia: "finalizada", salieron: 8, adentro: 0, pendientes: 13 })
+    expect(resumenDeAsistencia({ ...adentro, ...grupo, adultosAdentro: 5, menoresAdentro: 3 }, "2026-10-11").asistencia).toBe("finalizada")
+  })
 })
 
 describe("aplicar", () => {

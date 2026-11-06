@@ -100,6 +100,10 @@ model Reserva {
   ingresoEn     DateTime?
   ingresoPor    String?          @db.VarChar(80)
   salidaEn      DateTime?
+  /// En las reservas por cantidad, cuántos entraron hasta ahora (los menores incluyen a
+  /// los sin cargo). En cero con ingreso marcado, entró todo el grupo.
+  adultosAdentro Int           @default(0) @db.SmallInt
+  menoresAdentro Int           @default(0) @db.SmallInt
   /// Respuesta al mensaje del día anterior: CONFIRMO o CANCELO. Vacío, sin respuesta.
   confirmacion   String?         @db.VarChar(12)
   confirmacionEn DateTime?
