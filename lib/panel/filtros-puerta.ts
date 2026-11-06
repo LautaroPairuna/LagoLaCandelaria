@@ -66,7 +66,7 @@ export function leerFiltros(params: Record<string, string | string[] | undefined
   }
 }
 
-const estadosDe: Record<Exclude<FiltrosDePuerta["estado"], "todas">, EstadoVisible[]> = {
+export const estadosDe: Record<Exclude<FiltrosDePuerta["estado"], "todas">, EstadoVisible[]> = {
   "por-llegar": ["a-confirmar", "confirmada"],
   "a-confirmar": ["a-confirmar"],
   confirmada: ["confirmada"],
@@ -82,7 +82,7 @@ const tiposDeLugar: Record<Exclude<FiltrosDePuerta["lugar"], "todos" | "sin-luga
   bungalow: ["BUNGALOW"],
 }
 
-const modulosDe: Record<Exclude<FiltrosDePuerta["tipo"], "todas">, Modulo[]> = {
+export const modulosDe: Record<Exclude<FiltrosDePuerta["tipo"], "todas">, Modulo[]> = {
   finde: ["FINDE_FAMILIA"],
   bungalow: ["BUNGALOW"],
   estudiantil: ["CAMPAMENTO", "SALIDA_EDUCATIVA", "VIAJE_EGRESADOS"],
