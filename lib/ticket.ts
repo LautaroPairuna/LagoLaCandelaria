@@ -8,6 +8,8 @@ export function esGrupo(ticket: Pick<TicketDatos, "modulo">) {
   return ticket.modulo !== "NADO" && !lineas[0].modulos.some((modulo) => modulo === ticket.modulo)
 }
 
+/// El lugar pedido puede cambiar hasta que el grupo ingresa (el predio lo reasigna), así
+/// que el ticket lo muestra a confirmar.
 export function filasDelTicket(ticket: TicketDatos) {
   const personas = ticket.grupo.adultos + ticket.grupo.menores + ticket.grupo.sinCargo
   const noches = ticket.modulo === "BUNGALOW" ? Math.round((Date.parse(ticket.hasta) - Date.parse(ticket.desde)) / 86_400_000) : 0
@@ -31,12 +33,12 @@ export function filasDelTicket(ticket: TicketDatos) {
   filas.push([
     "Lugar",
     ticket.lugares.length
-      ? ticket.lugares.map((lugar) => `${nombreDeUnidad[lugar.tipo]} ${lugar.etiqueta}`).join(" · ")
+      ? `${ticket.lugares.map((lugar) => `${nombreDeUnidad[lugar.tipo]} ${lugar.etiqueta}`).join(" · ")}${ticket.ingresado ? "" : " (a confirmar en el predio)"}`
       : ticket.modulo === "NADO"
         ? "Nado en aguas abiertas: coordinan el sector con los guardavidas en el muelle"
         : grupo
           ? "Lo organiza el predio con la institución"
-          : "Lo asigna el predio",
+          : "A confirmar en el predio",
   ])
   return filas
 }

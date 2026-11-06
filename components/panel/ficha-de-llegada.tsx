@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { cobrar, registrarAsistencia } from "@/app/panel/puerta/acciones"
 import { AsistenciaDelGrupo, type Integrante } from "@/components/panel/asistencia-grupo"
 import { EstadoEditable } from "@/components/panel/estado-editable"
+import { ReasignarLugar } from "@/components/panel/reasignar-lugar"
 import { avisarRevisar, conAviso } from "@/lib/avisos"
 import type { Asistencia, Movimiento } from "@/lib/panel/asistencia"
 import type { FormaDeCobro } from "@/lib/panel/cobros"
@@ -137,7 +138,8 @@ function Ficha({ llegada, hoy, puedeConfirmar, onCerrar }: { llegada: DatosDeLle
               Ver la reserva completa
             </Link>
           </div>
-          {!llegada.modificable ? <p className="mt-2 text-xs text-panel-muted">El día y el lugar se cambian desde la reserva completa o por WhatsApp con el titular.</p> : null}
+          {!llegada.ingreso && llegada.asistencia.adentro + llegada.asistencia.salieron === 0 && llegada.hasta >= hoy ? <ReasignarLugar reservaId={llegada.id} className="mt-3" /> : null}
+          {!llegada.modificable ? <p className="mt-2 text-xs text-panel-muted">El día y las personas se cambian desde la reserva completa o por WhatsApp con el titular.</p> : null}
         </section>
       </div>
     </dialog>

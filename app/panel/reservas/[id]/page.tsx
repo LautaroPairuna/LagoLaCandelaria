@@ -6,6 +6,7 @@ import type { ReactNode } from "react"
 
 import { AccionesReserva } from "@/components/panel/acciones-reserva"
 import { AnularCobro } from "@/components/panel/anular-cobro"
+import { ReasignarLugar } from "@/components/panel/reasignar-lugar"
 import { saldoDe } from "@/lib/panel/cobros"
 import { normalizarTelefono } from "@/lib/predio/contacto"
 import { deFechaDb, hoyEnElPredio } from "@/lib/predio/fechas"
@@ -53,6 +54,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const importantes = reserva.personas.filter((persona) => persona.notas)
   const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
   const visible = estadoVisible(reserva.estado, asistencia.asistencia)
+  const reasignable = (veReservas || marcaIngresos) && reserva.estado !== "CANCELADA" && !reserva.ingresoEn && asistencia.adentro + asistencia.salieron === 0 && hasta >= hoy
   const motivoSinMarcar =
     reserva.estado === "CANCELADA"
       ? "La reserva está cancelada: no se puede marcar el ingreso."
@@ -171,6 +173,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
               Pidió {sinOcupar.map((lugar) => lugar.nombre).join(", ")}, pero ya estaba tomado por otra reserva. Hay que reasignarlo.
             </p>
           ) : null}
+          {reasignable ? <ReasignarLugar reservaId={reserva.id} /> : null}
           <Dato termino="Total">{textoDelTotal(detalle.cotizacion)}</Dato>
           {textoDelEfectivo(detalle.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(detalle.cotizacion)}</Dato> : null}
           {reserva.pagos.length ? (
