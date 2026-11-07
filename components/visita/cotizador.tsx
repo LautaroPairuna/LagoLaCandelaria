@@ -10,6 +10,7 @@ import { cotizarDia, lineasSegunForma, totalSegunForma } from "@/lib/predio/coti
 import { pesos, RECARGO_INCLUIDO, type TipoDeDia } from "@/lib/predio/tarifas"
 import type { FormaDePagoWeb } from "@/lib/reserva-visita"
 import { cn } from "cn"
+import { usePrecios } from "@/components/contenido-del-sitio"
 
 const dias: { id: TipoDeDia; nombre: string; detalle: string; foto: string }[] = [
   { id: "finde", nombre: "Finde o feriado", detalle: "Sábados, domingos y feriados", foto: "/covers/playa.jpg" },
@@ -22,7 +23,8 @@ export function Cotizador() {
   const [dia, setDia] = useState<TipoDeDia | null>(null)
   const [forma, setForma] = useState<FormaDePagoWeb | null>(null)
   const [grupo, setGrupo] = useState({ adultos: 2, menores: 0, sinCargo: 0 })
-  const cotizacion = dia ? cotizarDia(grupo, dia) : null
+  const precios = usePrecios()
+  const cotizacion = dia ? cotizarDia(grupo, dia, precios) : null
 
   return (
     <div className="grid min-w-0 items-stretch gap-4 md:grid-cols-[0.95fr_1.05fr]">

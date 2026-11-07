@@ -16,6 +16,7 @@ import { personasQueOcupan, revisarEleccionDelPanel } from "@/lib/predio/eleccio
 import { inventario } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { pesos } from "@/lib/predio/tarifas"
+import { leerPrecios } from "@/lib/precios"
 import { db } from "@/lib/prisma"
 import { nombre, telefono } from "@/lib/reserva-familia"
 import { crearReserva, libreEn } from "@/lib/reservas"
@@ -76,7 +77,7 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
       if (!revision.ok) throw new ErrorHumano(revision.mensaje)
     }
 
-    const cotizacion = cotizarDia(grupo, tipoDeDia(datos.fecha, await diasEspeciales(datos.fecha, datos.fecha)))
+    const cotizacion = cotizarDia(grupo, tipoDeDia(datos.fecha, await diasEspeciales(datos.fecha, datos.fecha)), await leerPrecios())
     const quien = sesion.user.name.slice(0, 80)
     const creada = await crearReserva({
       modulo: "FINDE_FAMILIA",

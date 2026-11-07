@@ -21,10 +21,10 @@ import { personasQueOcupan, revisarEleccion } from "@/lib/predio/eleccion"
 import { fechaLarga, sumarDiasIso } from "@/lib/predio/fechas"
 import { HORARIO_RESTAURANTE, textoDeHora, type Franja } from "@/lib/predio/horario"
 import { inventario, MAX_PERSONAS_PARRILLA } from "@/lib/predio/inventario"
-import { conRecargoTransferencia, pesos, RECARGO_INCLUIDO, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
+import { conRecargoTransferencia, pesos, RECARGO_INCLUIDO, type TipoDeDia } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto } from "@/lib/reserva-familia"
 import { esFranjaDeNado, grupoWeb, MAX_HORAS_DE_NADO, MAX_PERSONAS_BUNGALOWS, titularWeb, type FormaDePagoWeb } from "@/lib/reserva-visita"
-import { useContenido } from "@/components/contenido-del-sitio"
+import { useContenido, usePrecios } from "@/components/contenido-del-sitio"
 import { enlaceWhatsapp } from "@/lib/contenido/derivados"
 import { cn } from "cn"
 
@@ -99,6 +99,7 @@ export function FlujoVisita({
   carta?: PlatoDeCarta[]
   modificar?: DatosParaModificar
 }) {
+  const precios = usePrecios()
   const router = useRouter()
   const [paso, setPaso] = useState<Paso>("personas")
   const [grupo, setGrupo] = useState<Grupo>(modificar?.grupo ?? { adultos: tipo === "nado" ? 1 : 2, menores: 0, sinCargo: 0 })
@@ -125,10 +126,10 @@ export function FlujoVisita({
   const cotizacion: Cotizacion | null = !fecha
     ? null
     : tipo === "nado"
-      ? cotizarNado(grupo.adultos, dia)
+      ? cotizarNado(grupo.adultos, dia, precios)
       : tipo === "bungalow"
-        ? cotizarBungalows(Math.max(1, Math.ceil(ocupan / 4)))
-        : cotizarDia(grupo, dia)
+        ? cotizarBungalows(Math.max(1, Math.ceil(ocupan / 4)), precios)
+        : cotizarDia(grupo, dia, precios)
   const cambiarParrilla = useCallback((ids: string[]) => setParrilla(ids), [])
   const cambiarBungalows = useCallback((ids: string[]) => setBungalows(ids), [])
 
@@ -483,6 +484,7 @@ function PasoGrupo({
   errores: Record<string, string>
   onEditar: (campo: string) => void
 }) {
+  const precios = usePrecios()
   const cambiar = (campo: keyof DatosParaModificar["titular"], valor: string) => {
     onEditar(`titular.${campo}`)
     onTitular({ ...titular, [campo]: valor })
@@ -510,12 +512,12 @@ function PasoGrupo({
         </div>
         {tipo === "nado" ? (
           <p className="mt-3 rounded-2xl bg-lake-soft px-4 py-3 text-sm leading-relaxed font-semibold text-lake-ink">
-            La tarifa es {pesos(tarifas.nado.finde)} el finde o feriado y {pesos(tarifas.nado.semana)} de miércoles a viernes. {RECARGO_INCLUIDO}, y solo cubre el nado en aguas abiertas: no el resto de las actividades del predio.
+            La tarifa es {pesos(precios.nado.finde)} el finde o feriado y {pesos(precios.nado.semana)} de miércoles a viernes. {RECARGO_INCLUIDO}, y solo cubre el nado en aguas abiertas: no el resto de las actividades del predio.
           </p>
         ) : tipo === "finde" ? (
           <p className="mt-3 rounded-2xl bg-lake-soft px-4 py-3 text-sm leading-relaxed font-semibold text-lake-ink">
-            La entrada es {pesos(conRecargoTransferencia(tarifas.entrada.finde.adulto))} por adulto y {pesos(conRecargoTransferencia(tarifas.entrada.finde.menor))} por menor el finde o feriado, y{" "}
-            {pesos(conRecargoTransferencia(tarifas.entrada.semana.adulto))} y {pesos(conRecargoTransferencia(tarifas.entrada.semana.menor))} de miércoles a viernes. {RECARGO_INCLUIDO}: en
+            La entrada es {pesos(conRecargoTransferencia(precios.entrada.finde.adulto))} por adulto y {pesos(conRecargoTransferencia(precios.entrada.finde.menor))} por menor el finde o feriado, y{" "}
+            {pesos(conRecargoTransferencia(precios.entrada.semana.adulto))} y {pesos(conRecargoTransferencia(precios.entrada.semana.menor))} de miércoles a viernes. {RECARGO_INCLUIDO}: en
             efectivo no lleva el recargo. Incluye la entrada y las actividades del predio; el restaurante se paga aparte.
           </p>
         ) : null}

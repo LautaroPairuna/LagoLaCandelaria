@@ -14,7 +14,7 @@ import { cotizarDia } from "@/lib/predio/cotizacion"
 import { parrillasOfrecidas, personasQueOcupan, revisarEleccionDelPanel, sugerir } from "@/lib/predio/eleccion"
 import { MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
-import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, pesos } from "@/lib/predio/tarifas"
+import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, pesos, type Precios } from "@/lib/predio/tarifas"
 import { cn } from "cn"
 
 type Forma = "EFECTIVO" | "DEBITO" | "TRANSFERENCIA"
@@ -65,7 +65,7 @@ function Cantidad({ etiqueta, detalle, valor, minimo = 0, onChange }: { etiqueta
 /// Para hoy se puede cobrar y marcar el ingreso en el mismo paso. Los lugares siguen las
 /// reglas de la web: la parrilla del tamaño que alcanza (o un quincho) y un gazebo o una
 /// palapa cada 4 personas.
-export function NuevaReserva({ hoy, puedeCobrar, puedeMarcarIngreso, feriados }: { hoy: string; puedeCobrar: boolean; puedeMarcarIngreso: boolean; feriados: string[] }) {
+export function NuevaReserva({ hoy, puedeCobrar, puedeMarcarIngreso, feriados, precios }: { hoy: string; puedeCobrar: boolean; puedeMarcarIngreso: boolean; feriados: string[]; precios: Precios }) {
   const [abierto, setAbierto] = useState(false)
   const [fecha, setFecha] = useState(hoy)
   const [grupo, setGrupo] = useState({ adultos: 1, menores: 0, sinCargo: 0 })
@@ -77,7 +77,7 @@ export function NuevaReserva({ hoy, puedeCobrar, puedeMarcarIngreso, feriados }:
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [pendiente, iniciar] = useTransition()
 
-  const cotizacion = cotizarDia(grupo, tipoDeDia(fecha, mapaDeEspeciales(feriados.map((dia) => ({ fecha: dia, tipo: "FERIADO" as const, motivo: "" })))))
+  const cotizacion = cotizarDia(grupo, tipoDeDia(fecha, mapaDeEspeciales(feriados.map((dia) => ({ fecha: dia, tipo: "FERIADO" as const, motivo: "" })))), precios)
   const precio = (forma: Forma) => cobroPropuesto(cotizacion.total, [], forma).importe
   const borde = (nombre: string) => (errores[nombre] ? "border-[#c62828] ring-2 ring-[#c62828]/20" : "border-panel-line")
 

@@ -21,6 +21,7 @@ import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { pesos } from "@/lib/predio/tarifas"
 import { contacto as esquemaDeContacto, familias as esquemaDeFamilias } from "@/lib/reserva-familia"
 import { cn } from "cn"
+import { usePrecios } from "@/components/contenido-del-sitio"
 
 const pasos = ["Personas", "Fecha", "Lugar", "Confirmar"] as const
 
@@ -50,7 +51,8 @@ export function FlujoFamilia({ lugar }: { lugar?: "parrilla" | "playa" | "restau
   const personas = cantidadDePersonas(familias)
   const edades = familias.flatMap((familia) => [...familia.adultos, ...familia.ninos]).map((persona) => Number(persona.edad)).filter(edadValida)
   const grupo = grupoPorEdades(edades)
-  const cotizacion = restaurante ? cotizacionDeConsumo : cotizarDia(grupo)
+  const precios = usePrecios()
+  const cotizacion = restaurante ? cotizacionDeConsumo : cotizarDia(grupo, "finde", precios)
   const fechaLista = Boolean(fechas.desde)
   const elegidas = unidades.map((id) => inventario.find((unidad) => unidad.id === id)).filter((unidad) => unidad !== undefined)
   const cambiarUnidades = useCallback((ids: string[]) => setUnidades(ids), [])

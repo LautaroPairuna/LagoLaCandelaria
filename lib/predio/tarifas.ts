@@ -18,6 +18,16 @@ export const tarifas = {
   acompananteSobreParticipante: 0.7,
 } as const
 
+/// Los precios que la administración edita desde el panel (los de arriba son los de
+/// fábrica). El recargo por transferencia queda fijo en el código.
+export type Precios = {
+  entrada: Record<TipoDeDia, { adulto: number; menor: number }>
+  nado: Record<TipoDeDia, number>
+  bungalow: number
+}
+
+export const preciosPorDefecto: Precios = { entrada: tarifas.entrada, nado: tarifas.nado, bungalow: tarifas.bungalow }
+
 export const EDAD_MINIMA_CON_CARGO = 5
 export const EDAD_MAXIMA_MENOR = 12
 
@@ -30,8 +40,8 @@ export function bandaDeEdad(edad: number, cud = false): BandaDeEdad {
 }
 
 /// Lo que se paga en efectivo por las entradas.
-export function entradas(adultos: number, menores: number, dia: TipoDeDia = "finde") {
-  const precio = tarifas.entrada[dia]
+export function entradas(adultos: number, menores: number, dia: TipoDeDia = "finde", precios: Precios = preciosPorDefecto) {
+  const precio = precios.entrada[dia]
   return adultos * precio.adulto + menores * precio.menor
 }
 

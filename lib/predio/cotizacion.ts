@@ -1,4 +1,4 @@
-import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, conDescuentoEfectivo, conRecargoTransferencia, pesos, tarifas, type TipoDeDia } from "@/lib/predio/tarifas"
+import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, conDescuentoEfectivo, conRecargoTransferencia, pesos, preciosPorDefecto, type Precios, type TipoDeDia } from "@/lib/predio/tarifas"
 
 export type LineaCotizacion = { concepto: string; detalle: string; importe: number }
 
@@ -23,8 +23,8 @@ function veces(cantidad: number, uno: string, varios: string) {
 export const nombreDelDia: Record<TipoDeDia, string> = { finde: "Fin de semana o feriado", semana: "Día de semana" }
 
 /// La entrada del día: en efectivo, la tarifa; por transferencia, con el recargo.
-export function cotizarDia({ adultos, menores, sinCargo }: Grupo, dia: TipoDeDia = "finde"): Cotizacion {
-  const precio = tarifas.entrada[dia]
+export function cotizarDia({ adultos, menores, sinCargo }: Grupo, dia: TipoDeDia = "finde", precios: Precios = preciosPorDefecto): Cotizacion {
+  const precio = precios.entrada[dia]
   const lineas: LineaCotizacion[] = []
   if (adultos > 0) {
     lineas.push({ concepto: "Adultos", detalle: `${adultos} × más de ${EDAD_MAXIMA_MENOR} años`, importe: adultos * conRecargoTransferencia(precio.adulto) })
@@ -44,8 +44,8 @@ export function cotizarDia({ adultos, menores, sinCargo }: Grupo, dia: TipoDeDia
 }
 
 /// Nado en aguas abiertas: precio único por nadador, solo el nado.
-export function cotizarNado(nadadores: number, dia: TipoDeDia): Cotizacion {
-  const total = nadadores * tarifas.nado[dia]
+export function cotizarNado(nadadores: number, dia: TipoDeDia, precios: Precios = preciosPorDefecto): Cotizacion {
+  const total = nadadores * precios.nado[dia]
   return {
     total,
     totalEfectivo: total,
@@ -56,15 +56,15 @@ export function cotizarNado(nadadores: number, dia: TipoDeDia): Cotizacion {
 
 /// Bungalows: precio único por estadía de 2 días y 1 noche, con la entrada incluida. Se
 /// paga por adelantado por transferencia, sin recargo aparte.
-export function cotizarBungalows(bungalows: number): Cotizacion {
-  const total = bungalows * tarifas.bungalow
+export function cotizarBungalows(bungalows: number, precios: Precios = preciosPorDefecto): Cotizacion {
+  const total = bungalows * precios.bungalow
   return {
     total,
     totalEfectivo: total,
     lineas: Array.from({ length: bungalows }, (_, indice) => ({
       concepto: bungalows === 1 ? "Bungalow" : `Bungalow ${indice + 1}`,
       detalle: "2 días y 1 noche · incluye la entrada",
-      importe: tarifas.bungalow,
+      importe: precios.bungalow,
     })),
   }
 }

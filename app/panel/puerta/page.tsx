@@ -16,6 +16,7 @@ import { fechaLargaPanel } from "@/lib/panel/formato"
 import { llegadasDelDia, llegadasPorIds, type Llegada } from "@/lib/panel/puerta"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
+import { leerPrecios } from "@/lib/precios"
 import { esFechaIso, hoyEnElPredio } from "@/lib/predio/fechas"
 import { cn } from "cn"
 
@@ -51,7 +52,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
   }
   const diaCorto = fechaLargaPanel(fecha).replace(/ de [a-z]+$/i, "").toLowerCase()
   const puedeConfirmar = puedeVer(sesion.user.role, "reservas")
-  const feriados = await feriadosDelAnio(hoy)
+  const [feriados, precios] = await Promise.all([feriadosDelAnio(hoy), leerPrecios()])
 
   const aConfirmar = llegadas.filter((item) => item.visible === "a-confirmar").map((item) => item.id)
 
@@ -76,7 +77,7 @@ export default async function PanelPuerta({ searchParams }: PageProps<"/panel/pu
           />
         </form>
         <div className="flex flex-wrap items-center gap-2">
-          <NuevaReserva hoy={hoy} puedeCobrar puedeMarcarIngreso={puedeVer(sesion.user.role, "puerta") || puedeConfirmar} feriados={feriados} />
+          <NuevaReserva hoy={hoy} puedeCobrar puedeMarcarIngreso={puedeVer(sesion.user.role, "puerta") || puedeConfirmar} feriados={feriados} precios={precios} />
           <Link href={`/panel/reservas/planilla?fecha=${fecha}`} className={botonSecundario}>
             <ClipboardList className="size-4 text-panel-tostado" aria-hidden />
             Planilla del día

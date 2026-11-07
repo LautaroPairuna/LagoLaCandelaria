@@ -20,6 +20,7 @@ import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { contacto, email, familias, nombre, personasDe, telefono, type FamiliaValida } from "@/lib/reserva-familia"
 import { formaDePagoWeb, franjaDeNado, grupoWeb, MAX_PERSONAS_BUNGALOWS, MAX_PERSONAS_WEB, titularWeb } from "@/lib/reserva-visita"
 import { crearReserva, libreEn, type NuevaReserva } from "@/lib/reservas"
+import { leerPrecios } from "@/lib/precios"
 
 export type ResultadoReserva = Resultado<{ token: string }>
 
@@ -163,7 +164,7 @@ export async function reservarDia(pedido: z.input<typeof pedidoDeDia>): Promise<
         horas,
         cliente: clienteDe(datos.familias, datos.contacto),
         grupo,
-        cotizacion: restaurante ? cotizacionDeConsumo : cotizarDia(grupo, await tipoDelDia(datos.fecha)),
+        cotizacion: restaurante ? cotizacionDeConsumo : cotizarDia(grupo, await tipoDelDia(datos.fecha), await leerPrecios()),
         propuesta: propuestaDelLugar[datos.lugar],
         personas: personasParaGuardar(datos.familias),
         asignar: (ocupacion) => {
@@ -252,7 +253,7 @@ export async function reservarFinde(pedido: z.input<typeof pedidoDeFinde>): Prom
         ...HORARIO,
         cliente: titularDe(datos.titular, datos.contacto),
         grupo: datos.grupo,
-        cotizacion: cotizarDia(datos.grupo, dia),
+        cotizacion: cotizarDia(datos.grupo, dia, await leerPrecios()),
         propuesta: nombresDeUbicacion[datos.ubicacion],
         notas: datos.titular.notas ? `Algo importante: ${datos.titular.notas}` : null,
         formaPago: datos.forma,
@@ -316,7 +317,7 @@ export async function reservarBungalow(pedido: z.input<typeof pedidoDeBungalow>)
         ...HORARIO_BUNGALOW,
         cliente: titularDe(datos.titular, datos.contacto),
         grupo: datos.grupo,
-        cotizacion: cotizarBungalows(elegidas.length),
+        cotizacion: cotizarBungalows(elegidas.length, await leerPrecios()),
         propuesta: "Bungalow",
         notas: datos.titular.notas ? `Algo importante: ${datos.titular.notas}` : null,
         formaPago: "TRANSFERENCIA",
@@ -360,7 +361,7 @@ export async function reservarNado(pedido: z.input<typeof pedidoDeNado>): Promis
         salida: textoDeHora(datos.horario.hasta),
         cliente: titularDe(datos.titular, datos.contacto),
         grupo: { adultos: datos.nadadores, menores: 0, sinCargo: 0 },
-        cotizacion: cotizarNado(datos.nadadores, dia),
+        cotizacion: cotizarNado(datos.nadadores, dia, await leerPrecios()),
         propuesta: "Nado en aguas abiertas",
         notas: notas || null,
         formaPago: datos.forma,
