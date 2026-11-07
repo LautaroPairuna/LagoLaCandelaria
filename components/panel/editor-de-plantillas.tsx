@@ -7,6 +7,7 @@ import { borrarPlantilla, guardarPlantilla } from "@/app/panel/clientes/acciones
 import { conAviso } from "@/lib/avisos"
 import { armarMensaje, marcas, tiposDePlantilla, type DatosDelMensaje, type Plantilla, type TipoDePlantilla } from "@/lib/panel/plantillas"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 const sombra = "shadow-[0_8px_28px_rgba(58,42,24,0.06)]"
 const campo = "mt-1 block w-full rounded-xl border border-panel-line bg-white px-3 text-base font-normal"
@@ -107,8 +108,8 @@ function Formulario({ plantilla, tipo, onListo }: { plantilla?: Plantilla; tipo:
           <button
             type="button"
             disabled={pendiente}
-            onClick={() => {
-              if (!window.confirm(`¿Borrar el mensaje «${plantilla.nombre}»?`)) return
+            onClick={async () => {
+              if (!(await confirmar(`¿Borrar el mensaje «${plantilla.nombre}»?`, { aceptar: "Borrar", peligro: true }))) return
               iniciar(async () => void (await conAviso(() => borrarPlantilla(plantilla.id), "Listo, se borró el mensaje.")))
             }}
             className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-[#a32020] hover:bg-[#fde9e7]"

@@ -10,6 +10,7 @@ import { videosDelSitio, type Campo, type CampoDeFoto, type CampoDeLista, type C
 import type { Fallo } from "@/lib/errores"
 import { esFotoValida, fotoUrl } from "@/lib/fotos"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 type Valor = Record<string, unknown>
 type Ruta = (string | number)[]
@@ -98,8 +99,8 @@ export function EditorDeSeccion({
     })
   }
 
-  function restaurar() {
-    if (!window.confirm("¿Volver al texto original de esta sección? Se pierde lo que se cambió.")) return
+  async function restaurar() {
+    if (!(await confirmar("¿Volver al texto original de esta sección? Se pierde lo que se cambió.", { aceptar: "Volver al original", peligro: true }))) return
     iniciar(async () => {
       const resultado = await conAviso(() => restaurarContenido(clave), "Volvió al texto original.")
       if (resultado.ok) window.location.reload()

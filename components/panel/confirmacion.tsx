@@ -10,6 +10,7 @@ import { conAviso } from "@/lib/avisos"
 import type { ParaConfirmar } from "@/lib/panel/confirmaciones"
 import type { Plantilla } from "@/lib/panel/plantillas"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 const respuestas = {
   CONFIRMO: { nombre: "Confirmó", clase: "bg-[#2e7d32] text-white" },
@@ -71,8 +72,8 @@ export function AccionesDeConfirmacion({
             nombre: "No viene (se cancela)",
             icono: X,
             clase: "text-[#c62828]",
-            hacer: () => {
-              if (window.confirm(`¿${reserva.titular} avisó que no viene? La reserva se cancela y se liberan los lugares.`)) responder("CANCELO", "Listo: la reserva quedó cancelada.")
+            hacer: async () => {
+              if ((await confirmar(`¿${reserva.titular} avisó que no viene? La reserva se cancela y se liberan los lugares.`, { aceptar: "No viene, cancelar", peligro: true }))) responder("CANCELO", "Listo: la reserva quedó cancelada.")
               else setPosicion(null)
             },
           },

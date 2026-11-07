@@ -6,6 +6,7 @@ import { cobrar } from "@/app/panel/puerta/acciones"
 import { Button } from "@/components/ui/button"
 import { avisarRevisar, conAviso } from "@/lib/avisos"
 import { pesos } from "@/lib/predio/tarifas"
+import { confirmar } from "@/components/panel/confirmador"
 
 type Forma = "EFECTIVO" | "TRANSFERENCIA" | "DEBITO"
 const nombreDeForma: Record<Forma, string> = { EFECTIVO: "efectivo", TRANSFERENCIA: "transferencia", DEBITO: "débito" }
@@ -29,14 +30,14 @@ export function CobrarPendiente({ id, titular, saldo, efectivo, vino }: { id: nu
   return (
     <form
       className="flex w-full flex-wrap items-end gap-2 rounded-2xl bg-panel p-3"
-      onSubmit={(evento) => {
+      onSubmit={async (evento) => {
         evento.preventDefault()
         const monto = Number(importe.replace(/\D/g, ""))
         if (!monto) {
           avisarRevisar("Escribí cuánto vas a cobrar, en pesos y sin puntos.")
           return
         }
-        if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]} a ${titular}?`)) return
+        if (!(await confirmar(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]} a ${titular}?`, { aceptar: "Cobrar" }))) return
         iniciar(async () => {
           const resultado = await conAviso(
             () => cobrar({ id, forma, importe: monto }),

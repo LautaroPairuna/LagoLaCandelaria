@@ -10,6 +10,7 @@ import type { ItemDelMenu } from "@/lib/panel/cuentas"
 import { porCategoria, type Local } from "@/lib/panel/local"
 import { pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 const campo = "mt-1 block h-11 w-full rounded-xl border bg-white px-3 text-base text-panel-ink"
 
@@ -186,8 +187,8 @@ export function EditorDeMenu({ local, items }: { local: Local; items: ItemDelMen
                     type="button"
                     disabled={pendiente}
                     aria-label={`Borrar ${item.nombre}`}
-                    onClick={() => {
-                      if (!window.confirm(`¿Sacar «${item.nombre}» de la carta?`)) return
+                    onClick={async () => {
+                      if (!(await confirmar(`¿Sacar «${item.nombre}» de la carta?`, { aceptar: "Sacar de la carta", peligro: true }))) return
                       iniciar(async () => void (await conAviso(() => borrarItemDeMenu({ id: item.id }), `Listo, «${item.nombre}» salió de la carta.`)))
                     }}
                     className="grid size-9 place-items-center rounded-full text-panel-muted hover:bg-[#fde9e7] hover:text-[#c62828]"

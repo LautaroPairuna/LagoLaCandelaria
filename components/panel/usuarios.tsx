@@ -8,6 +8,7 @@ import { avisarError, avisarExito, conAviso } from "@/lib/avisos"
 import { actividadesConProfesor } from "@/lib/panel/actividades"
 import { ROLES, type Rol } from "@/lib/panel/roles"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 const nombreDeRol: Record<Rol, string> = {
   admin: "Administración (todo)",
@@ -203,8 +204,8 @@ export function FilaUsuario({
             type="button"
             disabled={pendiente}
             className="text-panel-tostado underline-offset-4 hover:underline"
-            onClick={() => {
-              if (window.confirm(`¿Generar una contraseña nueva para ${usuario.nombre}? La actual deja de funcionar.`)) {
+            onClick={async () => {
+              if ((await confirmar(`¿Generar una contraseña nueva para ${usuario.nombre}? La actual deja de funcionar.`, { aceptar: "Generar contraseña" }))) {
                 correr(() => generarContrasena(usuario.id), `Listo, la contraseña anterior de ${usuario.nombre} dejó de funcionar. Pasale la nueva.`)
               }
             }}

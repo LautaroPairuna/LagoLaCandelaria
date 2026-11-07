@@ -15,6 +15,7 @@ import type { EstadoVisible } from "@/lib/panel/estados"
 import { fechaLarga } from "@/lib/predio/fechas"
 import { pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 export type DatosDeLlegada = {
   id: number
@@ -249,11 +250,11 @@ function SeccionCobro({ llegada, otroDia }: { llegada: DatosDeLlegada; otroDia: 
   const [ingresanAlCobrar, setIngresanAlCobrar] = useState(true)
   const { saldo, efectivo } = llegada
 
-  function cobrarAhora(forma: FormaDeCobro, importe?: number) {
+  async function cobrarAhora(forma: FormaDeCobro, importe?: number) {
     const monto = importe ?? (forma === "EFECTIVO" ? (efectivo ?? 0) : (saldo ?? 0))
     // Solo el cobro total marca el ingreso de todos; uno parcial no.
     const ingresan = !otroDia && nadieEntro && ingresanAlCobrar && importe === undefined
-    if (!window.confirm(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]}${ingresan ? " y marcar que ingresaron todos" : ""}?`)) return
+    if (!(await confirmar(`¿Cobrar ${pesos(monto)} en ${nombreDeForma[forma]}${ingresan ? " y marcar que ingresaron todos" : ""}?`, { aceptar: "Cobrar" }))) return
     iniciar(async () => {
       const resultado = await conAviso(
         () => cobrar({ id: llegada.id, forma, importe }),

@@ -4,6 +4,7 @@ import Link from "next/link"
 
 import { salir } from "@/app/ingresar/acciones"
 import { LogoMark } from "@/components/logo-mark"
+import { Confirmador } from "@/components/panel/confirmador"
 import { NavegacionPanel } from "@/components/panel/navegacion"
 import { etiquetaDeRol, panelesDe, rolesDe } from "@/lib/panel/roles"
 import { exigirSesion } from "@/lib/panel/sesion"
@@ -89,6 +90,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
         </div>
       </aside>
       <div className="min-w-0 lg:pl-60 print:pl-0">{children}</div>
+      <Confirmador />
     </div>
   )
 }

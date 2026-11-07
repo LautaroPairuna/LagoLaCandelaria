@@ -5,6 +5,7 @@ import { useTransition } from "react"
 import { cancelarReserva, confirmarReserva } from "@/app/panel/reservas/acciones"
 import { Button } from "@/components/ui/button"
 import { conAviso } from "@/lib/avisos"
+import { confirmar } from "@/components/panel/confirmador"
 
 export function AccionesReserva({ id, codigo, estado }: { id: number; codigo: string; estado: "PENDIENTE" | "CONFIRMADA" | "CANCELADA" }) {
   const [pendiente, iniciar] = useTransition()
@@ -28,8 +29,8 @@ export function AccionesReserva({ id, codigo, estado }: { id: number; codigo: st
         variant="outline"
         disabled={pendiente}
         className="h-11 px-5"
-        onClick={() => {
-          if (window.confirm("¿Cancelar la reserva? Los lugares quedan libres para otros.")) {
+        onClick={async () => {
+          if ((await confirmar("¿Cancelar la reserva? Los lugares quedan libres para otros.", { aceptar: "Cancelar la reserva", peligro: true }))) {
             iniciar(async () => void (await conAviso(() => cancelarReserva(id), `La reserva ${codigo} quedó cancelada y sus lugares, libres.`)))
           }
         }}

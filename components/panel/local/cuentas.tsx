@@ -10,6 +10,7 @@ import type { CuentaDelDia, ItemDelMenu, ReservaIngresada } from "@/lib/panel/cu
 import { porCategoria, type Local } from "@/lib/panel/local"
 import { pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 type Forma = "EFECTIVO" | "DEBITO" | "TRANSFERENCIA"
 const formas: { id: Forma; nombre: string }[] = [
@@ -290,8 +291,8 @@ export function TarjetaDeCuenta({ cuenta, menu }: { cuenta: CuentaDelDia; menu: 
                   variant="outline"
                   disabled={pendiente}
                   className="h-11 bg-white px-4"
-                  onClick={() => {
-                    if (!window.confirm(`¿Cobrar ${pesos(cuenta.total)} en ${nombreDeForma[forma.id]} a ${cuenta.mesa}?`)) return
+                  onClick={async () => {
+                    if (!(await confirmar(`¿Cobrar ${pesos(cuenta.total)} en ${nombreDeForma[forma.id]} a ${cuenta.mesa}?`, { aceptar: "Cobrar" }))) return
                     iniciar(async () => void (await conAviso(() => cobrarCuenta({ cuentaId: cuenta.id, forma: forma.id }), `Listo, ${cuenta.mesa} quedó cobrada: ${pesos(cuenta.total)} en ${nombreDeForma[forma.id]}.`)))
                   }}
                 >
@@ -303,8 +304,8 @@ export function TarjetaDeCuenta({ cuenta, menu }: { cuenta: CuentaDelDia; menu: 
             <button
               type="button"
               disabled={pendiente}
-              onClick={() => {
-                if (!window.confirm(`¿Borrar la cuenta vacía de ${cuenta.mesa}?`)) return
+              onClick={async () => {
+                if (!(await confirmar(`¿Borrar la cuenta vacía de ${cuenta.mesa}?`, { aceptar: "Borrar", peligro: true }))) return
                 iniciar(async () => void (await conAviso(() => borrarCuenta({ cuentaId: cuenta.id }), `Listo, se borró la cuenta de ${cuenta.mesa}.`)))
               }}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-panel-muted hover:text-[#c62828]"
@@ -320,8 +321,8 @@ export function TarjetaDeCuenta({ cuenta, menu }: { cuenta: CuentaDelDia; menu: 
           <button
             type="button"
             disabled={pendiente}
-            onClick={() => {
-              if (!window.confirm(`¿Reabrir la cuenta de ${cuenta.mesa}? Vuelve a figurar como pendiente de cobro.`)) return
+            onClick={async () => {
+              if (!(await confirmar(`¿Reabrir la cuenta de ${cuenta.mesa}? Vuelve a figurar como pendiente de cobro.`, { aceptar: "Reabrir" }))) return
               iniciar(async () => void (await conAviso(() => reabrirCuenta({ cuentaId: cuenta.id }), `Listo, la cuenta de ${cuenta.mesa} está abierta otra vez.`)))
             }}
             className="inline-flex items-center gap-1.5 font-semibold text-panel-tostado underline-offset-4 hover:underline"

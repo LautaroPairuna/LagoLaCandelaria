@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { confirmarVarias, marcarTicketEnviado } from "@/app/panel/reservas/acciones"
 import { conAviso, llamar } from "@/lib/avisos"
 import { cn } from "cn"
+import { confirmar } from "@/components/panel/confirmador"
 
 export type EnvioDeTicket = { id: number; titular: string; telefono: string; whatsapp: string | null; enviado: boolean }
 
@@ -25,8 +26,8 @@ export function AccionesMasivas({ aConfirmar, envios, puedeConfirmar }: { aConfi
         <button
           type="button"
           disabled={pendiente}
-          onClick={() => {
-            if (!window.confirm(`¿Confirmar ${aConfirmar.length === 1 ? "la reserva" : `las ${aConfirmar.length} reservas`} a confirmar de esta lista?`)) return
+          onClick={async () => {
+            if (!(await confirmar(`¿Confirmar ${aConfirmar.length === 1 ? "la reserva" : `las ${aConfirmar.length} reservas`} a confirmar de esta lista?`, { aceptar: "Confirmar todas" }))) return
             iniciar(async () => void (await conAviso(() => confirmarVarias(aConfirmar), (resultado) => `Listo, se ${resultado.confirmadas === 1 ? "confirmó 1 reserva" : `confirmaron ${resultado.confirmadas} reservas`}.`)))
           }}
           className="inline-flex h-11 items-center gap-2 rounded-full bg-[#2e7d32] px-5 text-sm font-bold text-white hover:bg-[#1b5e20] disabled:opacity-60"
