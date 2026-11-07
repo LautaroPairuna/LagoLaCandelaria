@@ -48,6 +48,8 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
       token: true,
       desde: true,
       ticketEnviadoEn: true,
+      confirmacion: true,
+      confirmacionEn: true,
       contactos: { orderBy: { creadoEn: "desc" }, take: 1, select: { tipo: true, creadoEn: true, por: true } },
       personas: {
         orderBy: [{ familia: "asc" }, { id: "asc" }],
@@ -88,7 +90,11 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
         hasta: deFechaDb(fila.hasta),
         ticketEnviadoEn: fila.ticketEnviadoEn,
         // El último WhatsApp que se le abrió desde el panel (el tilde en la planilla).
-        contacto: fila.contactos[0] ? { tipo: fila.contactos[0].tipo, en: fila.contactos[0].creadoEn, por: fila.contactos[0].por } : fila.ticketEnviadoEn ? { tipo: "ticket", en: fila.ticketEnviadoEn, por: null } : null,
+        contacto: ultimoContacto([
+          fila.contactos[0] ? { tipo: fila.contactos[0].tipo, en: fila.contactos[0].creadoEn, por: fila.contactos[0].por } : null,
+          fila.ticketEnviadoEn ? { tipo: "ticket", en: fila.ticketEnviadoEn, por: null } : null,
+          fila.confirmacion === "CONFIRMO" && fila.confirmacionEn ? { tipo: "confirmo", en: fila.confirmacionEn, por: null } : null,
+        ]),
         ingresoEn: fila.ingresoEn,
         ingresoPor: fila.ingresoPor,
         integrantes: fila.personas.map(({ ingresoEn, salidaEn, ...persona }) => ({ ...persona, estado: estadoDe({ ingresoEn, salidaEn }, deFechaDb(fila.hasta) < hoy) })),
@@ -105,6 +111,14 @@ async function llegadasDonde(where: Prisma.ReservaWhereInput, busqueda = "") {
       }
     })
     .filter((fila) => !texto || fila.id === numero || fila.buscable.includes(texto))
+}
+
+type Contacto = { tipo: string; en: Date; por: string | null }
+
+/// El tilde de WhatsApp: el último contacto desde el panel, el ticket enviado o que
+/// respondió que confirma.
+function ultimoContacto(contactos: (Contacto | null)[]) {
+  return contactos.filter((contacto) => contacto !== null).sort((a, b) => b.en.getTime() - a.en.getTime())[0] ?? null
 }
 
 export type Llegada = Awaited<ReturnType<typeof llegadasDonde>>[number]

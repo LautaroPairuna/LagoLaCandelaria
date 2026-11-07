@@ -197,14 +197,14 @@ function Saldo({ llegada }: { llegada: Llegada }) {
   )
 }
 
-const nombreDeContacto: Record<string, string> = { confirmacion: "pedido de confirmación", ticket: "ticket", libre: "mensaje" }
+const nombreDeContacto: Record<string, string> = { confirmacion: "pedido de confirmación", ticket: "ticket", libre: "mensaje", confirmo: "confirmó su presencia" }
 const cuando = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" })
 
 /// El tilde verde de WhatsApp: ya se le escribió desde el panel. Al pasar el mouse dice
 /// qué se mandó, cuándo y quién.
 function TildeDeWhatsapp({ contacto }: { contacto: Llegada["contacto"] }) {
   if (!contacto) return null
-  const texto = `WhatsApp enviado: ${nombreDeContacto[contacto.tipo] ?? contacto.tipo}, ${cuando.format(contacto.en)}${contacto.por ? `, por ${contacto.por}` : ""}`
+  const texto = `${contacto.tipo === "confirmo" ? "Contactado por WhatsApp" : "WhatsApp enviado"}: ${nombreDeContacto[contacto.tipo] ?? contacto.tipo}, ${cuando.format(contacto.en)}${contacto.por ? `, por ${contacto.por}` : ""}`
   return (
     <span title={texto} className="ml-1.5 inline-grid size-5 place-items-center rounded-full bg-[#25d366] align-[-0.2em] text-white">
       <MessageCircleCheck className="size-3.5" aria-hidden />

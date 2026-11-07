@@ -16,9 +16,8 @@ import { pesos } from "@/lib/predio/tarifas"
 import { fechaLargaPanel } from "@/lib/panel/formato"
 import { totalDeCuenta } from "@/lib/panel/local"
 import { actividadDeReserva, lineaDelModulo, nombreDeUnidad, nombreDelModulo, reservaParaPanel } from "@/lib/panel/reservas"
-import { AsistenciaDelGrupo } from "@/components/panel/asistencia-grupo"
 import { InsigniaDeEstado } from "@/components/panel/insignia-de-estado"
-import { estadoDe, resumenDeAsistencia } from "@/lib/panel/asistencia"
+import { resumenDeAsistencia } from "@/lib/panel/asistencia"
 import { estadoVisible } from "@/lib/panel/estados"
 import { puedeVer } from "@/lib/panel/roles"
 import { exigirPanel } from "@/lib/panel/sesion"
@@ -55,20 +54,11 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
   const familias = new Set(reserva.personas.map((persona) => persona.familia))
   const hoy = hoyEnElPredio()
   const asistencia = resumenDeAsistencia({ ...reserva, hasta }, hoy)
-  const puedeMarcar = marcaIngresos && reserva.estado !== "CANCELADA" && desde <= hoy
   const importantes = reserva.personas.filter((persona) => persona.notas)
   const sinOcupar = (detalle.lugares ?? []).filter((lugar) => !reserva.ocupaciones.some((item) => item.unidad.id === lugar.id))
   const visible = estadoVisible(reserva.estado, asistencia.asistencia)
   const saldo = saldoDe(reserva.total, reserva.pagos)
   const reasignable = (veReservas || marcaIngresos) && reserva.estado !== "CANCELADA" && !reserva.ingresoEn && asistencia.adentro + asistencia.salieron === 0 && hasta >= hoy
-  const motivoSinMarcar =
-    reserva.estado === "CANCELADA"
-      ? "La reserva está cancelada: no se puede marcar el ingreso."
-      : desde > hoy
-        ? `El ingreso se marca desde el ${fechaLargaPanel(desde).toLowerCase()}.`
-        : !marcaIngresos
-          ? "Tu usuario no marca ingresos: eso se hace desde Puerta."
-          : undefined
 
   return (
     <main className="px-4 py-6 md:px-8 md:py-8">
@@ -138,7 +128,25 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           <Dato termino="Llegada">{`${fechaLargaPanel(desde)} · ${reserva.ingreso}`}</Dato>
           <Dato termino="Salida">{`${fechaLargaPanel(hasta)} · ${reserva.salida}`}</Dato>
           <Dato termino="Personas">
-            {`${reserva.adultos + reserva.menores + reserva.sinCargo}: ${reserva.adultos} ${reserva.adultos === 1 ? "adulto" : "adultos"}, ${reserva.menores} de 5 a 12, ${reserva.sinCargo} sin cargo`}
+            <span className="font-semibold">{reserva.adultos + reserva.menores + reserva.sinCargo}</span>
+            <span className="mt-0.5 block text-panel-muted">
+              {[
+                `${reserva.adultos} ${reserva.adultos === 1 ? "adulto" : "adultos"}`,
+                reserva.menores ? `${reserva.menores} de 5 a 12 años` : null,
+                reserva.sinCargo ? `${reserva.sinCargo} sin cargo (menores de 5)` : null,
+              ]
+                .filter(Boolean)
+                .map((linea) => (
+                  <span key={linea} className="block">
+                    {linea}
+                  </span>
+                ))}
+            </span>
+            {asistencia.adentro + asistencia.salieron ? (
+              <span className="mt-0.5 block text-panel-tostado">
+                {asistencia.adentro} adentro{asistencia.salieron ? `, ${asistencia.salieron} ya se fueron` : ""}
+              </span>
+            ) : null}
           </Dato>
           <Dato termino="Lugares">
             {reserva.ocupaciones.length
@@ -174,7 +182,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           {reserva.cargo ? <Dato termino="Cargo">{reserva.cargo}</Dato> : null}
           {reserva.cliente.email ? (
             <Dato termino="Correo">
-              <a href={`mailto:${reserva.cliente.email}`} className="underline underline-offset-4">
+              <a href={`mailto:${reserva.cliente.email}`} className="break-all underline underline-offset-4">
                 {reserva.cliente.email}
               </a>
             </Dato>
@@ -204,7 +212,7 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           ) : null}
         </Bloque>
 
-        <Bloque titulo="Plata" color="border-t-[#2e7d32]">
+        <Bloque titulo="Cobranza" color="border-t-[#2e7d32]">
           <Dato termino="Total">{textoDelTotal(detalle.cotizacion)}</Dato>
           {textoDelEfectivo(detalle.cotizacion) ? <Dato termino="Efectivo">{textoDelEfectivo(detalle.cotizacion)}</Dato> : null}
           {!detalle.cotizacion.aConfirmar && !detalle.cotizacion.consumo && reserva.total ? (
@@ -300,50 +308,6 @@ export default async function DetalleReserva({ params }: PageProps<"/panel/reser
           </Dato>
         </Bloque>
 
-        <section id="grupo" aria-label="El grupo" className="rounded-3xl bg-white p-5 shadow-[0_8px_28px_rgba(58,42,24,0.06)] lg:col-span-2 2xl:col-span-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="font-display text-2xl tracking-tight">El grupo</h2>
-            <p className="text-sm text-panel-muted">
-              {reserva.adultos} {reserva.adultos === 1 ? "adulto" : "adultos"} · {reserva.menores} {reserva.menores === 1 ? "menor" : "menores"}
-              {reserva.sinCargo ? ` · ${reserva.sinCargo} sin cargo` : ""}
-              {familias.size > 1 ? ` · ${familias.size} familias` : ""}
-              {reserva.estado !== "CANCELADA" && asistencia.adentro + asistencia.salieron ? ` · ${asistencia.adentro} adentro de ${asistencia.total}` : ""}
-            </p>
-          </div>
-          {reserva.edadesGrupo ? <p className="mt-1 text-sm text-panel-muted">Edades: {reserva.edadesGrupo}</p> : null}
-          {asistencia.porPersona ? (
-            <div className="mt-4">
-              <AsistenciaDelGrupo
-                reservaId={reserva.id}
-                completo
-                puedeMarcar={puedeMarcar}
-                motivoSinMarcar={motivoSinMarcar}
-                integrantes={reserva.personas.map((persona) => ({
-                  id: persona.id,
-                  familia: persona.familia,
-                  responsable: persona.responsable,
-                  nombre: persona.nombre,
-                  apellido: persona.apellido,
-                  dni: persona.dni,
-                  edad: persona.edad,
-                  notas: persona.notas,
-                  estado: estadoDe(persona, hasta < hoy),
-                }))}
-              />
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-panel-muted">
-              {reserva.personas.length
-                ? "Esta reserva no tiene a todas las personas cargadas, así que el ingreso se marca para el grupo entero desde Puerta."
-                : "En los grupos no se carga a cada participante: el ingreso se marca para el grupo entero desde Puerta."}{" "}
-              {marcaIngresos && desde <= hoy ? (
-                <Link href={`/panel/puerta?fecha=${desde < hoy ? desde : hoy}&q=${reserva.id}`} className="font-semibold text-panel-tostado underline-offset-4 hover:underline">
-                  Ir a Puerta
-                </Link>
-              ) : null}
-            </p>
-          )}
-        </section>
       </div>
     </main>
   )
@@ -360,9 +324,9 @@ function Bloque({ titulo, color, className, children }: { titulo: string; color:
 
 function Dato({ termino, children }: { termino: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[6.5rem_1fr] gap-3 text-sm">
+    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-3 border-b border-panel-line/60 pb-2 text-sm last:border-0">
       <dt className="font-bold text-panel-muted">{termino}</dt>
-      <dd>{children}</dd>
+      <dd className="min-w-0 break-words">{children}</dd>
     </div>
   )
 }
