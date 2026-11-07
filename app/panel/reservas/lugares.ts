@@ -48,8 +48,10 @@ async function reservaReasignable(reservaId: number) {
       hasta: true,
       ingresoEn: true,
       detalle: true,
+      adultos: true,
+      menores: true,
       personas: { where: { ingresoEn: { not: null } }, select: { id: true }, take: 1 },
-      ocupaciones: { select: { unidadId: true, fecha: true, hora: true, unidad: { select: { tipo: true, etiqueta: true } } } },
+      ocupaciones: { select: { unidadId: true, fecha: true, hora: true, unidad: { select: { tipo: true, etiqueta: true, capacidad: true } } } },
     },
   })
   exigir(reserva, "Esa reserva ya no está. Actualizá la página.")
@@ -69,8 +71,9 @@ function turnosDe(reserva: Reserva, unidadId?: string) {
 }
 
 /// Los lugares activos de esos tipos que están libres en todos esos turnos (sin contar a
-/// la reserva misma).
-async function libres(reserva: Reserva, tipos: TipoUnidad[], turnos: { fecha: string; hora: number }[]) {
+/// la reserva misma) y donde entran al menos `minimo` personas (los quinchos no tienen
+/// tope; gazebos y palapas se cuentan aparte).
+async function libres(reserva: Reserva, tipos: TipoUnidad[], turnos: { fecha: string; hora: number }[], minimo = 0) {
   const pedidos = new Set(turnos.map((turno) => clave(turno.fecha, turno.hora)))
   const fechas = [...new Set(turnos.map((turno) => turno.fecha))]
   const [unidades, tomadas] = await Promise.all([
@@ -82,7 +85,18 @@ async function libres(reserva: Reserva, tipos: TipoUnidad[], turnos: { fecha: st
   ])
   const ocupadas = new Set(tomadas.filter((fila) => pedidos.has(clave(deFechaDb(fila.fecha), fila.hora))).map((fila) => fila.unidadId))
   const propias = new Set(reserva.ocupaciones.map((fila) => fila.unidadId))
-  return unidades.filter((unidad) => !ocupadas.has(unidad.id) && !propias.has(unidad.id)).map((unidad) => ({ id: unidad.id, nombre: nombreDe(unidad), capacidad: unidad.capacidad }))
+  return unidades
+    .filter((unidad) => !ocupadas.has(unidad.id) && !propias.has(unidad.id) && (unidad.capacidad === null || unidad.capacidad >= minimo || esDePlaya(unidad.tipo)))
+    .map((unidad) => ({ id: unidad.id, nombre: nombreDe(unidad), capacidad: unidad.capacidad }))
+}
+
+/// Gazebos y palapas son todos iguales (4 personas): un grupo grande lleva varios.
+const esDePlaya = (tipo: TipoUnidad) => tipo === "GAZEBO" || tipo === "PALAPA"
+
+/// Sin lugar, se le da una parrilla donde entre todo el grupo (los menores de 5 no
+/// ocupan lugar) o un bungalow; nunca uno más chico.
+function minimoParaAsignar(reserva: Reserva) {
+  return reserva.modulo === "BUNGALOW" ? 0 : reserva.adultos + reserva.menores
 }
 
 const idDeReserva = z.number().int().positive()
@@ -93,10 +107,14 @@ export async function lugaresParaReasignar(id: number): Promise<Resultado<{ luga
     const reserva = await reservaReasignable(idDeReserva.parse(id))
     const unidades = [...new Map(reserva.ocupaciones.map((fila) => [fila.unidadId, fila.unidad])).entries()]
     const actuales = await Promise.all(
-      unidades.map(async ([unidadId, unidad]) => ({ id: unidadId, nombre: nombreDe(unidad), opciones: await libres(reserva, familiaDe(unidad.tipo), turnosDe(reserva, unidadId)) })),
+      unidades.map(async ([unidadId, unidad]) => ({
+        id: unidadId,
+        nombre: nombreDe(unidad),
+        opciones: await libres(reserva, familiaDe(unidad.tipo), turnosDe(reserva, unidadId), unidad.capacidad ?? 0),
+      })),
     )
     const tipos = paraAsignar[reserva.modulo]
-    const asignables = !unidades.length && tipos ? await libres(reserva, tipos, turnosDe(reserva)) : []
+    const asignables = !unidades.length && tipos ? await libres(reserva, tipos, turnosDe(reserva), minimoParaAsignar(reserva)) : []
     return { ok: true, lugares: { actuales, paraAsignar: asignables } }
   })
 }
@@ -115,7 +133,7 @@ export async function reasignarLugar(pedido: z.input<typeof pedidoDeReasignar>):
     const tipos = actual ? familiaDe(actual.unidad.tipo) : paraAsignar[reserva.modulo]
     exigir(tipos && (actual || reserva.ocupaciones.length === 0), "A esta reserva no se le puede asignar un lugar desde acá.")
     const turnos = turnosDe(reserva, datos.desde)
-    const opciones = await libres(reserva, tipos, turnos)
+    const opciones = await libres(reserva, tipos, turnos, actual ? (actual.unidad.capacidad ?? 0) : minimoParaAsignar(reserva))
     const nuevo = opciones.find((opcion) => opcion.id === datos.hacia)
     exigir(nuevo, "Ese lugar ya está ocupado esos días. Elegí otro.")
 

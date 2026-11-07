@@ -2,7 +2,7 @@ import { leerAjustes } from "@/lib/ajustes"
 import { cierreParaGrupos, estadoDelDia, mapaDeEspeciales, tipoDeDia, type TipoDia } from "@/lib/predio/calendario"
 import { aFechaDb, deFechaDb, diaDeLaSemana, fechaLarga, fechasEntre, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
 import { hayLugarPara } from "@/lib/predio/eleccion"
-import { unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
+import { PALAPAS_EN_EL_PREDIO, unidadesDelTipo, type TipoUnidad, type UnidadPredio } from "@/lib/predio/inventario"
 import type { TipoDeDia } from "@/lib/predio/tarifas"
 import { db } from "@/lib/prisma"
 import { libreEn, ocupacionPorUnidad } from "@/lib/reservas"
@@ -39,6 +39,11 @@ export async function unidadesDeLaWeb(categoria: Categoria) {
   if (!(categorias[categoria] as readonly TipoUnidad[]).includes("PALAPA")) return unidades
   const { palapasWeb } = await leerAjustes()
   return unidades.filter((unidad) => unidad.tipo !== "PALAPA" || unidad.numero <= palapasWeb)
+}
+
+/// Las unidades de la categoría que hay en el predio (las palapas cargadas de más, no).
+function unidadesDelPredio(categoria: Categoria) {
+  return unidadesDelTipo(...categorias[categoria]).filter((unidad) => unidad.tipo !== "PALAPA" || unidad.numero <= PALAPAS_EN_EL_PREDIO)
 }
 
 export async function diasEspeciales(desde: string, hasta: string) {
@@ -104,8 +109,9 @@ export type LugarDisponible = Pick<UnidadPredio, "id" | "tipo" | "numero" | "eti
 
 /// Estado de cada lugar de la categoría para un día (o una estadía, en bungalows).
 /// No expone de quién es la reserva.
-export async function lugaresDisponibles(categoria: Categoria, desde: string, hasta: string, horas?: number[], sinReserva?: number): Promise<LugarDisponible[]> {
-  const [ocupacion, unidades] = await Promise.all([ocupacionPorUnidad(desde, hasta, sinReserva), unidadesDeLaWeb(categoria)])
+/// Desde el panel se ven todos los lugares del predio, no solo el cupo de la web.
+export async function lugaresDisponibles(categoria: Categoria, desde: string, hasta: string, horas?: number[], sinReserva?: number, delPanel = false): Promise<LugarDisponible[]> {
+  const [ocupacion, unidades] = await Promise.all([ocupacionPorUnidad(desde, hasta, sinReserva), delPanel ? unidadesDelPredio(categoria) : unidadesDeLaWeb(categoria)])
   const libre = libreEn(ocupacion, desde, hasta, horas)
   return unidades.map(({ id, tipo, numero, etiqueta, capacidad, mesas }) => ({ id, tipo, numero, etiqueta, capacidad, mesas, estado: libre(id) ? "libre" : "ocupado" }))
 }

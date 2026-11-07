@@ -28,11 +28,10 @@ export const filtrosDeLugar = opciones([
 export const filtrosDeTipo = opciones([
   { id: "todas", nombre: "Todas" },
   { id: "finde", nombre: "Finde en familia" },
-  { id: "bungalow", nombre: "Bungalow" },
-  { id: "estudiantil", nombre: "Estudiantil" },
-  { id: "nado", nombre: "Nado" },
+  { id: "bungalow", nombre: "Bungalows" },
+  { id: "grupos", nombre: "Grupos" },
+  { id: "deportes", nombre: "Deportes" },
   { id: "restaurante", nombre: "Restaurante" },
-  { id: "aventura", nombre: "Aventura" },
 ] as const)
 
 export const ordenes = opciones([
@@ -85,10 +84,9 @@ const tiposDeLugar: Record<Exclude<FiltrosDePuerta["lugar"], "todos" | "sin-luga
 export const modulosDe: Record<Exclude<FiltrosDePuerta["tipo"], "todas">, Modulo[]> = {
   finde: ["FINDE_FAMILIA"],
   bungalow: ["BUNGALOW"],
-  estudiantil: ["CAMPAMENTO", "SALIDA_EDUCATIVA", "VIAJE_EGRESADOS"],
-  nado: ["NADO"],
+  grupos: ["CAMPAMENTO", "SALIDA_EDUCATIVA", "VIAJE_EGRESADOS"],
+  deportes: ["ACTIVIDAD_AVENTURA", "NADO"],
   restaurante: ["RESTAURANTE"],
-  aventura: ["ACTIVIDAD_AVENTURA"],
 }
 
 type ParaFiltrar = { visible: EstadoVisible; modulo: Modulo; titular: string; unidades: { tipo: TipoUnidad; numero: number }[] }

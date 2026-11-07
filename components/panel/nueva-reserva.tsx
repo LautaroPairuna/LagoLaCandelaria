@@ -3,13 +3,16 @@
 import { Minus, Plus, UserPlus, X } from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 
-import { reservarEnElPredio } from "@/app/panel/reservas/alta"
+import { lugaresLibresDelPanel, reservarEnElPredio } from "@/app/panel/reservas/alta"
 import { Button } from "@/components/ui/button"
 import { avisarError, avisarExito, avisarRevisar, llamar } from "@/lib/avisos"
 import type { LugarDisponible } from "@/lib/disponibilidad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { mapaDeEspeciales, tipoDeDia } from "@/lib/predio/calendario"
+import { lugaresDePlayaPara } from "@/lib/predio/asignacion"
 import { cotizarDia } from "@/lib/predio/cotizacion"
+import { parrillasOfrecidas, personasQueOcupan, revisarEleccionDelPanel, sugerir } from "@/lib/predio/eleccion"
+import { MAX_PERSONAS_PARRILLA, type UnidadPredio } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { EDAD_MAXIMA_MENOR, EDAD_MINIMA_CON_CARGO, pesos } from "@/lib/predio/tarifas"
 import { cn } from "cn"
@@ -58,18 +61,19 @@ function Cantidad({ etiqueta, detalle, valor, minimo = 0, onChange }: { etiqueta
   )
 }
 
-/// Carga una reserva desde el panel. En Puerta es para quien llegó sin avisar: queda
-/// para hoy y, en el mismo paso, se cobra y se marca el ingreso. En Reservas, para quien
-/// reservó por teléfono, con la fecha que se elija.
-export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: string; enPuerta: boolean; puedeCobrar: boolean; feriados: string[] }) {
+/// Carga una reserva desde el panel: quien llegó sin avisar o quien reservó por teléfono.
+/// Para hoy se puede cobrar y marcar el ingreso en el mismo paso. Los lugares siguen las
+/// reglas de la web: la parrilla del tamaño que alcanza (o un quincho) y un gazebo o una
+/// palapa cada 4 personas.
+export function NuevaReserva({ hoy, puedeCobrar, puedeMarcarIngreso, feriados }: { hoy: string; puedeCobrar: boolean; puedeMarcarIngreso: boolean; feriados: string[] }) {
   const [abierto, setAbierto] = useState(false)
   const [fecha, setFecha] = useState(hoy)
   const [grupo, setGrupo] = useState({ adultos: 1, menores: 0, sinCargo: 0 })
   const [zona, setZona] = useState<Zona>("")
   const [lugares, setLugares] = useState<LugarDisponible[]>([])
-  const [unidadId, setUnidadId] = useState("")
-  const [cobro, setCobro] = useState<Forma | "">(enPuerta && puedeCobrar ? "EFECTIVO" : "")
-  const [ingresan, setIngresan] = useState(enPuerta)
+  const [unidadIds, setUnidadIds] = useState<string[]>([])
+  const [cobro, setCobro] = useState<Forma | "">("")
+  const [ingresan, setIngresan] = useState(false)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [pendiente, iniciar] = useTransition()
 
@@ -79,24 +83,30 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
 
   useEffect(() => {
     if (!abierto || !zona) return
-    const controlador = new AbortController()
-    fetch(`/api/lugares?tipo=${zona}&desde=${fecha}&hasta=${fecha}`, { signal: controlador.signal })
-      .then((respuesta) => respuesta.json())
-      .then((json: { ok: boolean; lugares?: LugarDisponible[] }) => setLugares((json.lugares ?? []).filter((lugar) => lugar.estado === "libre")))
-      .catch(() => undefined)
-    return () => controlador.abort()
+    let vigente = true
+    void llamar(() => lugaresLibresDelPanel({ zona, fecha })).then((resultado) => {
+      if (vigente && resultado.ok) setLugares(resultado.lugares)
+    })
+    return () => {
+      vigente = false
+    }
   }, [abierto, zona, fecha])
 
   if (!abierto) {
     return (
       <Button type="button" className="h-11 bg-panel-ink px-5 text-white hover:bg-panel-tostado" onClick={() => setAbierto(true)}>
         <UserPlus className="size-4" aria-hidden />
-        {enPuerta ? "Llegó alguien sin reserva" : "Nueva reserva"}
+        Nueva reserva
       </Button>
     )
   }
 
   const deHoy = fecha === hoy
+  const personas = personasQueOcupan(grupo)
+  const ofrecidos: UnidadPredio[] = zona === "parrilla" ? [...lugares.filter((lugar) => lugar.tipo === "QUINCHO"), ...parrillasOfrecidas(personas, lugares)] : lugares
+  const elegidos = unidadIds.flatMap((id) => lugares.filter((lugar) => lugar.id === id))
+  const revision = zona && elegidos.length ? revisarEleccionDelPanel(zona, personas, elegidos) : null
+  const cuantos = zona === "playa" ? lugaresDePlayaPara(personas) : 1
   return (
     <form
       className="w-full rounded-3xl border-2 border-panel-ink/15 bg-white p-4 md:p-5"
@@ -111,7 +121,8 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
           dni: texto("dni").replace(/\D/g, ""),
           telefono: texto("telefono").replace(/\D/g, ""),
           ...grupo,
-          unidadId: unidadId || undefined,
+          zona: zona || undefined,
+          unidadIds: unidadIds.length ? unidadIds : undefined,
           notas: texto("notas") || undefined,
           cobro: cobro || undefined,
           ingresan: ingresan && deHoy,
@@ -119,6 +130,7 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
         const faltan: Record<string, string> = {}
         if (pedido.nombre.length < 2) faltan.nombre = "Escribí el nombre."
         if (pedido.apellido.length < 2) faltan.apellido = "Escribí el apellido."
+        if (revision && !revision.ok) faltan.lugar = revision.mensaje
         setErrores(faltan)
         if (Object.keys(faltan).length) {
           avisarRevisar("Revisá lo que está marcado en rojo.")
@@ -143,19 +155,19 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
           setAbierto(false)
           setGrupo({ adultos: 1, menores: 0, sinCargo: 0 })
           setZona("")
-          setUnidadId("")
+          setUnidadIds([])
           setErrores({})
         })
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-2xl tracking-tight">{enPuerta ? "Llegó sin reserva" : "Nueva reserva"}</h2>
+        <h2 className="font-display text-2xl tracking-tight">Nueva reserva</h2>
         <button type="button" onClick={() => setAbierto(false)} aria-label="Cerrar" className="grid size-9 place-items-center rounded-full hover:bg-panel">
           <X className="size-5" aria-hidden />
         </button>
       </div>
       <p className="text-sm text-panel-muted">
-        {enPuerta ? "Queda como reserva de hoy, para que el cobro y el ingreso queden registrados." : "Para una visita del día: parrilla, playa o solo la entrada."}
+        Para una visita del día: parrilla, playa o solo la entrada. Si es para hoy, se puede cobrar y marcar el ingreso en el mismo paso.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -194,28 +206,26 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
       <Error texto={errores.adultos} />
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {!enPuerta ? (
-          <label className="text-sm font-semibold text-panel-muted">
-            Día
-            <input
-              type="date"
-              value={fecha}
-              min={hoy}
-              onChange={(evento) => {
-                setFecha(evento.target.value || hoy)
-                setUnidadId("")
-              }}
-              className={cn(campo, borde("fecha"))}
-            />
-          </label>
-        ) : null}
+        <label className="text-sm font-semibold text-panel-muted">
+          Día
+          <input
+            type="date"
+            value={fecha}
+            min={hoy}
+            onChange={(evento) => {
+              setFecha(evento.target.value || hoy)
+              setUnidadIds([])
+            }}
+            className={cn(campo, borde("fecha"))}
+          />
+        </label>
         <label className="text-sm font-semibold text-panel-muted">
           Lugar
           <select
             value={zona}
             onChange={(evento) => {
               setZona(evento.target.value as Zona)
-              setUnidadId("")
+              setUnidadIds([])
               setLugares([])
             }}
             className={cn(campo, "border-panel-line")}
@@ -225,25 +235,55 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
             <option value="playa">Gazebo o palapa</option>
           </select>
         </label>
-        {zona ? (
-          <label className="text-sm font-semibold text-panel-muted">
-            Cuál
-            <select value={unidadId} onChange={(evento) => setUnidadId(evento.target.value)} className={cn(campo, "border-panel-line")}>
-              <option value="">{lugares.length ? "Elegí uno libre" : "Buscando lugares libres…"}</option>
-              {lugares.map((lugar) => (
-                <option key={lugar.id} value={lugar.id}>
-                  {nombreDeUnidad[lugar.tipo]} {lugar.etiqueta}
-                  {lugar.capacidad ? ` · hasta ${lugar.capacidad}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        <label className={cn("text-sm font-semibold text-panel-muted", enPuerta ? "lg:col-span-2" : "")}>
+        <label className="text-sm font-semibold text-panel-muted lg:col-span-2">
           Notas (opcional)
           <input name="notas" maxLength={500} placeholder="Alergias, lo que haga falta saber" className={cn(campo, "border-panel-line")} />
         </label>
       </div>
+
+      {zona ? (
+        <fieldset className="mt-3 rounded-2xl border border-panel-line p-3">
+          <legend className="px-1 text-sm font-semibold text-panel-muted">
+            {zona === "parrilla"
+              ? `${personas > MAX_PERSONAS_PARRILLA ? "Son más de 18: va un quincho" : `Una parrilla para ${personas} (o un quincho)`}`
+              : `Para ${personas} ${personas === 1 ? "persona" : "personas"} ${cuantos === 1 ? "va 1 lugar" : `van ${cuantos} lugares`} (4 por gazebo o palapa)`}
+          </legend>
+          <div className="flex flex-wrap items-center gap-2">
+            {ofrecidos.length === 0 ? <p className="text-sm text-panel-muted">{lugares.length ? "No hay lugares libres de ese tamaño." : "Buscando lugares libres…"}</p> : null}
+            {ofrecidos.map((lugar) => {
+              const elegido = unidadIds.includes(lugar.id)
+              return (
+                <button
+                  key={lugar.id}
+                  type="button"
+                  aria-pressed={elegido}
+                  onClick={() =>
+                    setUnidadIds(elegido ? unidadIds.filter((id) => id !== lugar.id) : zona === "parrilla" ? [lugar.id] : [...unidadIds, lugar.id])
+                  }
+                  className={cn(
+                    "rounded-full border-2 px-3 py-1.5 text-sm font-semibold",
+                    elegido ? "border-panel-ink bg-panel-ink text-white" : "border-panel-line bg-white hover:border-panel-muted",
+                  )}
+                >
+                  {nombreDeUnidad[lugar.tipo]} {lugar.etiqueta}
+                  {lugar.capacidad && lugar.tipo !== "GAZEBO" && lugar.tipo !== "PALAPA" ? <span className="font-normal opacity-75"> · {lugar.capacidad}</span> : null}
+                </button>
+              )
+            })}
+            {ofrecidos.length ? (
+              <button
+                type="button"
+                onClick={() => setUnidadIds((sugerir(zona, personas, ofrecidos) ?? []).map((lugar) => lugar.id))}
+                className="text-sm font-semibold text-panel-tostado underline-offset-4 hover:underline"
+              >
+                Elegir por mí
+              </button>
+            ) : null}
+          </div>
+          {revision && !revision.ok ? <p className="mt-2 text-sm font-semibold text-[#a32020]">{revision.mensaje}</p> : null}
+          <Error texto={errores.lugar} />
+        </fieldset>
+      ) : null}
 
       <div className="mt-4 rounded-2xl bg-panel px-4 py-3">
         <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -278,7 +318,7 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
             </div>
           </fieldset>
         ) : null}
-        {enPuerta && deHoy ? (
+        {puedeMarcarIngreso && deHoy ? (
           <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
             <input type="checkbox" checked={ingresan} onChange={(evento) => setIngresan(evento.target.checked)} className="size-5 accent-[#3a2a18]" />
             Ya ingresan al predio
@@ -288,7 +328,7 @@ export function NuevaReserva({ hoy, enPuerta, puedeCobrar, feriados }: { hoy: st
 
       <div className="mt-4 flex justify-end">
         <Button type="submit" disabled={pendiente} className="h-12 bg-panel-naranja px-6 text-base text-white hover:bg-panel-tostado">
-          {pendiente ? "Guardando…" : enPuerta ? (cobro ? "Guardar, cobrar y dejar pasar" : "Guardar y dejar pasar") : "Guardar reserva"}
+          {pendiente ? "Guardando…" : ingresan && deHoy ? (cobro ? "Guardar, cobrar y dejar pasar" : "Guardar y dejar pasar") : cobro ? "Guardar y cobrar" : "Guardar reserva"}
         </Button>
       </div>
     </form>

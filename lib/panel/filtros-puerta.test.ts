@@ -13,7 +13,7 @@ const titulares = (lista: { titular: string }[]) => lista.map((reserva) => reser
 describe("filtros de Puerta", () => {
   it("filtra por estado, propuesta y lugar", () => {
     expect(titulares(filtrarYOrdenar(reservas, { ...sinFiltros, estado: "por-llegar" }))).toEqual(["Zárate", "álvarez"])
-    expect(titulares(filtrarYOrdenar(reservas, { ...sinFiltros, tipo: "estudiantil" }))).toEqual(["Colegio Belgrano"])
+    expect(titulares(filtrarYOrdenar(reservas, { ...sinFiltros, tipo: "grupos" }))).toEqual(["Colegio Belgrano"])
     expect(titulares(filtrarYOrdenar(reservas, { ...sinFiltros, lugar: "parrilla" }))).toEqual(["Zárate", "álvarez"])
     expect(titulares(filtrarYOrdenar(reservas, { ...sinFiltros, lugar: "sin-lugar" }))).toEqual(["Colegio Belgrano"])
   })

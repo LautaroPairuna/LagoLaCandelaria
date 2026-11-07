@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { grupoPorEdades, hayLugarPara, parrillasOfrecidas, personasQueOcupan, revisarEleccion, sugerir } from "@/lib/predio/eleccion"
+import { grupoPorEdades, hayLugarPara, parrillasOfrecidas, personasQueOcupan, revisarEleccion, revisarEleccionDelPanel, sugerir } from "@/lib/predio/eleccion"
 import { idDeUnidad, inventario, MAX_PERSONAS_RESTAURANTE, type TipoUnidad } from "@/lib/predio/inventario"
 
 const u = (tipo: TipoUnidad, numero: number) => inventario.find((item) => item.id === idDeUnidad(tipo, numero))!
@@ -108,5 +108,25 @@ describe("mesas del restaurante", () => {
     expect(sugerir("restaurante", 36, libres)).toHaveLength(9)
     expect(hayLugarPara("restaurante", 36, libres)).toBe(true)
     expect(hayLugarPara("restaurante", 37, libres)).toBe(false)
+  })
+})
+
+describe("revisarEleccionDelPanel", () => {
+  const parrilla12 = inventario.find((unidad) => unidad.tipo === "PARRILLA" && unidad.capacidad === 12)!
+  const quincho = inventario.find((unidad) => unidad.tipo === "QUINCHO")!
+  const palapas = inventario.filter((unidad) => unidad.tipo === "PALAPA").slice(0, 4)
+
+  it("no deja a 21 personas en una parrilla de 12", () => {
+    expect(revisarEleccionDelPanel("parrilla", 21, [parrilla12]).ok).toBe(false)
+    expect(revisarEleccionDelPanel("parrilla", 12, [parrilla12]).ok).toBe(true)
+  })
+
+  it("un quincho sirve para cualquier grupo", () => {
+    expect(revisarEleccionDelPanel("parrilla", 8, [quincho]).ok).toBe(true)
+  })
+
+  it("en la playa pide un lugar cada 4 personas", () => {
+    expect(revisarEleccionDelPanel("playa", 13, palapas.slice(0, 1)).ok).toBe(false)
+    expect(revisarEleccionDelPanel("playa", 13, palapas).ok).toBe(true)
   })
 })

@@ -108,6 +108,14 @@ export function revisarEleccion(tipo: TipoDeLugar, personas: number, elegidas: U
   return { ok: true }
 }
 
+/// Lo que se carga desde el panel sigue las reglas de la web (la parrilla del tamaño que
+/// alcanza, un gazebo o una palapa cada 4 personas), salvo que el predio puede dar un
+/// quincho a cualquier grupo.
+export function revisarEleccionDelPanel(tipo: "parrilla" | "playa", personas: number, elegidas: UnidadPredio[]): Revision {
+  if (tipo === "parrilla" && elegidas.length === 1 && elegidas[0].tipo === "QUINCHO") return { ok: true }
+  return revisarEleccion(tipo, personas, elegidas)
+}
+
 /// Si con los lugares libres de un día el grupo puede armar una elección válida.
 export function hayLugarPara(tipo: TipoDeLugar, personas: number, libres: UnidadPredio[]) {
   const regla = reglaDe(tipo, personas)

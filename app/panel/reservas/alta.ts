@@ -8,10 +8,11 @@ import { anotar, registrarActividad } from "@/lib/panel/actividad"
 import { cobroPropuesto } from "@/lib/panel/libro-caja"
 import { puedeVer } from "@/lib/panel/roles"
 import { permisoParaAccion } from "@/lib/panel/sesion"
-import { diasEspeciales } from "@/lib/disponibilidad"
+import { diasEspeciales, lugaresDisponibles, type LugarDisponible } from "@/lib/disponibilidad"
 import { tipoDeDia } from "@/lib/predio/calendario"
 import { cotizarDia } from "@/lib/predio/cotizacion"
 import { aFechaDb, esFechaIso, hoyEnElPredio, sumarDiasIso } from "@/lib/predio/fechas"
+import { personasQueOcupan, revisarEleccionDelPanel } from "@/lib/predio/eleccion"
 import { inventario } from "@/lib/predio/inventario"
 import { nombreDeUnidad } from "@/lib/predio/nombres"
 import { pesos } from "@/lib/predio/tarifas"
@@ -36,7 +37,8 @@ const pedidoDeAlta = z
     adultos: cantidad(200),
     menores: cantidad(200),
     sinCargo: cantidad(200),
-    unidadId: z.string().max(24).optional(),
+    zona: z.enum(["parrilla", "playa"]).optional(),
+    unidadIds: z.array(z.string().max(24)).max(40).optional(),
     notas: z.string().trim().max(500, "Es muy largo: resumilo en 500 letras.").optional(),
     cobro: z.enum(["EFECTIVO", "DEBITO", "TRANSFERENCIA"]).optional(),
     ingresan: z.boolean().optional(),
@@ -62,10 +64,18 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
       if (!leido.success) throw new ErrorHumano("El teléfono va con característica y número, 10 dígitos en total (por ejemplo 11 3009 1020).")
       tel = leido.data
     }
-    const unidad = datos.unidadId ? inventario.find((item) => item.id === datos.unidadId) : undefined
-    exigir(!datos.unidadId || (unidad && (lugaresPermitidos as readonly string[]).includes(unidad.tipo)), "Ese lugar no se puede elegir acá. Elegí otro o dejalo sin lugar.")
-
     const grupo = { adultos: datos.adultos, menores: datos.menores, sinCargo: datos.sinCargo }
+    const unidades = (datos.unidadIds ?? []).map((id) => inventario.find((item) => item.id === id))
+    exigir(
+      unidades.every((unidad) => unidad && (lugaresPermitidos as readonly string[]).includes(unidad.tipo)),
+      "Ese lugar no se puede elegir acá. Elegí otro o dejalo sin lugar.",
+    )
+    const elegidas = unidades.filter((unidad) => unidad !== undefined)
+    if (elegidas.length) {
+      const revision = revisarEleccionDelPanel(datos.zona ?? "parrilla", personasQueOcupan(grupo), elegidas)
+      if (!revision.ok) throw new ErrorHumano(revision.mensaje)
+    }
+
     const cotizacion = cotizarDia(grupo, tipoDeDia(datos.fecha, await diasEspeciales(datos.fecha, datos.fecha)))
     const quien = sesion.user.name.slice(0, 80)
     const creada = await crearReserva({
@@ -79,11 +89,15 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
       cliente: { nombre: datos.nombre, apellido: datos.apellido, dni: datos.dni || null, email: null, telefono: tel },
       grupo,
       cotizacion,
-      propuesta: unidad ? (unidad.tipo === "PARRILLA" || unidad.tipo === "QUINCHO" ? "Parrilla" : "Gazebo o palapa") : null,
+      propuesta: elegidas.length ? (datos.zona === "playa" ? "Gazebo o palapa" : "Parrilla") : null,
       notas: [datos.fecha === hoy ? `Llegó sin reserva. La cargó ${quien}.` : `Reserva tomada por ${quien}.`, datos.notas].filter(Boolean).join(" "),
-      asignar: unidad ? (ocupacion) => (libreEn(ocupacion, datos.fecha, datos.fecha)(unidad.id) ? [unidad.id] : null) : undefined,
+      asignar: elegidas.length
+        ? (ocupacion) => (elegidas.every((unidad) => libreEn(ocupacion, datos.fecha, datos.fecha)(unidad.id)) ? elegidas.map((unidad) => unidad.id) : null)
+        : undefined,
     })
-    if ("sinLugar" in creada) throw new ErrorHumano(`La ${nombreDeUnidad[unidad!.tipo].toLowerCase()} ${unidad!.etiqueta} ya está tomada ese día. Elegí otro lugar.`)
+    if ("sinLugar" in creada) {
+      throw new ErrorHumano(`${elegidas.length === 1 ? `La ${nombreDeUnidad[elegidas[0].tipo].toLowerCase()} ${elegidas[0].etiqueta} ya está tomada` : "Alguno de esos lugares ya está tomado"} ese día. Elegí otro.`)
+    }
 
     if (cobra || ingresan) {
       await db().$transaction(async (tx) => {
@@ -116,5 +130,17 @@ export async function reservarEnElPredio(pedido: z.input<typeof pedidoDeAlta>): 
       reservaId: creada.id,
     })
     return { ok: true, id: creada.id }
+  })
+}
+
+/// Los lugares libres de un día para cargar una reserva desde el panel: todos los del
+/// predio, no solo el cupo que se ofrece en la web.
+export async function lugaresLibresDelPanel(pedido: { zona: "parrilla" | "playa"; fecha: string }): Promise<Resultado<{ lugares: LugarDisponible[] }>> {
+  return accion("lugaresLibresDelPanel", async () => {
+    await permisoParaAccion("puerta", "reservas")
+    const { zona, fecha } = z.object({ zona: z.enum(["parrilla", "playa"]), fecha: z.string() }).parse(pedido)
+    exigir(esFechaIso(fecha), "Elegí un día.")
+    const lugares = await lugaresDisponibles(zona, fecha, fecha, undefined, undefined, true)
+    return { ok: true, lugares: lugares.filter((lugar) => lugar.estado !== "ocupado") }
   })
 }
