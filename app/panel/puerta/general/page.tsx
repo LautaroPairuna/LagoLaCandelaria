@@ -1,17 +1,16 @@
-import { CircleCheck, MapPin, TriangleAlert, Users, Wallet, type LucideIcon } from "lucide-react"
+import { CircleCheck, Layers, MapPin, TriangleAlert, Users, Wallet, type LucideIcon } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
 import { EncabezadoDelDia } from "@/components/panel/encabezado-del-dia"
+import type { Modulo } from "@/generated/prisma/enums"
 import { PestanasDePuerta } from "@/components/panel/pestanas-puerta"
 import { totalesPorForma } from "@/lib/panel/cobros"
-import { estilosDeEstado, ordenDeEstados } from "@/lib/panel/estados"
 import { llegadasDelDia, pagosDelDia } from "@/lib/panel/puerta"
-import { nombreDelModulo } from "@/lib/panel/reservas"
 import { exigirPanel } from "@/lib/panel/sesion"
 import { aFechaDb, esFechaIso, hoyEnElPredio } from "@/lib/predio/fechas"
-import { nombreDeUnidad } from "@/lib/predio/nombres"
+import { PALAPAS_EN_EL_PREDIO, unidadesDelTipo, type TipoUnidad } from "@/lib/predio/inventario"
 import { pesos } from "@/lib/predio/tarifas"
 import { db } from "@/lib/prisma"
 import { cn } from "cn"
@@ -21,12 +20,30 @@ export const metadata: Metadata = { title: "General · Puerta" }
 const sombra = "shadow-[0_8px_28px_rgba(58,42,24,0.06)]"
 const numero = new Intl.NumberFormat("es-AR")
 
-/// Los colores de cada bloque: personas en azul, plata en verde, lugares y estados en naranja.
+/// Los colores de cada bloque: personas en azul, cobranza en verde, propuestas en naranja
+/// y ocupación en marrón.
 const colores = {
   personas: { borde: "border-t-[#1f6aa5]", icono: "bg-[#eaf3fb] text-[#1f6aa5]" },
   plata: { borde: "border-t-[#2e7d32]", icono: "bg-[#e6f5e4] text-[#2e7d32]" },
   lugares: { borde: "border-t-[#e07b1a]", icono: "bg-[#ffeedb] text-[#a85d00]" },
+  ocupacion: { borde: "border-t-[#7a5b3a]", icono: "bg-[#f3ece4] text-[#7a5b3a]" },
 }
+
+const categorias: { nombre: string; modulos: Modulo[]; siempre?: boolean }[] = [
+  { nombre: "Finde en familia", modulos: ["FINDE_FAMILIA"], siempre: true },
+  { nombre: "Estudiantil", modulos: ["CAMPAMENTO", "SALIDA_EDUCATIVA", "VIAJE_EGRESADOS"], siempre: true },
+  { nombre: "Actividades", modulos: ["ACTIVIDAD_AVENTURA", "NADO"], siempre: true },
+  { nombre: "Bungalows", modulos: ["BUNGALOW"], siempre: true },
+  { nombre: "Restaurante", modulos: ["RESTAURANTE"] },
+]
+
+const tiposDeLugar: { nombre: string; tipos: TipoUnidad[] }[] = [
+  { nombre: "Parrillas", tipos: ["PARRILLA"] },
+  { nombre: "Quinchos", tipos: ["QUINCHO"] },
+  { nombre: "Gazebos", tipos: ["GAZEBO"] },
+  { nombre: "Palapas", tipos: ["PALAPA"] },
+  { nombre: "Bungalows", tipos: ["BUNGALOW"] },
+]
 
 type Alerta = { texto: string; href?: string; grave?: boolean }
 
@@ -40,10 +57,11 @@ export default async function GeneralDePuerta({ searchParams }: PageProps<"/pane
   const pedida = Array.isArray(params.fecha) ? params.fecha[0] : params.fecha
   const fecha = pedida && esFechaIso(pedida) ? pedida : hoy
   const momento = fecha < hoy ? "pasado" : fecha > hoy ? "futuro" : "hoy"
-  const [reservas, pagos, pendientesDeConfirmar] = await Promise.all([
+  const [reservas, pagos, pendientesDeConfirmar, ocupadas] = await Promise.all([
     llegadasDelDia(fecha),
     pagosDelDia(fecha),
     db().reserva.count({ where: { estado: "PENDIENTE", hasta: { gte: aFechaDb(hoy) } } }),
+    db().ocupacion.findMany({ where: { fecha: aFechaDb(fecha), reserva: { estado: { not: "CANCELADA" } } }, distinct: ["unidadId"], select: { unidadId: true } }),
   ])
   const enPuerta = (filtros: Record<string, string>) => `/panel/puerta?${new URLSearchParams({ ...(momento === "hoy" ? {} : { fecha }), ...filtros })}`
 
@@ -57,18 +75,29 @@ export default async function GeneralDePuerta({ searchParams }: PageProps<"/pane
   const porCobrar = reservas.reduce((suma, item) => suma + (item.saldo ?? 0), 0)
   const aPresupuestar = reservas.filter((item) => item.aConfirmar).length
 
-  const porEstado = ordenDeEstados.map((estado) => ({ estado, cantidad: reservas.filter((item) => item.visible === estado).length })).filter((fila) => fila.cantidad)
-  const porPropuesta = Object.entries(
-    reservas.reduce<Record<string, { grupos: number; personas: number }>>((tabla, item) => {
-      const fila = (tabla[item.modulo] ??= { grupos: 0, personas: 0 })
-      fila.grupos += 1
-      fila.personas += item.personas
-      return tabla
-    }, {}),
-  )
-  const porLugar = Object.entries(
-    reservas.flatMap((item) => item.unidades).reduce<Record<string, number>>((tabla, unidad) => ({ ...tabla, [unidad.tipo]: (tabla[unidad.tipo] ?? 0) + 1 }), {}),
-  )
+  // Por propuesta: las mismas categorías que los botones de la planilla.
+  const porPropuesta = categorias.map((categoria) => {
+    const delGrupo = reservas.filter((item) => categoria.modulos.includes(item.modulo))
+    const suma = (valor: (item: (typeof reservas)[number]) => number) => delGrupo.reduce((total, item) => total + valor(item), 0)
+    return {
+      ...categoria,
+      reservas: delGrupo.length,
+      personas: suma((item) => item.personas),
+      adentro: suma((item) => item.adentro),
+      salieron: suma((item) => item.salieron),
+      total: suma((item) => item.importeTotal ?? 0),
+      cobrado: suma((item) => item.cobrado),
+      pendiente: suma((item) => item.saldo ?? 0),
+    }
+  }).filter((fila) => fila.reservas || fila.siempre)
+
+  // Ocupación por tipo de lugar: cuántos de cada tipo tienen alguna reserva ese día.
+  const tomadas = new Set(ocupadas.map((fila) => fila.unidadId))
+  const porLugar = tiposDeLugar.map((tipo) => {
+    const total = unidadesDelTipo(...tipo.tipos).filter((unidad) => unidad.tipo !== "PALAPA" || unidad.numero <= PALAPAS_EN_EL_PREDIO)
+    const reservado = total.filter((unidad) => tomadas.has(unidad.id)).length
+    return { ...tipo, total: total.length, reservado, libre: total.length - reservado }
+  })
 
   const aConfirmarDelDia = reservas.filter((item) => item.visible === "a-confirmar").length
   const adentroConSaldo = reservas.filter((item) => item.adentro > 0 && (item.saldo ?? 0) > 0).length
@@ -94,7 +123,7 @@ export default async function GeneralDePuerta({ searchParams }: PageProps<"/pane
       <Alertas alertas={alertas} />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
-        <Bloque titulo="Personas" icono={Users} color="personas" detalle={`${numero.format(reservas.length)} ${reservas.length === 1 ? "grupo" : "grupos"}`}>
+        <Bloque titulo="Personas" icono={Users} color="personas" detalle={`${numero.format(esperadas)} esperadas en ${numero.format(reservas.length)} ${reservas.length === 1 ? "grupo" : "grupos"}`}>
           <Barra
             partes={[
               { valor: salieron, clase: "bg-[#546170]", nombre: "Se retiraron" },
@@ -102,15 +131,14 @@ export default async function GeneralDePuerta({ searchParams }: PageProps<"/pane
               { valor: faltan, clase: "bg-[#c9d7e4]", nombre: momento === "pasado" ? "No vinieron" : "Por llegar" },
             ]}
           />
-          <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
-            <Cifra termino="Esperadas" valor={numero.format(esperadas)} />
+          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Cifra termino={momento === "pasado" ? "Vinieron" : "Ingresadas"} valor={numero.format(momento === "pasado" ? adentro + salieron : adentro)} punto="bg-[#2e7d32]" />
             <Cifra termino="Retiradas" valor={numero.format(salieron)} punto="bg-[#546170]" />
             <Cifra termino={momento === "pasado" ? "No vinieron" : "Por llegar"} valor={numero.format(faltan)} punto="bg-[#c9d7e4]" />
           </dl>
         </Bloque>
 
-        <Bloque titulo="Plata" icono={Wallet} color="plata" detalle={momento === "hoy" ? "Lo cobrado hoy en Puerta" : "Lo cobrado ese día en Puerta"}>
+        <Bloque titulo="Cobranza" icono={Wallet} color="plata" detalle={momento === "hoy" ? "Lo cobrado hoy en Puerta" : "Lo cobrado ese día en Puerta"}>
           <Barra
             partes={[
               { valor: cobrado, clase: "bg-[#2e7d32]", nombre: "Cobrado" },
@@ -129,33 +157,28 @@ export default async function GeneralDePuerta({ searchParams }: PageProps<"/pane
           </dl>
         </Bloque>
 
-        <Bloque titulo="Lugares y estados" icono={MapPin} color="lugares" className="xl:col-span-2">
-          <div className="grid gap-5 md:grid-cols-3">
-            <Lista titulo="Reservas por estado" vacio={!porEstado.length}>
-              {porEstado.map(({ estado, cantidad }) => (
-                <Fila
-                  key={estado}
-                  termino={
-                    <span className="flex items-center gap-2">
-                      <span className={cn("size-3 rounded-full", estilosDeEstado[estado].insignia)} aria-hidden />
-                      {estilosDeEstado[estado].nombre}
-                    </span>
-                  }
-                  valor={String(cantidad)}
-                />
-              ))}
-            </Lista>
-            <Lista titulo="Lugares ocupados" vacio={!porLugar.length}>
-              {porLugar.map(([tipo, cantidad]) => (
-                <Fila key={tipo} termino={nombreDeUnidad[tipo as keyof typeof nombreDeUnidad]} valor={String(cantidad)} />
-              ))}
-            </Lista>
-            <Lista titulo="Por propuesta" vacio={!porPropuesta.length}>
-              {porPropuesta.map(([modulo, fila]) => (
-                <Fila key={modulo} termino={nombreDelModulo[modulo as keyof typeof nombreDelModulo]} valor={`${fila.grupos} · ${numero.format(fila.personas)} pers.`} />
-              ))}
-            </Lista>
-          </div>
+        <Bloque titulo="Por propuesta" icono={Layers} color="lugares" className="xl:col-span-2">
+          <Planilla
+            columnas={["Propuesta", "Reservas", "Personas", "Adentro", "Se fueron", "Por llegar", "Total", "Cobrado", "Pendiente"]}
+            filas={porPropuesta.map((fila) => [
+              fila.nombre,
+              numero.format(fila.reservas),
+              numero.format(fila.personas),
+              numero.format(fila.adentro),
+              numero.format(fila.salieron),
+              numero.format(Math.max(fila.personas - fila.adentro - fila.salieron, 0)),
+              pesos(fila.total),
+              pesos(fila.cobrado),
+              pesos(fila.pendiente),
+            ])}
+          />
+        </Bloque>
+
+        <Bloque titulo="Ocupación por lugar" icono={MapPin} color="ocupacion" className="xl:col-span-2">
+          <Planilla
+            columnas={["Lugar", "Reservado", "Libre", "Total", "Ocupación"]}
+            filas={porLugar.map((fila) => [fila.nombre, numero.format(fila.reservado), numero.format(fila.libre), numero.format(fila.total), <Porcentaje key={fila.nombre} valor={fila.reservado} total={fila.total} />])}
+          />
         </Bloque>
       </div>
     </main>
@@ -257,20 +280,44 @@ function Cifra({ termino, valor, punto, pie, href }: { termino: string; valor: s
   )
 }
 
-function Lista({ titulo, vacio = false, children }: { titulo: string; vacio?: boolean; children: ReactNode }) {
+/// Un cuadro con la forma de la planilla: la primera columna es el nombre y el resto, números.
+function Planilla({ columnas, filas }: { columnas: string[]; filas: ReactNode[][] }) {
   return (
-    <div>
-      <h3 className="text-xs font-bold tracking-wide text-panel-muted uppercase">{titulo}</h3>
-      {vacio ? <p className="mt-2 text-sm text-panel-muted">No hay reservas ese día.</p> : <dl className="mt-1 divide-y divide-panel-line text-sm">{children}</dl>}
+    <div className="-mx-1 overflow-x-auto px-1">
+      <table className="w-full min-w-[40rem] text-sm">
+        <thead className="border-b border-panel-line text-xs font-bold tracking-wide text-panel-muted uppercase">
+          <tr>
+            {columnas.map((columna, indice) => (
+              <th key={columna} className={cn("px-3 py-2", indice ? "text-right" : "text-left")}>
+                {columna}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-panel-line">
+          {filas.map((fila, numeroDeFila) => (
+            <tr key={numeroDeFila} className="even:bg-panel/40">
+              {fila.map((celda, indice) => (
+                <td key={indice} className={cn("px-3 py-2.5", indice ? "text-right whitespace-nowrap tabular-nums" : "font-semibold")}>
+                  {celda}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
 
-function Fila({ termino, valor }: { termino: ReactNode; valor: string }) {
+function Porcentaje({ valor, total }: { valor: number; total: number }) {
+  const porcentaje = total ? Math.round((valor / total) * 100) : 0
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <dt>{termino}</dt>
-      <dd className="font-semibold tabular-nums">{valor}</dd>
-    </div>
+    <span className="inline-flex items-center justify-end gap-2">
+      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-panel" aria-hidden>
+        <span className="block h-full rounded-full bg-panel-naranja" style={{ width: `${porcentaje}%` }} />
+      </span>
+      {porcentaje} %
+    </span>
   )
 }
