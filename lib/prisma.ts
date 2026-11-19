@@ -9,7 +9,14 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 // abiertas aunque no se usen (minimumIdle = connectionLimit). Con esto se cierran
 // al minuto sin uso, porque la base es compartida con otros sitios. Lo que ya
 // venga en DATABASE_URL tiene prioridad.
-const POOL = { connectionLimit: "5", minimumIdle: "0", idleTimeout: "60" }
+// allowPublicKeyRetrieval: MySQL 8 sin SSL; sin esto, después de reiniciar MySQL
+// (caché de autenticación vacía) el driver no se puede autenticar.
+const POOL = {
+  connectionLimit: "5",
+  minimumIdle: "0",
+  idleTimeout: "60",
+  allowPublicKeyRetrieval: "true",
+}
 
 function conPool(raw: string): string {
   const url = new URL(raw)
